@@ -429,7 +429,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 <div id="screen-login" class="screen active">
   <div class="login-box">
     <div class="login-logo">ScoreFlow</div>
-    <div class="login-sub">ez pz golf tournament software · v5.1</div>
+    <div class="login-sub">ez pz golf tournament software</div>
     <div class="login-field">
       <label>E-mailadres</label>
       <input type="email" id="login-email" placeholder="naam@gcc.nl" autocomplete="email"/>
@@ -2827,15 +2827,214 @@ function initScorekaart() {
   var ing = INSCHRIJVINGEN.find(function(i) { return i.wid === wId && i.sid === u.id && i.status === 'ingeschreven'; });
   if (!ing) { document.getElementById('sp-scorekaart-content').innerHTML = '<p style="color:var(--txm);font-size:13px">Je bent niet ingeschreven voor deze wedstrijd.</p>'; return; }
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
-  var sh = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
+  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
+  baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
+  var shv = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
+
+  // Eclectic: toon speciale UI
+  if (w.vorm === 'Eclectic') {
+    spEclecticScorekaart(wId, w, baan, shv, u);
+    return;
+  }
+
   if (!SCORES[wId]) SCORES[wId] = {};
   if (!SCORES[wId][0]) SCORES[wId][0] = {};
   if (!SCORES[wId][0][u.id]) SCORES[wId][0][u.id] = Array(baan.holes).fill('');
   _skWId = wId; _skScores = SCORES[wId][0][u.id]; _skActiefHole = 0;
-  // Zoek eerste lege hole
   for (var i = 0; i < baan.holes; i++) { if (!_skScores[i]) { _skActiefHole = i; break; } }
-  renderScorekaart(w, baan, sh, u);
+  renderScorekaart(w, baan, shv, u);
+}
+
+// Eclectic scorekaart voor speler portaal
+function spEclecticScorekaart(wId, w, baan, shv, u) {
+  if (!SCORES[wId]) SCORES[wId] = {};
+  var rondes = Object.keys(SCORES[wId]);
+  var aantalRondes = rondes.length;
+
+  // Ronde tabs
+  var tabsHtml = '<div class="ecl-ronde-tab" id="sp-ecl-tabs">';
+  for (var ri = 0; ri < aantalRondes; ri++) {
+    var isHuidigeRonde = SCORES[wId][ri] && SCORES[wId][ri][u.id] &&
+      SCORES[wId][ri][u.id].filter(function(s){return s!=='';}).length > 0;
+    tabsHtml += '<div class="ecl-rtab' + (ri===0?' on':'') + '" onclick="spEclTabSwitch(' + wId + ',' + ri + ',this)">' +
+      'Ronde ' + (ri+1) + (isHuidigeRonde?' ✓':'') + '</div>';
+  }
+  tabsHtml += '<div class="ecl-rtab beste" onclick="spEclTabSwitch(' + wId + ',\'beste\',this)">⭐ Beste kaart</div>';
+  tabsHtml += '</div>';
+
+  // Info balk
+  var infoHtml = '<div style="background:linear-gradient(135deg,#162f22,#2a6040);border-radius:var(--rl);padding:1rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
+    '<div><div style="font-size:13px;color:rgba(255,255,255,.7)">Eclectic seizoen</div>' +
+    '<div style="font-size:20px;font-weight:700;color:#fff;font-family:Playfair Display,serif">' + aantalRondes + ' ronde' + (aantalRondes!==1?'s':'') + ' gespeeld</div>' +
+    '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">SH ' + shv + ' · Ecl. HCP ' + Math.round(shv*0.75) + ' (75%)</div></div>' +
+    '<button class="btn btn-p btn-sm" onclick="spEclNieuweRonde(' + wId + ')">+ Nieuwe ronde</button>' +
+    '</div>';
+
+  // Content
+  var contentHtml = '<div id="sp-ecl-content">';
+  if (aantalRondes === 0) {
+    contentHtml += '<div style="text-align:center;padding:2rem;color:var(--txm)">' +
+      '<div style="font-size:36px;margin-bottom:.75rem">⛳</div>' +
+      '<div style="font-size:15px;font-weight:500;color:var(--tx);margin-bottom:.5rem">Nog geen rondes gespeeld</div>' +
+      '<div style="font-size:13px;margin-bottom:1rem">Klik op "+ Nieuwe ronde" om je eerste ronde in te voeren.</div>' +
+      '<button class="btn btn-p" onclick="spEclNieuweRonde(' + wId + ')">+ Nieuwe ronde starten</button>' +
+      '</div>';
+  } else {
+    // Toon ronde 0 als default
+    contentHtml += spEclRondeHtml(wId, 0, baan, shv, u, w);
+  }
+  contentHtml += '</div>';
+
+  document.getElementById('sp-scorekaart-content').innerHTML = infoHtml + tabsHtml + contentHtml;
+}
+
+function spEclNieuweRonde(wId) {
+  if (!SCORES[wId]) SCORES[wId] = {};
+  var ri = Object.keys(SCORES[wId]).length;
+  SCORES[wId][ri] = {};
+  var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
+  var u = _currentUser;
+  var baan = getBaan(w.holes); baan.slope=w.slope; baan.cr=w.cr;
+  baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+  var shv = berekenSpeelhandicap(u.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
+  spEclecticScorekaart(wId, w, baan, shv, u);
+  toast('Ronde ' + (ri+1) + ' toegevoegd!');
+}
+
+function spEclTabSwitch(wId, tab, el) {
+  document.querySelectorAll('#sp-ecl-tabs .ecl-rtab').forEach(function(t){t.classList.remove('on');});
+  if (el) el.classList.add('on');
+  var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
+  var u = _currentUser;
+  var baan = getBaan(w.holes); baan.slope=w.slope; baan.cr=w.cr;
+  baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+  var shv = berekenSpeelhandicap(u.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
+  var content = document.getElementById('sp-ecl-content');
+  if (!content) return;
+  if (tab === 'beste') {
+    content.innerHTML = spEclBesteKaartHtml(wId, baan, shv, u, w);
+  } else {
+    content.innerHTML = spEclRondeHtml(wId, parseInt(tab), baan, shv, u, w);
+  }
+}
+
+function spEclRondeHtml(wId, ri, baan, shv, u, w) {
+  if (!SCORES[wId][ri]) SCORES[wId][ri] = {};
+  if (!SCORES[wId][ri][u.id]) SCORES[wId][ri][u.id] = Array(baan.holes).fill('');
+  var sc = SCORES[wId][ri][u.id];
+  var ex = extraSlagenPerHole(shv, baan.si);
+  var res = berekenStrokeplay(sc, baan, shv, w.esc||'geen');
+  var sf = berekenStableford(sc, baan, shv);
+
+  // Tussenstand
+  var ts = '';
+  if (res.ges > 0) {
+    ts = '<div style="background:var(--surf);border-radius:var(--r);padding:.75rem;margin-bottom:.75rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:13px">' +
+      '<span>Bruto: <strong>' + res.bruto + '</strong></span>' +
+      '<span>Netto: <strong style="color:var(--gm)">' + res.netto + '</strong></span>' +
+      (w.vorm==='Stableford'?'<span>Ptn: <strong style="color:var(--gm)">' + sf.punten + '</strong></span>':'') +
+      '<span style="color:var(--txm)">' + res.ges + '/' + baan.holes + ' holes</span>' +
+      '</div>';
+  }
+
+  // Compacte grid scorekaart
+  var cols = 'grid-template-columns: 60px repeat(' + baan.holes + ', 1fr) 40px 40px';
+  var html = ts + '<div class="csk-wrap"><div style="display:grid;' + cols + ';background:var(--surf);border-bottom:1px solid var(--bd);font-size:10px;color:var(--txm);font-weight:500">';
+  html += '<div style="padding:5px 6px;border-right:1px solid var(--bd)">Hole</div>';
+  for (var hi=1; hi<=baan.holes; hi++) html += '<div style="padding:5px 2px;text-align:center;border-right:1px solid var(--bd)">' + hi + '</div>';
+  html += '<div style="padding:5px 2px;text-align:center;border-right:1px solid var(--bd)">B</div><div style="padding:5px 2px;text-align:center">N</div></div>';
+
+  // Par rij
+  html += '<div style="display:grid;' + cols + ';background:#fafaf8;font-size:10px;color:var(--txh);border-bottom:1px solid var(--surf)">';
+  html += '<div style="padding:4px 6px;border-right:1px solid var(--surf)">Par</div>';
+  baan.par.forEach(function(p){html+='<div style="padding:4px 2px;text-align:center;border-right:1px solid var(--surf)">'+p+'</div>';});
+  html += '<div style="padding:4px 2px;text-align:center;border-right:1px solid var(--surf)">' + baan.parTotaal + '</div><div></div></div>';
+
+  // Score invoer rij
+  html += '<div style="display:grid;' + cols + ';align-items:center">';
+  html += '<div style="padding:6px;font-size:11px;font-weight:500;border-right:1px solid var(--surf)">Score</div>';
+  sc.forEach(function(v,i){
+    var kls = v!==''?sklas(v,baan.par[i],ex[i]):'';
+    html += '<div style="border-right:1px solid var(--surf)">' +
+      '<input class="csk-inp ' + kls + '" type="number" min="1" max="15" value="' + (v||'') + '" ' +
+      'style="width:100%;padding:6px 2px;font-size:14px;min-height:36px" ' +
+      'data-wid="' + wId + '" data-r="' + ri + '" data-sid="' + u.id + '" data-i="' + i + '" ' +
+      'data-par="' + baan.par[i] + '" data-ex="' + ex[i] + '" ' +
+      'oninput="cskInput(this)" onchange="cskInput(this)"/></div>';
+  });
+  var bruto = res.ges>0?res.bruto:'—';
+  var netto = res.ges>0?res.netto:'—';
+  html += '<div id="sp-ecl-br-'+wId+'-'+ri+'" style="text-align:center;font-size:12px;font-weight:600;border-right:1px solid var(--surf)">' + bruto + '</div>';
+  html += '<div id="sp-ecl-ne-'+wId+'-'+ri+'" style="text-align:center;font-size:12px;font-weight:600;color:var(--gm)">' + netto + '</div>';
+  html += '</div>';
+
+  // Stableford puntjes rij
+  if (w.vorm==='Stableford') {
+    html += '<div style="display:grid;' + cols + ';background:var(--gl);border-top:1px solid var(--gl2)">';
+    html += '<div style="padding:4px 6px;font-size:11px;color:var(--gm);border-right:1px solid var(--gl2)">Ptn</div>';
+    sf.ph.forEach(function(p){html+='<div style="padding:4px 2px;text-align:center;font-size:11px;font-weight:500;color:var(--gm);border-right:1px solid var(--gl2)">'+(p.s!==null?p.ptn:'')+'</div>';});
+    html += '<div id="sp-ecl-sf-'+wId+'-'+ri+'" style="text-align:center;font-size:11px;font-weight:600;color:var(--gm);border-right:1px solid var(--gl2)">'+(res.ges>0?sf.punten:'—')+'</div><div></div></div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function spEclBesteKaartHtml(wId, baan, shv, u, w) {
+  if (!SCORES[wId] || Object.keys(SCORES[wId]).length===0) {
+    return '<div style="padding:2rem;text-align:center;color:var(--txm)">Nog geen scores ingevoerd.</div>';
+  }
+  var ex = extraSlagenPerHole(shv, baan.si);
+  var rondes = Object.keys(SCORES[wId]).map(function(ri){
+    return (SCORES[wId][ri]&&SCORES[wId][ri][u.id])||null;
+  }).filter(Boolean);
+
+  // Beste score per hole
+  var beste = baan.par.map(function(par,i){
+    var vals = rondes.map(function(r){
+      var v=r[i]; return(v!==''&&v!==null&&v!==undefined)?parseInt(v):null;
+    }).filter(function(v){return v!==null;});
+    return vals.length?Math.min.apply(null,vals):null;
+  });
+
+  var bruto = beste.reduce(function(a,v){return a+(v||0);},0);
+  var eclSH = Math.round(shv*0.75);
+  var netto = bruto-eclSH;
+  var gespeeld = beste.filter(function(v){return v!==null;}).length;
+  var cols = 'grid-template-columns: 60px repeat('+baan.holes+', 1fr) 40px 40px';
+
+  var html = '<div style="background:var(--gl);border-radius:var(--r);padding:.75rem;margin-bottom:.75rem;font-size:13px;display:flex;gap:1rem;flex-wrap:wrap">' +
+    '<span>Rondes: <strong>'+rondes.length+'</strong></span>' +
+    '<span>Holes: <strong>'+gespeeld+'/'+baan.holes+'</strong></span>' +
+    '<span>Ecl. HCP: <strong>'+eclSH+'</strong></span>' +
+    (gespeeld===baan.holes?'<span>Bruto: <strong>'+bruto+'</strong></span><span>Netto: <strong style="color:var(--gm)">'+netto+'</strong></span>':'') +
+    '</div>';
+
+  html += '<div class="csk-wrap"><div style="display:grid;'+cols+';background:var(--surf);border-bottom:1px solid var(--bd);font-size:10px;color:var(--txm);font-weight:500">';
+  html += '<div style="padding:5px 6px;border-right:1px solid var(--bd)">Hole</div>';
+  for (var hi=1;hi<=baan.holes;hi++) html+='<div style="padding:5px 2px;text-align:center;border-right:1px solid var(--bd)">'+hi+'</div>';
+  html += '<div style="padding:5px 2px;text-align:center;border-right:1px solid var(--bd)">B</div><div style="padding:5px 2px;text-align:center">N</div></div>';
+
+  // Par rij
+  html += '<div style="display:grid;'+cols+';background:#fafaf8;font-size:10px;color:var(--txh);border-bottom:1px solid var(--surf)">';
+  html += '<div style="padding:4px 6px;border-right:1px solid var(--surf)">Par</div>';
+  baan.par.forEach(function(p){html+='<div style="padding:4px 2px;text-align:center;border-right:1px solid var(--surf)">'+p+'</div>';});
+  html += '<div style="padding:4px 2px;text-align:center;border-right:1px solid var(--surf)">'+baan.parTotaal+'</div><div></div></div>';
+
+  // Beste kaart rij
+  html += '<div style="display:grid;'+cols+';align-items:center">';
+  html += '<div style="padding:6px;font-size:11px;font-weight:500;color:var(--gm);border-right:1px solid var(--surf)">Beste</div>';
+  beste.forEach(function(v,i){
+    var kls=v!==null?('csk-inp '+sklas(v,baan.par[i],ex[i])):'';
+    html += '<div class="ecl-beste-cel" style="text-align:center;padding:6px 2px;font-size:14px;font-weight:600;border-right:1px solid var(--gl2);'+(v===null?'opacity:.3':'')+'">'+
+      (v!==null?v:'—')+'</div>';
+  });
+  html += '<div style="text-align:center;font-size:13px;font-weight:600;border-right:1px solid var(--surf)">'+(gespeeld>0?bruto:'—')+'</div>';
+  html += '<div style="text-align:center;font-size:13px;font-weight:600;color:var(--gm)">'+(gespeeld===baan.holes?netto:'—')+'</div>';
+  html += '</div></div>';
+
+  html += '<div style="font-size:11px;color:var(--txm);margin-top:.5rem;padding:.5rem;background:var(--surf);border-radius:var(--r)">⭐ Beste kaart = laagste score per hole over alle rondes · Netto = bruto − ecl. HCP (SH × 75%)</div>';
+  return html;
 }
 
 function renderScorekaart(w, baan, sh, u) {
