@@ -2309,6 +2309,9 @@ function renderScoreInvoer() {
     { id: 'ecl',    lbl: 'Eclectic',        vorm: 'Eclectic' },
     { id: 'fb',     lbl: 'Fourball',        vorm: 'Fourball' },
     { id: 'gs',     lbl: 'Greensome',       vorm: 'Greensome' },
+    { id: 'pc',     lbl: 'Par competition', vorm: 'Par competition' },
+    { id: 'fs',     lbl: 'Foursomes',       vorm: 'Foursomes' },
+    { id: 'ko',     lbl: 'Bracket',         vorm: 'Knockout' },
     { id: 'multi',  lbl: 'Multi-ronde',     meerdereRondes: true },
   ].filter(function(t) {
     return t.altijd || t.vorm === w.vorm || (t.meerdereRondes && w.rondes > 1);
@@ -2337,6 +2340,324 @@ function renderScoreInvoer() {
 
 
 // ── Bogey Competition UI ────────────────────────────────────
+// ============================================================
+// NIEUWE WEDSTRIJDVORMEN
+// 1. Par competition (Tegen Par)
+// 2. Foursomes / Alternate Shot
+// 3. Knockout bracket
+// ============================================================
+
+// ── 1. PAR COMPETITION ──────────────────────────────────────
+// Engine: identiek aan Bogey comp maar presentatie anders
+function berekenParComp(sc, baan, shv) {
+  var ex = extraSlagenPerHole(shv, baan.si);
+  var totaal = 0, gewonnen = 0, gelijk = 0, verloren = 0, ges = 0;
+  var perHole = sc.map(function(v, i) {
+    if (!v || v === '') return { res: null, ex: ex[i], par: baan.par[i] };
+    ges++;
+    var netto = Number(v) - ex[i];
+    var res = netto < baan.par[i] ? 1 : netto === baan.par[i] ? 0 : -1;
+    totaal += res;
+    if (res === 1) gewonnen++;
+    else if (res === 0) gelijk++;
+    else verloren++;
+    return { bruto: Number(v), netto: netto, ex: ex[i], par: baan.par[i], res: res };
+  });
+  return { perHole: perHole, totaal: totaal, gewonnen: gewonnen, gelijk: gelijk, verloren: verloren, ges: ges };
+}
+
+function parCompResultaat(totaal) {
+  if (totaal > 0) return '+' + totaal;
+  if (totaal < 0) return '' + totaal;
+  return 'AS'; // All Square
+}
+
+function uiParComp(wId, ronde, baan, sps, w) {
+  var rows = sps.map(function(s) {
+    var shv = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
+    var sc = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][s.id]) || Array(baan.holes).fill('');
+    var pc = berekenParComp(sc, baan, shv);
+    return { naam: s.voor + ' ' + s.ach, sh: shv, totaal: pc.totaal, gewonnen: pc.gewonnen, gelijk: pc.gelijk, verloren: pc.verloren, ges: pc.ges, has: pc.ges > 0 };
+  }).sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : b.totaal - a.totaal; });
+
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Par competition — netto score vs par per hole: gewonnen <strong>+1</strong>, gelijk <strong>0</strong>, verloren <strong>-1</strong></div>';
+  html += '<table class="tbl"><thead><tr><th style="width:32px">#</th><th>Speler</th><th>SH</th><th style="color:var(--gm)">+</th><th>AS</th><th style="color:var(--red)">−</th><th>Score</th><th>Holes</th></tr></thead><tbody>';
+  rows.forEach(function(r, i) {
+    var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    var scCls = r.has && r.totaal > 0 ? 'under' : r.has && r.totaal < 0 ? 'over' : '';
+    html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td>';
+    html += '<td style="font-weight:500">' + esc(r.naam) + '</td>';
+    html += '<td><span class="badge bg">' + r.sh + '</span></td>';
+    html += '<td style="color:var(--gm);font-weight:500">' + (r.has ? r.gewonnen : '—') + '</td>';
+    html += '<td style="color:var(--txm)">' + (r.has ? r.gelijk : '—') + '</td>';
+    html += '<td style="color:var(--red)">' + (r.has ? r.verloren : '—') + '</td>';
+    html += '<td class="' + scCls + '" style="font-weight:600;font-size:15px">' + (r.has ? parCompResultaat(r.totaal) : '—') + '</td>';
+    html += '<td style="color:var(--txm)">' + r.ges + '/' + baan.holes + '</td></tr>';
+  });
+  return html + '</tbody></table>';
+}
+
+// ── 2. FOURSOMES / ALTERNATE SHOT ───────────────────────────
+// Teamhandicap: verschil van gecombineerde HCP / 2 t.o.v. laagste team
+function foursomesTeamHcp(spA, spB, baan) {
+  var teamHcp = Math.round((spA.hcp + spB.hcp) / 2);
+  var shv = berekenSpeelhandicap(teamHcp, baan.slope, baan.cr, baan.parTotaal, 1.0, baan.holes);
+  return { teamHcp: teamHcp, sh: shv };
+}
+
+function uiFoursomes(wId, ronde, baan, sps, w) {
+  if (sps.length < 2) return '<p style="color:var(--txm);font-size:13px">Foursomes vereist minimaal 2 spelers (teams van 2).</p>';
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Foursomes (Alternate Shot) — 2 spelers, 1 bal, afwisselend slaan. Teamhandicap = (HCP A + HCP B) / 2.</div>';
+
+  // Leaderboard teams
+  var teams = [];
+  for (var t = 0; t + 1 < sps.length; t += 2) {
+    var spA = sps[t], spB = sps[t+1];
+    var gh = foursomesTeamHcp(spA, spB, baan);
+    var key = 'fs-' + spA.id + '-' + spB.id;
+    if (!SCORES[wId]) SCORES[wId] = {};
+    if (!SCORES[wId][ronde]) SCORES[wId][ronde] = {};
+    if (!SCORES[wId][ronde][key]) SCORES[wId][ronde][key] = Array(baan.holes).fill('');
+    var sc = SCORES[wId][ronde][key];
+    var res = berekenStrokeplay(sc, baan, gh.sh, w.esc || 'geen');
+    teams.push({ spA: spA, spB: spB, gh: gh, key: key, sc: sc, res: res });
+  }
+
+  // Sorteer op netto score
+  teams.sort(function(a, b) { return !a.res.ges ? 1 : !b.res.ges ? -1 : a.res.netto - b.res.netto; });
+
+  // Leaderboard
+  html += '<div class="blk" style="margin-bottom:.75rem"><div class="blk-t">Leaderboard</div>';
+  html += '<table class="tbl"><thead><tr><th>#</th><th>Team</th><th>Team HCP</th><th>SH</th><th>Bruto</th><th>Netto</th><th>vs par</th></tr></thead><tbody>';
+  teams.forEach(function(team, i) {
+    var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    var vp = team.res.ges > 0 ? team.res.nvp : null;
+    html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td>';
+    html += '<td><strong>' + esc(team.spA.voor + ' ' + team.spA.ach) + '</strong><br><span style="font-size:11px;color:var(--txm)">' + esc(team.spB.voor + ' ' + team.spB.ach) + '</span></td>';
+    html += '<td>' + team.gh.teamHcp + '</td>';
+    html += '<td><span class="badge bg">' + team.gh.sh + '</span></td>';
+    html += '<td>' + (team.res.ges > 0 ? team.res.bruto : '—') + '</td>';
+    html += '<td style="font-weight:600;color:var(--gm)">' + (team.res.ges > 0 ? team.res.netto : '—') + '</td>';
+    html += '<td class="' + (vp !== null && vp < 0 ? 'under' : vp !== null && vp > 0 ? 'over' : '') + '">' + (vp !== null ? fvp(vp) : '—') + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Score invoer per team
+  html += '<div class="blk-t">Score invoer per team</div>';
+  teams.forEach(function(team) {
+    var ex = extraSlagenPerHole(team.gh.sh, baan.si);
+    var cols = 'grid-template-columns: 120px repeat(' + baan.holes + ', 1fr) 40px 40px';
+    html += '<div class="csk-wrap" style="margin-bottom:.75rem">';
+    // Team header
+    html += '<div style="padding:.5rem .75rem;background:var(--g);color:#fff;font-size:12px;font-weight:500">' +
+      esc(team.spA.voor + ' ' + team.spA.ach + ' & ' + team.spB.voor + ' ' + team.spB.ach) +
+      ' <span style="opacity:.6">· SH ' + team.gh.sh + '</span></div>';
+    // Hole nummers
+    html += '<div style="display:grid;' + cols + ';background:var(--surf);font-size:10px;color:var(--txm);font-weight:500;border-bottom:1px solid var(--bd)">';
+    html += '<div style="padding:5px 8px;border-right:1px solid var(--bd)">Hole</div>';
+    for (var hi=1;hi<=baan.holes;hi++) html+='<div style="padding:5px 2px;text-align:center;border-right:1px solid var(--bd)">'+hi+'</div>';
+    html += '<div style="padding:5px 2px;text-align:center;border-right:1px solid var(--bd)">B</div><div style="padding:5px 2px;text-align:center">N</div></div>';
+    // Par
+    html += '<div style="display:grid;' + cols + ';background:#fafaf8;font-size:10px;color:var(--txh);border-bottom:1px solid var(--surf)">';
+    html += '<div style="padding:4px 8px;border-right:1px solid var(--surf)">Par</div>';
+    baan.par.forEach(function(p){html+='<div style="padding:4px 2px;text-align:center;border-right:1px solid var(--surf)">'+p+'</div>';});
+    html += '<div style="padding:4px 2px;text-align:center;border-right:1px solid var(--surf)">' + baan.parTotaal + '</div><div></div></div>';
+    // Score invoer
+    html += '<div style="display:grid;' + cols + ';align-items:center">';
+    html += '<div style="padding:6px 8px;font-size:11px;font-weight:500;border-right:1px solid var(--surf)">Score</div>';
+    team.sc.forEach(function(v, i) {
+      var kls = v !== '' ? sklas(v, baan.par[i], ex[i]) : '';
+      html += '<div style="border-right:1px solid var(--surf)"><input class="csk-inp ' + kls + '" type="number" min="1" max="15" value="' + (v||'') + '" ' +
+        'style="width:100%;padding:6px 2px;font-size:13px;min-height:32px" ' +
+        'oninput="fsScore(this,\'' + wId + '\',' + ronde + ',\'' + team.key + '\',' + i + ',' + baan.par[i] + ',' + ex[i] + ')"/></div>';
+    });
+    var br = team.res.ges>0?team.res.bruto:'—';
+    var ne = team.res.ges>0?team.res.netto:'—';
+    html += '<div id="fs-br-'+wId+'-'+ronde+'-'+team.key+'" style="text-align:center;font-size:12px;font-weight:600;border-right:1px solid var(--surf)">'+br+'</div>';
+    html += '<div id="fs-ne-'+wId+'-'+ronde+'-'+team.key+'" style="text-align:center;font-size:12px;font-weight:600;color:var(--gm)">'+ne+'</div>';
+    html += '</div></div>';
+  });
+  return html;
+}
+
+function fsScore(inp, wId, ronde, key, idx, par, ex) {
+  if (!SCORES[wId]) SCORES[wId] = {};
+  if (!SCORES[wId][ronde]) SCORES[wId][ronde] = {};
+  if (!SCORES[wId][ronde][key]) SCORES[wId][ronde][key] = Array(18).fill('');
+  SCORES[wId][ronde][key][idx] = inp.value;
+  inp.className = 'csk-inp' + (inp.value ? ' ' + sklas(inp.value, par, ex) : '');
+
+  var w = WEDSTRIJDEN.find(function(x){return x.id==wId;});
+  if (!w) return;
+  var baan = getBaan(w.holes); baan.slope=w.slope; baan.cr=w.cr;
+  baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
+  // Zoek teamhandicap
+  var parts = key.replace('fs-','').split('-');
+  var spA = USERS.find(function(x){return x.id==parts[0];})||{hcp:18};
+  var spB = USERS.find(function(x){return x.id==parts[1];})||{hcp:18};
+  var gh = foursomesTeamHcp(spA, spB, baan);
+  var res = berekenStrokeplay(SCORES[wId][ronde][key], baan, gh.sh, w.esc||'geen');
+  var bEl = document.getElementById('fs-br-'+wId+'-'+ronde+'-'+key);
+  var nEl = document.getElementById('fs-ne-'+wId+'-'+ronde+'-'+key);
+  if (bEl) bEl.textContent = res.ges>0?res.bruto:'—';
+  if (nEl) nEl.textContent = res.ges>0?res.netto:'—';
+}
+
+// ── 3. KNOCKOUT BRACKET ─────────────────────────────────────
+var BRACKETS = {};
+
+function initBracket(wId) {
+  var sps = INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';})
+    .map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
+
+  // Vul aan tot macht van 2 met byes
+  var n = sps.length;
+  var size = 1; while (size < n) size *= 2;
+  var byes = size - n;
+
+  // Seed op basis van HCP (laagste = beste seed)
+  sps.sort(function(a,b){return a.hcp - b.hcp;});
+
+  // Ronde 1 maken
+  var matches = [];
+  var idx = 0;
+  for (var i = 0; i < size / 2; i++) {
+    var spA = sps[idx] || null;
+    var spB = byes > 0 ? null : sps[idx + 1] || null; // null = bye
+    if (byes > 0 && spA) { byes--; idx++; matches.push({id:'m'+i, spA:spA, spB:null, winnaar:spA.id, bye:true }); }
+    else { matches.push({id:'m'+i, spA:spA, spB:spB||null, winnaar:null, bye:false }); idx += 2; }
+  }
+
+  BRACKETS[wId] = { rondes: [matches], aantalRondes: Math.log2(size), grootte: size };
+  return BRACKETS[wId];
+}
+
+function bracketWinnaar(wId, rondeIdx, matchIdx, winnaarId) {
+  var b = BRACKETS[wId]; if (!b) return;
+  var match = b.rondes[rondeIdx][matchIdx];
+  if (!match) return;
+  match.winnaar = winnaarId;
+
+  // Doorsturen naar volgende ronde
+  var volgendeRonde = rondeIdx + 1;
+  var volgendeMatch = Math.floor(matchIdx / 2);
+  var positie = matchIdx % 2 === 0 ? 'spA' : 'spB';
+
+  if (volgendeRonde >= b.rondes.length) {
+    // Maak nieuwe ronde aan
+    var aantalMatches = b.rondes[rondeIdx].length / 2;
+    var nieuweRonde = [];
+    for (var i = 0; i < aantalMatches; i++) nieuweRonde.push({id:'r'+volgendeRonde+'m'+i, spA:null, spB:null, winnaar:null, bye:false});
+    b.rondes.push(nieuweRonde);
+  }
+
+  var winnaar = USERS.find(function(x){return x.id===winnaarId;});
+  b.rondes[volgendeRonde][volgendeMatch][positie] = winnaar || null;
+
+  // Auto-bye doorsturen
+  if (b.rondes[volgendeRonde][volgendeMatch].spA && !b.rondes[volgendeRonde][volgendeMatch].spB) {
+    b.rondes[volgendeRonde][volgendeMatch].bye = true;
+    b.rondes[volgendeRonde][volgendeMatch].winnaar = b.rondes[volgendeRonde][volgendeMatch].spA.id;
+  }
+
+  renderBracketView(wId);
+}
+
+function renderBracketView(wId) {
+  var b = BRACKETS[wId];
+  if (!b) {
+    return '<div style="text-align:center;padding:2rem"><p style="color:var(--txm);margin-bottom:1rem">Nog geen bracket aangemaakt.</p>' +
+      '<button class="btn btn-p" onclick="initBracket(' + wId + ');renderBracketView(' + wId + ')">Bracket genereren</button></div>';
+  }
+
+  var rondeNamen = ['Kwartfinale', 'Halve finale', 'Finale'];
+  var html = '<div style="overflow-x:auto"><div style="display:flex;gap:2rem;min-width:' + (b.rondes.length * 220) + 'px;padding:1rem">';
+
+  b.rondes.forEach(function(ronde, ri) {
+    var naam = ri === b.rondes.length - 1 ? 'Finale' :
+               ri === b.rondes.length - 2 ? 'Halve finale' :
+               ri === b.rondes.length - 3 ? 'Kwartfinale' :
+               'Ronde ' + (ri+1);
+
+    html += '<div style="flex:1;min-width:190px">';
+    html += '<div style="font-size:10px;font-weight:500;color:var(--gm);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem">' + naam + '</div>';
+
+    ronde.forEach(function(match, mi) {
+      var spAnaam = match.spA ? match.spA.voor + ' ' + match.spA.ach : '—';
+      var spBnaam = match.spB ? match.spB.voor + ' ' + match.spB.ach : (match.bye ? 'Bye' : '—');
+      var winA = match.winnaar && match.spA && match.winnaar === match.spA.id;
+      var winB = match.winnaar && match.spB && match.winnaar === match.spB.id;
+
+      html += '<div class="card" style="margin-bottom:.5rem;padding:.75rem">';
+      // Speler A
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--surf)">';
+      html += '<span style="font-size:13px;font-weight:' + (winA?'600':'400') + ';color:' + (winA?'var(--g)':'var(--tx)') + '">' + esc(spAnaam) + '</span>';
+      if (match.spA && !match.bye && !match.winnaar) {
+        html += '<button class="btn btn-p btn-xs" onclick="bracketWinnaar(' + wId + ',' + ri + ',' + mi + ',' + (match.spA?match.spA.id:'null') + ')">Wint</button>';
+      } else if (winA) {
+        html += '<span style="font-size:11px;color:var(--gm);font-weight:500">✓ Winnaar</span>';
+      }
+      html += '</div>';
+      // Speler B
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0">';
+      html += '<span style="font-size:13px;font-weight:' + (winB?'600':'400') + ';color:' + (winB?'var(--g)':match.bye?'var(--txh)':'var(--tx)') + '">' + esc(spBnaam) + '</span>';
+      if (match.spB && !match.bye && !match.winnaar) {
+        html += '<button class="btn btn-p btn-xs" onclick="bracketWinnaar(' + wId + ',' + ri + ',' + mi + ',' + (match.spB?match.spB.id:'null') + ')">Wint</button>';
+      } else if (winB) {
+        html += '<span style="font-size:11px;color:var(--gm);font-weight:500">✓ Winnaar</span>';
+      }
+      html += '</div>';
+
+      // Score invoer link als beide spelers bekend zijn
+      if (match.spA && match.spB && !match.bye) {
+        html += '<div style="margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--surf)">' +
+          '<button class="btn btn-s btn-xs btn-full" onclick="bracketOpenMatch(' + wId + ',' + ri + ',' + mi + ')">⛳ Scores invoeren</button></div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  // Winnaar
+  var finaleRonde = b.rondes[b.rondes.length - 1];
+  var finale = finaleRonde && finaleRonde[0];
+  if (finale && finale.winnaar) {
+    var kampioen = USERS.find(function(x){return x.id === finale.winnaar;});
+    html += '<div style="display:flex;align-items:center;justify-content:center;flex-direction:column;min-width:120px">';
+    html += '<div style="font-size:40px">🏆</div>';
+    html += '<div style="font-size:16px;font-weight:700;color:var(--g);text-align:center;margin-top:.5rem">' + (kampioen?esc(kampioen.voor+' '+kampioen.ach):'Winnaar') + '</div>';
+    html += '<div style="font-size:11px;color:var(--txm)">Kampioen</div></div>';
+  }
+
+  html += '</div></div>';
+
+  // Reset knop
+  html += '<div style="margin-top:.75rem"><button class="btn btn-d btn-xs" onclick="if(confirm(\'Bracket resetten?\'))delete BRACKETS['+wId+'];renderBracketView('+wId+')">Bracket resetten</button></div>';
+  return html;
+}
+
+function bracketOpenMatch(wId, rondeIdx, matchIdx) {
+  var b = BRACKETS[wId]; if (!b) return;
+  var match = b.rondes[rondeIdx][matchIdx]; if (!match || !match.spA || !match.spB) return;
+  // Navigeer naar scores tab met pre-filled matchplay
+  adminNavToW('scores', wId);
+  toast(match.spA.voor + ' vs ' + match.spB.voor + ' — voer matchplay scores in');
+}
+
+
+function bracketReset(wId) {
+  if (!confirm('Bracket resetten? Alle resultaten gaan verloren.')) return;
+  delete BRACKETS[wId];
+  var el = document.getElementById('bracket-view-' + wId);
+  if (el) el.innerHTML = renderBracketView(wId);
+}
+
+function uiBracket(wId, ronde, baan, sps, w) {
+  return '<div id="bracket-view-' + wId + '">' + renderBracketView(wId) + '</div>';
+}
+
+
+
 function uiBogeyComp(wId, ronde, baan, sps, w) {
   var rows = sps.map(function(s) {
     var shv = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc / 100, w.holes);
@@ -4552,6 +4873,9 @@ function switchScoreTab(tab) {
   else if (tab === 'multi') el.innerHTML = uiMultiRonde(wId, baan, sps, w);
   else if (tab === 'fb') el.innerHTML = uiFourball(wId, ronde, baan, sps, w);
   else if (tab === 'gs') el.innerHTML = uiGreensome(wId, ronde, baan, sps, w);
+  else if (tab === 'pc') el.innerHTML = uiParComp(wId, ronde, baan, sps, w);
+  else if (tab === 'fs') el.innerHTML = uiFoursomes(wId, ronde, baan, sps, w);
+  else if (tab === 'ko') el.innerHTML = uiBracket(wId, ronde, baan, sps, w);
 }
 
 // ============================================================
