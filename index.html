@@ -758,7 +758,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
                 <option value="naam">Alfabetisch</option>
               </select>
               <button class="btn btn-s btn-xs" onclick="autoFlights()">Auto-indeling</button>
-              <button class="btn btn-p btn-xs" onclick="toast('Flight-indeling opgeslagen.')">Opslaan</button>
+              <button class="btn btn-p btn-xs" onclick="slaFlightsOp(parseInt(document.getElementById('fl-w').value),FLIGHTS[parseInt(document.getElementById('fl-w').value)]||[])">Opslaan</button>
             </div>
           </div>
           <div id="fl-info" style="font-size:13px;color:var(--txm);margin-bottom:.75rem"></div>
@@ -2060,6 +2060,8 @@ function editSpeler(id){
 function delSpeler(id){
   if(!confirm('Speler verwijderen?'))return;
   USERS=USERS.filter(function(x){return x.id!==id;});renderSpelers();toast('Speler verwijderd.');
+  supa('gebruikers','DELETE',null,{id:'eq.'+id})
+    .catch(function(e){console.warn('delSpeler:',e.message);});
 }
 
 function saveSpeler(){
@@ -2179,12 +2181,16 @@ function doAdminInschrijven(){
 function adminPromote(id){
   var i=INSCHRIJVINGEN.find(function(x){return x.id===id;});if(!i)return;
   i.status='ingeschreven';renderInschrijvingen();toast('Speler toegelaten van wachtlijst.');
+  supa('inschrijvingen','PATCH',{status:'ingeschreven'},{id:'eq.'+id})
+    .catch(function(e){console.warn('adminPromote:',e.message);});
 }
 
 function adminAfmelden(id){
   if(!confirm('Speler afmelden?'))return;
   var i=INSCHRIJVINGEN.find(function(x){return x.id===id;});if(!i)return;
   i.status='afgemeld';renderInschrijvingen();toast('Speler afgemeld.');
+  supa('inschrijvingen','PATCH',{status:'afgemeld'},{id:'eq.'+id})
+    .catch(function(e){console.warn('adminAfmelden:',e.message);});
 }
 
 // ============================================================
@@ -2224,6 +2230,36 @@ function autoFlights(){
   var per=w.flt||3,flights=[];
   for(var i=0;i<sps.length;i+=per)flights.push(sps.slice(i,i+per).map(function(s){return s.id;}));
   FLIGHTS[wId]=flights;renderFlights();toast(flights.length+' flights aangemaakt.');
+  slaFlightsOp(wId,flights);
+}
+
+async function slaFlightsOp(wId, flights) {
+  try {
+    // Verwijder bestaande flights voor deze wedstrijd
+    await supa('flights','DELETE',null,{wid:'eq.'+wId});
+    // Voeg nieuwe flights in
+    var rows = [];
+    flights.forEach(function(f, fi) {
+      f.forEach(function(sid) {
+        rows.push({wid:wId, flight_nr:fi, sid:sid});
+      });
+    });
+    if (rows.length) await supa('flights','POST',rows);
+    toast(flights.length+' flights opgeslagen ✓');
+  } catch(e) { console.warn('slaFlightsOp:',e.message); }
+}
+
+async function laadFlights(wId) {
+  try {
+    var rows = await supa('flights','GET',null,{select:'*',wid:'eq.'+wId,order:'flight_nr.asc'});
+    if (!rows || !rows.length) return;
+    var f = {};
+    rows.forEach(function(r) {
+      if (!f[r.flight_nr]) f[r.flight_nr] = [];
+      f[r.flight_nr].push(r.sid);
+    });
+    FLIGHTS[wId] = Object.values(f);
+  } catch(e) { console.warn('laadFlights:',e.message); }
 }
 
 // ============================================================
@@ -2752,6 +2788,8 @@ function spelerAfmelden(wId,sId){
     closeModal('modal-bevestig');
     toast('Je bent afgemeld voor '+w.naam+'.');
     renderSpelerKalender();
+    supa('inschrijvingen','PATCH',{status:'afgemeld'},{id:'eq.'+ing.id})
+      .catch(function(e){console.warn('spelerAfmelden:',e.message);});
   };
   openModal('modal-bevestig');
 }
