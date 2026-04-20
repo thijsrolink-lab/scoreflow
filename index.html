@@ -584,16 +584,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
               <div class="tg" id="vorm-tg">
                 <button class="tgb on" data-vorm="Strokeplay" onclick="tSingle(this,'v');updateVormInfo()">Strokeplay</button>
                 <button class="tgb" data-vorm="Stableford" onclick="tSingle(this,'v');updateVormInfo()">Stableford</button>
+                <button class="tgb" data-vorm="Modified Stableford" onclick="tSingle(this,'v');updateVormInfo()">Modified Stableford</button>
                 <button class="tgb" data-vorm="Bogey competition" onclick="tSingle(this,'v');updateVormInfo()">Bogey competition</button>
                 <button class="tgb" data-vorm="Par competition" onclick="tSingle(this,'v');updateVormInfo()">Par competition</button>
                 <button class="tgb" data-vorm="Matchplay" onclick="tSingle(this,'v');updateVormInfo()">Matchplay</button>
                 <button class="tgb" data-vorm="Skins" onclick="tSingle(this,'v');updateVormInfo()">Skins</button>
                 <button class="tgb" data-vorm="Eclectic" onclick="tSingle(this,'v');updateVormInfo()">Eclectic</button>
                 <button class="tgb" data-vorm="Texas Scramble" onclick="tSingle(this,'v');updateVormInfo()">Texas Scramble</button>
+                <button class="tgb" data-vorm="Shamble" onclick="tSingle(this,'v');updateVormInfo()">Shamble</button>
                 <button class="tgb" data-vorm="Fourball" onclick="tSingle(this,'v');updateVormInfo()">Fourball</button>
                 <button class="tgb" data-vorm="Greensome" onclick="tSingle(this,'v');updateVormInfo()">Greensome</button>
                 <button class="tgb" data-vorm="Foursomes" onclick="tSingle(this,'v');updateVormInfo()">Foursomes</button>
+                <button class="tgb" data-vorm="Alliance" onclick="tSingle(this,'v');updateVormInfo()">Alliance</button>
+                <button class="tgb" data-vorm="Team Stableford" onclick="tSingle(this,'v');updateVormInfo()">Team Stableford</button>
+                <button class="tgb" data-vorm="Chapman" onclick="tSingle(this,'v');updateVormInfo()">Chapman</button>
+                <button class="tgb" data-vorm="Vossenjacht" onclick="tSingle(this,'v');updateVormInfo()">Vossenjacht</button>
+                <button class="tgb" data-vorm="Shoot-out" onclick="tSingle(this,'v');updateVormInfo()">Shoot-out</button>
+                <button class="tgb" data-vorm="Amerikaantje" onclick="tSingle(this,'v');updateVormInfo()">Amerikaantje</button>
+                <button class="tgb" data-vorm="Bingo Bango Bongo" onclick="tSingle(this,'v');updateVormInfo()">Bingo Bango Bongo</button>
+                <button class="tgb" data-vorm="Rabbit" onclick="tSingle(this,'v');updateVormInfo()">Rabbit</button>
+                <button class="tgb" data-vorm="Hidden holes" onclick="tSingle(this,'v');updateVormInfo()">Hidden holes</button>
+                <button class="tgb" data-vorm="Stokkenroof" onclick="tSingle(this,'v');updateVormInfo()">Stokkenroof</button>
                 <button class="tgb" data-vorm="Knockout" onclick="tSingle(this,'v');updateVormInfo()">Knockout</button>
+                <button class="tgb" data-vorm="Order of Merit" onclick="tSingle(this,'v');updateVormInfo()">Order of Merit</button>
               </div>
             </div>
             <div id="vorm-info" style="font-size:12px;color:var(--txm);background:var(--surf);border-radius:var(--r);padding:.65rem .9rem;margin-top:.25rem;border:1px solid var(--bd)"></div>
@@ -2323,6 +2336,20 @@ function renderScoreInvoer() {
     { id: 'pc',     lbl: 'Par competition', vorm: 'Par competition' },
     { id: 'fs',     lbl: 'Foursomes',       vorm: 'Foursomes' },
     { id: 'ko',     lbl: 'Bracket',         vorm: 'Knockout' },
+    { id: 'msf',    lbl: 'Modified SF',     vorm: 'Modified Stableford' },
+    { id: 'tsf',    lbl: 'Team Stableford', vorm: 'Team Stableford' },
+    { id: 'all',    lbl: 'Alliance',        vorm: 'Alliance' },
+    { id: 'vl',     lbl: 'Vlaggenwedstrijd',vorm: 'Vossenjacht' },
+    { id: 'so',     lbl: 'Shoot-out',       vorm: 'Shoot-out' },
+    { id: 'am',     lbl: 'Amerikaantje',    vorm: 'Amerikaantje' },
+    { id: 'bbb',    lbl: 'Bingo Bango',     vorm: 'Bingo Bango Bongo' },
+    { id: 'rb',     lbl: 'Rabbit',          vorm: 'Rabbit' },
+    { id: 'sh',     lbl: 'Shamble',         vorm: 'Shamble' },
+    { id: 'ch',     lbl: 'Chapman',         vorm: 'Chapman' },
+    { id: 'vos',    lbl: 'Vossenjacht',     vorm: 'Vossenjacht' },
+    { id: 'hh',     lbl: 'Hidden holes',    vorm: 'Hidden holes' },
+    { id: 'stok',   lbl: 'Stokkenroof',     vorm: 'Stokkenroof' },
+    { id: 'oom',    lbl: 'Order of Merit',  vorm: 'Order of Merit' },
     { id: 'multi',  lbl: 'Multi-ronde',     meerdereRondes: true },
   ].filter(function(t) {
     return t.altijd || t.vorm === w.vorm || (t.meerdereRondes && w.rondes > 1);
@@ -2516,6 +2543,7 @@ function fsScore(inp, wId, ronde, key, idx, par, ex) {
 
 // ── 3. KNOCKOUT BRACKET ─────────────────────────────────────
 var BRACKETS = {};
+var ORDER_OF_MERIT = {};
 
 function initBracket(wId) {
   var sps = INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';})
@@ -2665,6 +2693,706 @@ function bracketReset(wId) {
 
 function uiBracket(wId, ronde, baan, sps, w) {
   return '<div id="bracket-view-' + wId + '">' + renderBracketView(wId) + '</div>';
+}
+
+
+
+// ============================================================
+// ALLE NIEUWE WEDSTRIJDVORMEN — ScoreFlow uitbreiding
+// 21 vormen in 5 groepen
+// ============================================================
+
+// ════════════════════════════════════════════════════════════
+// GROEP 1 — SCORING VARIANTEN
+// ════════════════════════════════════════════════════════════
+
+// ── 1. Modified Stableford ───────────────────────────────────
+// Puntenschaal: albatros=5, eagle=3, birdie=1, par=0, bogey=-1, dubbel=-3
+var MODIFIED_SF_PUNTEN = { 3:5, 2:3, 1:1, 0:0, '-1':-1, '-2':-3 };
+
+function modifiedStablefordPunten(s, par, ex) {
+  if (s === null || s === '') return 0;
+  var diff = par - (Number(s) - ex);
+  if (diff >= 3) return 5;
+  if (diff === 2) return 3;
+  if (diff === 1) return 1;
+  if (diff === 0) return 0;
+  if (diff === -1) return -1;
+  return -3; // dubbel bogey of slechter
+}
+
+function berekenModifiedStableford(sc, baan, shv) {
+  var ex = extraSlagenPerHole(shv, baan.si);
+  var tot = 0;
+  var ph = sc.map(function(s, i) {
+    var p = modifiedStablefordPunten(s, baan.par[i], ex[i]);
+    tot += p;
+    return { s: s !== null && s !== '' ? Number(s) : null, ex: ex[i], ptn: p, par: baan.par[i] };
+  });
+  return { ph: ph, punten: tot, ges: sc.filter(function(s){return s!==null&&s!=='';}).length };
+}
+
+function uiModifiedStableford(wId, ronde, baan, sps, w) {
+  var rows = sps.map(function(s) {
+    var shv = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
+    var sc = (SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
+    var ms = berekenModifiedStableford(sc, baan, shv);
+    return { naam: s.voor+' '+s.ach, sh: shv, punten: ms.punten, ges: ms.ges, has: ms.ges > 0 };
+  }).sort(function(a,b){return !a.has?1:!b.has?-1:b.punten-a.punten;});
+
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Modified Stableford · Albatros <strong>+5</strong> · Eagle <strong>+3</strong> · Birdie <strong>+1</strong> · Par <strong>0</strong> · Bogey <strong>-1</strong> · Dubbel of slechter <strong>-3</strong></div>';
+  html += '<table class="tbl"><thead><tr><th style="width:32px">#</th><th>Speler</th><th>SH</th><th>Punten</th><th>Holes</th></tr></thead><tbody>';
+  rows.forEach(function(r, i) {
+    var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    var cls = r.has&&r.punten>0?'under':r.has&&r.punten<0?'over':'';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td>';
+    html+='<td><span class="badge bg">'+r.sh+'</span></td>';
+    html+='<td class="'+cls+'" style="font-weight:600;font-size:15px">'+(r.has?(r.punten>0?'+':'')+r.punten:'—')+'</td>';
+    html+='<td style="color:var(--txm)">'+r.ges+'/'+baan.holes+'</td></tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+// ── 2. Team Stableford ───────────────────────────────────────
+// Per hole: som van beste N Stableford punten van het team
+function berekenTeamStableford(teamScores, baan, nBeste) {
+  nBeste = nBeste || 2;
+  var totaal = 0;
+  var perHole = baan.par.map(function(par, i) {
+    var punten = teamScores.map(function(ts) {
+      return stabPts(ts.sc[i], par, ts.ex[i]);
+    }).sort(function(a,b){return b-a;}).slice(0, nBeste);
+    var som = punten.reduce(function(a,b){return a+b;},0);
+    totaal += som;
+    return { som: som, punten: punten };
+  });
+  return { perHole: perHole, totaal: totaal };
+}
+
+function uiTeamStableford(wId, ronde, baan, sps, w) {
+  var nBeste = w.teamBeste || 2;
+  // Groepeer per team (flight)
+  var flights = FLIGHTS[wId] || [];
+  if (!flights.length) {
+    // Geen flights: behandel alle spelers als 1 team
+    flights = [sps.map(function(s){return s.id;})];
+  }
+
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Team Stableford · beste <strong>'+nBeste+'</strong> Stableford punten per hole tellen per team</div>';
+
+  var teamResults = flights.map(function(flight, fi) {
+    var teamSps = flight.map(function(sid){return USERS.find(function(x){return x.id===sid;});}).filter(Boolean);
+    var teamScores = teamSps.map(function(s) {
+      var shv = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
+      return { id: s.id, naam: s.voor+' '+s.ach, shv: shv, sc: (SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill(''), ex: extraSlagenPerHole(shv, baan.si) };
+    });
+    var res = berekenTeamStableford(teamScores, baan, nBeste);
+    return { fi: fi, teamSps: teamSps, teamScores: teamScores, res: res };
+  }).sort(function(a,b){return b.res.totaal-a.res.totaal;});
+
+  html += '<table class="tbl"><thead><tr><th>#</th><th>Team</th><th>Punten</th></tr></thead><tbody>';
+  teamResults.forEach(function(t, i) {
+    var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
+    html+='<td>'+t.teamSps.map(function(s){return esc(s.voor+' '+s.ach);}).join(' / ')+'</td>';
+    html+='<td style="font-weight:600;color:var(--gm);font-size:15px">'+t.res.totaal+'</td></tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+// ── 3. Alliance ──────────────────────────────────────────────
+// Beste 2 netto scores per hole per team tellen
+function berekenAlliance(teamScores, baan, nBeste) {
+  nBeste = nBeste || 2;
+  var totaalNetto = 0, totaalBruto = 0;
+  var perHole = baan.par.map(function(par, i) {
+    var nettos = teamScores.map(function(ts) {
+      var v = ts.sc[i]; if (!v||v==='') return Infinity;
+      return Number(v) - ts.ex[i];
+    }).filter(function(n){return n!==Infinity;}).sort(function(a,b){return a-b;}).slice(0, nBeste);
+    var som = nettos.length ? nettos.reduce(function(a,b){return a+b;},0) : null;
+    if (som !== null) { totaalNetto += som; totaalBruto += som; }
+    return { som: som, scores: nettos };
+  });
+  return { perHole: perHole, totaalNetto: totaalNetto, ges: perHole.filter(function(h){return h.som!==null;}).length };
+}
+
+function uiAlliance(wId, ronde, baan, sps, w) {
+  var nBeste = w.teamBeste || 2;
+  var flights = FLIGHTS[wId] || [sps.map(function(s){return s.id;})];
+
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Alliance · beste <strong>'+nBeste+'</strong> netto scores per hole tellen per team</div>';
+
+  var teamResults = flights.map(function(flight) {
+    var teamSps = flight.map(function(sid){return USERS.find(function(x){return x.id===sid;});}).filter(Boolean);
+    var teamScores = teamSps.map(function(s) {
+      var shv = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
+      return { shv: shv, sc: (SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill(''), ex: extraSlagenPerHole(shv, baan.si) };
+    });
+    var res = berekenAlliance(teamScores, baan, nBeste);
+    return { teamSps: teamSps, res: res };
+  }).sort(function(a,b){return a.res.totaalNetto-b.res.totaalNetto;});
+
+  html += '<table class="tbl"><thead><tr><th>#</th><th>Team</th><th>Alliance netto</th><th>Holes</th></tr></thead><tbody>';
+  teamResults.forEach(function(t, i) {
+    var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
+    html+='<td>'+t.teamSps.map(function(s){return esc(s.voor+' '+s.ach);}).join(' / ')+'</td>';
+    html+='<td style="font-weight:600;color:var(--gm)">'+t.res.totaalNetto+'</td>';
+    html+='<td style="color:var(--txm)">'+t.res.ges+'/'+baan.holes+'</td></tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+// ════════════════════════════════════════════════════════════
+// GROEP 2 — INDIVIDUELE FUN VORMEN
+// ════════════════════════════════════════════════════════════
+
+// ── 4. Vlaggenwedstrijd ──────────────────────────────────────
+// Speler heeft N slagen (par + handicap). Vlag plaatsen als op is.
+function berekenVlaggenwedstrijd(sc, baan, shv) {
+  var totaalSlagen = baan.parTotaal + shv; // beschikbare slagen
+  var gespeeld = 0, rest = totaalSlagen;
+  var eindHole = null, eindAfstand = 0;
+  var perHole = sc.map(function(v, i) {
+    if (!v || v === '' || eindHole !== null) return { hole: i+1, v: null, rest: null };
+    var s = Number(v);
+    rest -= s; gespeeld++;
+    if (rest <= 0) {
+      eindHole = i + 1;
+      eindAfstand = rest; // negatief = over flag heen
+    }
+    return { hole: i+1, v: s, rest: rest };
+  });
+  return { perHole: perHole, eindHole: eindHole, eindAfstand: eindAfstand, gespeeld: gespeeld, totaalSlagen: totaalSlagen, restSlagen: rest };
+}
+
+function uiVlaggenwedstrijd(wId, ronde, baan, sps, w) {
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Vlaggenwedstrijd · elke speler heeft (par + handicap) slagen. Vlag plaatsen als slagen op zijn — verste vlag wint.</div>';
+
+  var rows = sps.map(function(s) {
+    var shv = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
+    var sc = (SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
+    var vl = berekenVlaggenwedstrijd(sc, baan, shv);
+    return { naam: s.voor+' '+s.ach, shv: shv, vl: vl };
+  }).filter(function(r){return r.vl.eindHole !== null;})
+    .sort(function(a,b){
+      if (a.vl.eindHole !== b.vl.eindHole) return b.vl.eindHole - a.vl.eindHole;
+      return a.vl.eindAfstand - b.vl.eindAfstand; // minder negatief = verder
+    });
+
+  var nog = sps.filter(function(s){
+    var sc = (SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
+    var shv = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
+    return berekenVlaggenwedstrijd(sc, baan, shv).eindHole === null;
+  });
+
+  html += '<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>SH</th><th>Vlag geplaatst</th><th>Slagen over</th></tr></thead><tbody>';
+  rows.forEach(function(r, i) {
+    var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
+    html+='<td style="font-weight:500">'+esc(r.naam)+'</td>';
+    html+='<td><span class="badge bg">'+r.vl.shv+'</span></td>';
+    html+='<td>Hole <strong>'+r.vl.eindHole+'</strong></td>';
+    html+='<td style="color:'+(r.vl.eindAfstand<0?'var(--red)':'var(--gm)')+';font-weight:500">'+(r.vl.eindAfstand<=0?r.vl.eindAfstand:'+'+r.vl.eindAfstand)+'</td></tr>';
+  });
+  if (nog.length) html += '<tr><td colspan="5" style="color:var(--txm);font-size:12px">'+nog.length+' speler(s) nog bezig...</td></tr>';
+  return html+'</tbody></table>';
+}
+
+// ── 5. Shoot-out ─────────────────────────────────────────────
+// Na elke hole valt de speler met de hoogste netto score af
+// Bij gelijkspel blijft iedereen (of loting)
+function berekenShootout(spScores, baan) {
+  var actief = spScores.slice();
+  var uitgevallen = [];
+  var perHole = [];
+
+  for (var i = 0; i < baan.holes; i++) {
+    if (actief.length <= 1) break;
+    var scores = actief.map(function(sp) {
+      var v = sp.sc[i]; if (!v||v==='') return Object.assign({},sp,{netto:Infinity,bruto:null});
+      return Object.assign({},sp,{netto:Number(v)-sp.ex[i], bruto:Number(v)});
+    });
+    var maxNetto = Math.max.apply(null, scores.map(function(s){return s.netto===Infinity?-999:s.netto;}));
+    var vallers = scores.filter(function(s){return s.netto===maxNetto && s.netto!==Infinity;});
+    // Alleen afvallen als er maar 1 hoogste is (anders gelijkspel = blijven)
+    if (vallers.length===1 && actief.length>2) {
+      uitgevallen.push(Object.assign({},vallers[0],{uitgevallen_hole:i+1}));
+      actief = actief.filter(function(sp){return sp.id !== vallers[0].id;});
+    }
+    perHole.push({hole:i+1, scores:scores, uitgevallen: vallers.length===1&&actief.length>1?vallers:[],gelijkspel:vallers.length>1});
+  }
+  return { actief: actief, uitgevallen: uitgevallen, perHole: perHole };
+}
+
+function uiShootout(wId, ronde, baan, sps, w) {
+  var spScores = sps.map(function(s) {
+    var shv = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
+    return { id: s.id, naam: s.voor+' '+s.ach, shv: shv, sc: (SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill(''), ex: extraSlagenPerHole(shv, baan.si) };
+  });
+  var so = berekenShootout(spScores, baan);
+
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Shoot-out · na elke hole valt de speler met de hoogste netto score af. Bij gelijkspel blijft iedereen.</div>';
+
+  if (so.actief.length > 0) {
+    html += '<div class="blk" style="margin-bottom:.75rem"><div class="blk-t">Nog actief (' + so.actief.length + ')</div>';
+    html += so.actief.map(function(sp){return '<div style="padding:5px 0;font-weight:500;color:var(--gm)">🏌 '+esc(sp.naam)+'</div>';}).join('');
+    html += '</div>';
+  }
+
+  html += '<div class="blk-t" style="margin-bottom:.5rem">Uitgevallen per hole</div>';
+  html += '<table class="tbl"><thead><tr><th>Hole</th><th>Uitgevallen</th><th>Netto score</th><th>Nog over</th></tr></thead><tbody>';
+  so.perHole.filter(function(h){return h.uitgevallen.length>0||h.gelijkspel;}).forEach(function(h) {
+    html += '<tr><td style="font-weight:500">H'+h.hole+'</td>';
+    if (h.gelijkspel) {
+      html += '<td colspan="3" style="color:var(--amb)">Gelijkspel — niemand afgevallen</td>';
+    } else {
+      html += '<td style="color:var(--red)">'+h.uitgevallen.map(function(s){return esc(s.naam);}).join(', ')+'</td>';
+      html += '<td>'+h.uitgevallen[0].netto+'</td>';
+      html += '<td style="color:var(--txm)">'+(spScores.length - so.uitgevallen.filter(function(u){return u.uitgevallen_hole<=h.hole;}).length)+' spelers</td>';
+    }
+    html += '</tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+// ── 6. Amerikaantje ──────────────────────────────────────────
+// Elke hole: punten verdeeld op basis van netto score (laagste = meeste punten)
+// Bij 4 spelers: 4-3-2-1 bij singles, bij gelijkspel punten gesplitst
+function berekenAmerikaans(spScores, baan) {
+  var totalen = {};
+  spScores.forEach(function(sp){totalen[sp.id]=0;});
+  var perHole = baan.par.map(function(par, i) {
+    var scores = spScores.map(function(sp){
+      var v=sp.sc[i]; if(!v||v==='') return {id:sp.id,naam:sp.naam,netto:null};
+      return {id:sp.id,naam:sp.naam,netto:Number(v)-sp.ex[i]};
+    }).filter(function(s){return s.netto!==null;});
+    if (!scores.length) return {hole:i+1,scores:[],punten:{}};
+
+    scores.sort(function(a,b){return a.netto-b.netto;});
+    var n = scores.length;
+    var beschikbaar = n*(n+1)/2; // 1+2+...+n
+    var punten = {};
+    var idx = 0;
+    while (idx < scores.length) {
+      // Vind groep gelijke scores
+      var groep = [scores[idx]];
+      while (idx+groep.length < scores.length && scores[idx+groep.length].netto===scores[idx].netto) groep.push(scores[idx+groep.length]);
+      // Punten voor deze groep = (n - idx) + (n - idx -1) + ... per persoon
+      var groepPunten = 0;
+      for (var g=0; g<groep.length; g++) groepPunten += (n - idx - g);
+      var perPersoon = groepPunten / groep.length;
+      groep.forEach(function(s){punten[s.id]=perPersoon;totalen[s.id]+=perPersoon;});
+      idx += groep.length;
+    }
+    return {hole:i+1, scores:scores, punten:punten};
+  });
+  return {perHole:perHole, totalen:totalen};
+}
+
+function uiAmerikaans(wId, ronde, baan, sps, w) {
+  var spScores = sps.map(function(s){
+    var shv=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,(w.hcpperc||100)/100,w.holes);
+    return{id:s.id,naam:s.voor+' '+s.ach,shv:shv,sc:(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill(''),ex:extraSlagenPerHole(shv,baan.si)};
+  });
+  var am = berekenAmerikaans(spScores, baan);
+
+  var rows = sps.map(function(s){return{naam:s.voor+' '+s.ach,shv:berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,(w.hcpperc||100)/100,w.holes),punten:am.totalen[s.id]||0};})
+    .sort(function(a,b){return b.punten-a.punten;});
+
+  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Amerikaantje · punten per hole verdeeld op basis van netto score. Laagste score = meeste punten. Gelijkspel = punten gesplitst.</div>';
+  html+='<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>SH</th><th>Punten</th></tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td><span class="badge bg">'+r.shv+'</span></td><td style="font-weight:600;color:var(--gm)">'+r.punten+'</td></tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+// ── 7. Bingo Bango Bongo ─────────────────────────────────────
+// 3 punten per hole:
+// Bingo: eerst op de green
+// Bango: dichtst bij de pin als iedereen op de green staat
+// Bongo: eerst de bal in de hole
+function uiBingoBangoBongo(wId, ronde, baan, sps, w) {
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Bingo Bango Bongo · 3 punten per hole: <strong>Bingo</strong> = eerst op green · <strong>Bango</strong> = dichtst bij pin · <strong>Bongo</strong> = eerst in hole</div>';
+  html += '<div class="blk"><div class="blk-t">Score invoer</div>';
+  html += '<p style="font-size:12px;color:var(--txm);margin-bottom:.75rem">Registreer per hole wie welk punt verdiend heeft.</p>';
+
+  if (!SCORES[wId]) SCORES[wId] = {};
+  if (!SCORES[wId]['bbb']) SCORES[wId]['bbb'] = {};
+
+  baan.par.forEach(function(par, i) {
+    var hole = i + 1;
+    if (!SCORES[wId]['bbb'][hole]) SCORES[wId]['bbb'][hole] = {bingo:null,bango:null,bongo:null};
+    var bbb = SCORES[wId]['bbb'][hole];
+
+    html += '<div style="padding:.6rem 0;border-bottom:1px solid var(--surf)">';
+    html += '<div style="font-size:12px;font-weight:500;margin-bottom:.4rem">Hole '+hole+' (par '+par+')</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    ['bingo','bango','bongo'].forEach(function(type) {
+      html += '<div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--txm);margin-bottom:2px">'+type.charAt(0).toUpperCase()+type.slice(1)+'</div>';
+      html += '<select class="fi" style="padding:5px;font-size:12px" onchange="bbbSet('+wId+','+hole+',\''+type+'\',this.value)">';
+      html += '<option value="">—</option>';
+      sps.forEach(function(s){html+='<option value="'+s.id+'"'+(bbb[type]==s.id?' selected':'')+'>'+esc(s.voor+' '+s.ach)+'</option>';});
+      html += '</select></div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+
+  // Leaderboard
+  var totalen = {};
+  sps.forEach(function(s){totalen[s.id]={bingo:0,bango:0,bongo:0,totaal:0};});
+  baan.par.forEach(function(par,i){
+    var bbb = SCORES[wId]['bbb'] && SCORES[wId]['bbb'][i+1];
+    if (!bbb) return;
+    ['bingo','bango','bongo'].forEach(function(type){
+      if (bbb[type] && totalen[bbb[type]]) { totalen[bbb[type]][type]++; totalen[bbb[type]].totaal++; }
+    });
+  });
+
+  var rows = sps.map(function(s){return{naam:s.voor+' '+s.ach,t:totalen[s.id]};}).sort(function(a,b){return b.t.totaal-a.t.totaal;});
+  html += '<div class="blk-t" style="margin:1rem 0 .5rem">Leaderboard</div>';
+  html += '<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>Bingo</th><th>Bango</th><th>Bongo</th><th>Totaal</th></tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td>'+r.t.bingo+'</td><td>'+r.t.bango+'</td><td>'+r.t.bongo+'</td><td style="font-weight:600;color:var(--gm)">'+r.t.totaal+'</td></tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+function bbbSet(wId, hole, type, sid) {
+  if (!SCORES[wId]) SCORES[wId] = {};
+  if (!SCORES[wId]['bbb']) SCORES[wId]['bbb'] = {};
+  if (!SCORES[wId]['bbb'][hole]) SCORES[wId]['bbb'][hole] = {bingo:null,bango:null,bongo:null};
+  SCORES[wId]['bbb'][hole][type] = sid ? parseInt(sid) : null;
+}
+
+// ── 8. Rabbit / Haas ─────────────────────────────────────────
+function berekenRabbit(spScores, baan, pot) {
+  pot = pot || 1;
+  var haas = null, bezitter = null;
+  var perHole = [], verdiensten = {};
+  spScores.forEach(function(sp){verdiensten[sp.id]=0;});
+
+  baan.par.forEach(function(par, i) {
+    var scores = spScores.map(function(sp){
+      var v=sp.sc[i]; if(!v||v==='') return {id:sp.id,naam:sp.naam,netto:null};
+      return {id:sp.id,naam:sp.naam,netto:Number(v)-sp.ex[i]};
+    }).filter(function(s){return s.netto!==null;});
+    if (!scores.length) { perHole.push({hole:i+1,haas:haas,actie:'geen scores'}); return; }
+    var mn = Math.min.apply(null,scores.map(function(s){return s.netto;}));
+    var winners = scores.filter(function(s){return s.netto===mn;});
+
+    var actie = '';
+    if (winners.length === 1) {
+      var winner = winners[0];
+      if (haas && haas === bezitter) {
+        // Haas verloren
+        actie = esc(bezitter.naam) + ' verliest de haas aan ' + esc(winner.naam);
+        verdiensten[winner.id] += pot;
+        haas = winner; bezitter = winner;
+      } else {
+        actie = esc(winner.naam) + ' pakt de haas';
+        haas = winner; bezitter = winner;
+      }
+    } else {
+      actie = 'Gelijkspel — haas blijft bij ' + (bezitter ? esc(bezitter.naam) : 'niemand');
+    }
+    perHole.push({hole:i+1,haas:haas?haas.naam:null,actie:actie});
+  });
+  return {perHole:perHole, verdiensten:verdiensten};
+}
+
+function uiRabbit(wId, ronde, baan, sps, w) {
+  var pot = w.skinsPot || 2;
+  var spScores = sps.map(function(s){
+    var shv=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,(w.hcpperc||100)/100,w.holes);
+    return{id:s.id,naam:s.voor+' '+s.ach,shv:shv,sc:(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill(''),ex:extraSlagenPerHole(shv,baan.si)};
+  });
+  var r = berekenRabbit(spScores, baan, pot);
+
+  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Rabbit (Haas) · wie een hole wint "heeft de haas". Verdedigen tot de volgende verliest. Pot per haas: €'+pot+'</div>';
+  html+='<table class="tbl"><thead><tr><th>Hole</th><th>Haas</th><th>Actie</th></tr></thead><tbody>';
+  r.perHole.forEach(function(h){html+='<tr><td style="font-weight:500">H'+h.hole+'</td><td>'+(h.haas?'🐇 '+esc(h.haas):'—')+'</td><td style="font-size:12px;color:var(--txm)">'+h.actie+'</td></tr>';});
+  html+='</tbody></table>';
+
+  html+='<div class="blk" style="margin-top:.75rem"><div class="blk-t">Verdiensten</div>';
+  sps.forEach(function(s){var v=r.verdiensten[s.id]||0;if(v>0)html+='<div style="padding:5px 0">'+esc(s.voor+' '+s.ach)+': <strong style="color:var(--gold)">€'+v+'</strong></div>';});
+  html+='</div>';
+  return html;
+}
+
+// ════════════════════════════════════════════════════════════
+// GROEP 3 — TEAMVARIANTEN
+// ════════════════════════════════════════════════════════════
+
+// ── 9. Shamble ───────────────────────────────────────────────
+// Beste drive kiezen, daarna ieder eigen bal (Stableford scoring)
+function uiShamble(wId, ronde, baan, sps, w) {
+  // Shamble = elke speler scoort zijn eigen bal na beste drive
+  // Scoring = Stableford individueel maar gegroepeerd per team
+  var flights = FLIGHTS[wId] || [sps.map(function(s){return s.id;})];
+  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Shamble · beste drive kiezen, daarna ieder zijn eigen bal. Stableford scoring. Best team wint.</div>';
+
+  var teamResults = flights.map(function(flight) {
+    var teamSps = flight.map(function(sid){return USERS.find(function(x){return x.id===sid;});}).filter(Boolean);
+    var teamScores = teamSps.map(function(s){
+      var shv=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,(w.hcpperc||100)/100,w.holes);
+      var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
+      var sf=berekenStableford(sc,baan,shv);
+      return{naam:s.voor+' '+s.ach,shv:shv,punten:sf.punten,ges:sf.ges};
+    });
+    var teamPunten = teamScores.reduce(function(a,s){return a+s.punten;},0);
+    return{teamSps:teamSps, teamScores:teamScores, teamPunten:teamPunten};
+  }).sort(function(a,b){return b.teamPunten-a.teamPunten;});
+
+  html+='<table class="tbl"><thead><tr><th>#</th><th>Team</th><th>Team punten</th></tr></thead><tbody>';
+  teamResults.forEach(function(t,i){
+    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
+    html+='<td>'+t.teamSps.map(function(s){return esc(s.voor+' '+s.ach);}).join(' / ')+'</td>';
+    html+='<td style="font-weight:600;color:var(--gm)">'+t.teamPunten+'</td></tr>';
+    t.teamScores.forEach(function(sc){html+='<tr style="background:var(--surf)"><td></td><td style="font-size:12px;color:var(--txm);padding-left:1.5rem">'+esc(sc.naam)+' (SH '+sc.shv+')</td><td style="font-size:12px;color:var(--txm)">'+sc.punten+' ptn · '+sc.ges+'/'+baan.holes+' h</td></tr>';});
+  });
+  return html+'</tbody></table>';
+}
+
+// ── 10. Chapman / Pinehurst ───────────────────────────────────
+function chapmanTeamHcp(spA, spB, baan) {
+  // Chapman: teamhcp = (0.6 × lagere HCP) + (0.4 × hogere HCP)
+  var hcps = [spA.hcp, spB.hcp].sort(function(a,b){return a-b;});
+  var teamHcp = Math.round(hcps[0]*0.6 + hcps[1]*0.4);
+  var shv = berekenSpeelhandicap(teamHcp, baan.slope, baan.cr, baan.parTotaal, 1.0, baan.holes);
+  return {teamHcp:teamHcp, sh:shv};
+}
+
+function uiChapman(wId, ronde, baan, sps, w) {
+  if (sps.length < 2) return '<p style="color:var(--txm)">Chapman vereist minimaal 2 spelers (teams van 2).</p>';
+  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Chapman / Pinehurst · beide slaan af → wissel bal → beste bal kiezen → daarna alternate shot. Teamhandicap: lagere HCP × 0.6 + hogere × 0.4.</div>';
+
+  var teams = [];
+  for (var t=0;t+1<sps.length;t+=2) {
+    var spA=sps[t],spB=sps[t+1];
+    var gh=chapmanTeamHcp(spA,spB,baan);
+    var key='ch-'+spA.id+'-'+spB.id;
+    if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId][ronde])SCORES[wId][ronde]={};
+    if(!SCORES[wId][ronde][key])SCORES[wId][ronde][key]=Array(baan.holes).fill('');
+    var sc=SCORES[wId][ronde][key];
+    var res=berekenStrokeplay(sc,baan,gh.sh,w.esc||'geen');
+    teams.push({spA:spA,spB:spB,gh:gh,key:key,sc:sc,res:res});
+  }
+  teams.sort(function(a,b){return !a.res.ges?1:!b.res.ges?-1:a.res.netto-b.res.netto;});
+
+  html+='<table class="tbl"><thead><tr><th>#</th><th>Team</th><th>Team HCP</th><th>SH</th><th>Bruto</th><th>Netto</th><th>vs par</th></tr></thead><tbody>';
+  teams.forEach(function(team,i){
+    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    var vp=team.res.ges>0?team.res.nvp:null;
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
+    html+='<td><strong>'+esc(team.spA.voor+' '+team.spA.ach)+'</strong><br><span style="font-size:11px;color:var(--txm)">'+esc(team.spB.voor+' '+team.spB.ach)+'</span></td>';
+    html+='<td>'+team.gh.teamHcp+'</td><td><span class="badge bg">'+team.gh.sh+'</span></td>';
+    html+='<td>'+(team.res.ges>0?team.res.bruto:'—')+'</td>';
+    html+='<td style="font-weight:600;color:var(--gm)">'+(team.res.ges>0?team.res.netto:'—')+'</td>';
+    html+='<td class="'+(vp!==null&&vp<0?'under':vp!==null&&vp>0?'over':'')+'">'+(vp!==null?fvp(vp):'—')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+
+  // Score invoer per team
+  teams.forEach(function(team){
+    var ex=extraSlagenPerHole(team.gh.sh,baan.si);
+    var cols='grid-template-columns:120px repeat('+baan.holes+',1fr) 40px 40px';
+    html+='<div class="csk-wrap" style="margin-top:.75rem">';
+    html+='<div style="padding:.5rem .75rem;background:var(--g);color:#fff;font-size:12px;font-weight:500">'+esc(team.spA.voor+' '+team.spA.ach+' & '+team.spB.voor+' '+team.spB.ach)+' · SH '+team.gh.sh+'</div>';
+    html+='<div style="display:grid;'+cols+';background:var(--surf);font-size:10px;color:var(--txm);border-bottom:1px solid var(--bd)">';
+    html+='<div style="padding:5px 8px;border-right:1px solid var(--bd)">Hole</div>';
+    for(var hi=1;hi<=baan.holes;hi++)html+='<div style="padding:5px 2px;text-align:center;border-right:1px solid var(--bd)">'+hi+'</div>';
+    html+='<div style="padding:5px 2px;text-align:center;border-right:1px solid var(--bd)">B</div><div style="padding:5px 2px;text-align:center">N</div></div>';
+    html+='<div style="display:grid;'+cols+';align-items:center">';
+    html+='<div style="padding:6px 8px;font-size:11px;border-right:1px solid var(--surf)">Score</div>';
+    team.sc.forEach(function(v,i){
+      var kls=v!==''?sklas(v,baan.par[i],ex[i]):'';
+      html+='<div style="border-right:1px solid var(--surf)"><input class="csk-inp '+kls+'" type="number" min="1" max="15" value="'+(v||'')+'" style="width:100%;padding:6px 2px;font-size:13px;min-height:32px" oninput="chScore(this,\''+wId+'\','+ronde+',\''+team.key+'\','+i+','+baan.par[i]+','+ex[i]+')"/></div>';
+    });
+    html+='<div id="ch-br-'+wId+'-'+ronde+'-'+team.key+'" style="text-align:center;font-size:12px;font-weight:600;border-right:1px solid var(--surf)">'+(team.res.ges>0?team.res.bruto:'—')+'</div>';
+    html+='<div id="ch-ne-'+wId+'-'+ronde+'-'+team.key+'" style="text-align:center;font-size:12px;font-weight:600;color:var(--gm)">'+(team.res.ges>0?team.res.netto:'—')+'</div>';
+    html+='</div></div>';
+  });
+  return html;
+}
+
+function chScore(inp,wId,ronde,key,idx,par,ex){
+  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId][ronde])SCORES[wId][ronde]={};
+  if(!SCORES[wId][ronde][key])SCORES[wId][ronde][key]=Array(18).fill('');
+  SCORES[wId][ronde][key][idx]=inp.value;
+  inp.className='csk-inp'+(inp.value?' '+sklas(inp.value,par,ex):'');
+  var w=WEDSTRIJDEN.find(function(x){return x.id==wId;});if(!w)return;
+  var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+  var parts=key.replace('ch-','').split('-');
+  var spA=USERS.find(function(x){return x.id==parts[0];})||{hcp:18};
+  var spB=USERS.find(function(x){return x.id==parts[1];})||{hcp:18};
+  var gh=chapmanTeamHcp(spA,spB,baan);
+  var res=berekenStrokeplay(SCORES[wId][ronde][key],baan,gh.sh,w.esc||'geen');
+  var bEl=document.getElementById('ch-br-'+wId+'-'+ronde+'-'+key);
+  var nEl=document.getElementById('ch-ne-'+wId+'-'+ronde+'-'+key);
+  if(bEl)bEl.textContent=res.ges>0?res.bruto:'—';
+  if(nEl)nEl.textContent=res.ges>0?res.netto:'—';
+}
+
+// ════════════════════════════════════════════════════════════
+// GROEP 4 — SEIZOEN / COMPETITIE
+// ════════════════════════════════════════════════════════════
+
+// ── 11. Order of Merit ───────────────────────────────────────
+var ORDER_OF_MERIT = {}; // wid → [{ sid, punten }]
+
+function omPuntenSchaal(positie, aantalDeelnemers) {
+  // Standaard NGF-achtige schaal
+  var schalen = {1:25,2:20,3:16,4:13,5:11,6:9,7:7,8:6,9:5,10:4};
+  return schalen[positie] || Math.max(1, 3 - Math.floor((positie-10)/5));
+}
+
+function berekenOrderOfMerit(wId) {
+  var w = WEDSTRIJDEN.find(function(x){return x.id===wId;}); if(!w)return;
+  var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+  var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
+  var ronde=0;
+  var rows=sps.map(function(s){
+    var shv=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,(w.hcpperc||100)/100,w.holes);
+    var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
+    var sf=berekenStableford(sc,baan,shv);
+    var res=berekenStrokeplay(sc,baan,shv,w.esc||'geen');
+    return{id:s.id,naam:s.voor+' '+s.ach,shv:shv,sfPts:sf.punten,netto:res.netto,ges:res.ges};
+  });
+  if(w.vorm==='Stableford')rows.sort(function(a,b){return !a.ges?1:!b.ges?-1:b.sfPts-a.sfPts;});
+  else rows.sort(function(a,b){return !a.ges?1:!b.ges?-1:a.netto-b.netto;});
+  var omPunten=[];
+  rows.forEach(function(r,i){if(r.ges>0){var p=omPuntenSchaal(i+1,rows.length);omPunten.push({sid:r.id,naam:r.naam,positie:i+1,omPunten:p});}});
+  ORDER_OF_MERIT[wId]=omPunten;
+  return omPunten;
+}
+
+function uiOrderOfMerit() {
+  // Combineer alle OoM punten over alle wedstrijden
+  var totalen={};
+  WEDSTRIJDEN.filter(function(w){return w.omActief;}).forEach(function(w){
+    var punten=berekenOrderOfMerit(w.id);
+    punten.forEach(function(p){
+      if(!totalen[p.sid])totalen[p.sid]={naam:p.naam,punten:0,wedstrijden:0,beste:[],sid:p.sid};
+      totalen[p.sid].punten+=p.omPunten;
+      totalen[p.sid].wedstrijden++;
+      totalen[p.sid].beste.push({wNaam:w.naam,punten:p.omPunten,pos:p.positie});
+    });
+  });
+
+  var rows=Object.values(totalen).sort(function(a,b){return b.punten-a.punten;});
+  if(!rows.length)return'<div style="padding:2rem;text-align:center;color:var(--txm)">Activeer "Order of Merit" bij wedstrijden om het seizoensklassement bij te houden.</div>';
+
+  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Order of Merit · seizoensklassement op basis van punten per wedstrijd. Positie 1 = 25 punten, positie 2 = 20 punten, etc.</div>';
+  html+='<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>W.</th><th>OoM punten</th></tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td style="color:var(--txm)">'+r.wedstrijden+'</td><td style="font-weight:700;color:var(--gold);font-size:16px">'+r.punten+'</td></tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+// ════════════════════════════════════════════════════════════
+// GROEP 5 — FUN / CLUBDAG REGISTRATIE
+// ════════════════════════════════════════════════════════════
+
+// ── 12. Vossenjacht ──────────────────────────────────────────
+function uiVossenjacht(wId, baan, sps, w) {
+  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Vossenjacht · spelers starten op verschillende holes. De "vos" (voorste speler) wordt gevangen als een andere speler hem inhaalt.</div>';
+  html+='<div class="blk"><div class="blk-t">Startposities</div>';
+  html+='<p style="font-size:12px;color:var(--txm);margin-bottom:.75rem">Wijs elke speler een starthoel toe. Score wordt op papier bijgehouden.</p>';
+  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['vos'])SCORES[wId]['vos']={};
+  sps.forEach(function(s){
+    var start=SCORES[wId]['vos'][s.id]||1;
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--surf)">';
+    html+='<div style="flex:1;font-size:13px">'+esc(s.voor+' '+s.ach)+'</div>';
+    html+='<div style="display:flex;align-items:center;gap:6px"><label style="font-size:12px;color:var(--txm)">Start hole:</label>';
+    html+='<select class="fi" style="width:70px;padding:5px" onchange="vosSetStart('+wId+','+s.id+',this.value)">';
+    for(var hi=1;hi<=baan.holes;hi++)html+='<option value="'+hi+'"'+(start==hi?' selected':'')+'>'+hi+'</option>';
+    html+='</select></div></div>';
+  });
+  html+='</div>';
+  html+='<div class="blk"><div class="blk-t">Vossenjacht — werkt op papier</div><p style="font-size:12px;color:var(--txm)">Spelers starten op hun hole en gaan in de richting van hole 18. Wie een andere speler op dezelfde hole inhaalt, "vangt de vos". Eindscore: meeste holes gespeeld voor gevangen te worden.</p></div>';
+  return html;
+}
+
+function vosSetStart(wId,sid,hole){
+  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['vos'])SCORES[wId]['vos']={};
+  SCORES[wId]['vos'][sid]=parseInt(hole);
+}
+
+// ── 13. Hidden / Blind holes ─────────────────────────────────
+function uiHiddenHoles(wId, ronde, baan, sps, w) {
+  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['hidden'])SCORES[wId]['hidden']=[];
+  var hidden=SCORES[wId]['hidden'];
+  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Hidden holes · na afloop wordt bekendgemaakt welke holes tellen. Stableford scoring op de gekozen holes.</div>';
+
+  // Admin: kies welke holes tellen
+  html+='<div class="blk"><div class="blk-t">Kies welke holes tellen (onbekend voor spelers)</div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.5rem">';
+  for(var hi=1;hi<=baan.holes;hi++){
+    var isHidden=hidden.indexOf(hi)>=0;
+    html+='<button class="btn '+(isHidden?'btn-p':'btn-s')+' btn-xs" onclick="hiddenToggle('+wId+','+hi+',this)">H'+hi+'</button>';
+  }
+  html+='</div><p style="font-size:11px;color:var(--txm)">'+hidden.length+' holes geselecteerd</p></div>';
+
+  if(!hidden.length)return html+'<p style="font-size:13px;color:var(--txm)">Selecteer holes om het leaderboard te zien.</p>';
+
+  // Leaderboard op basis van geselecteerde holes
+  var rows=sps.map(function(s){
+    var shv=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,(w.hcpperc||100)/100,w.holes);
+    var ex=extraSlagenPerHole(shv,baan.si);
+    var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
+    var punten=0;
+    hidden.forEach(function(h){punten+=stabPts(sc[h-1],baan.par[h-1],ex[h-1]);});
+    return{naam:s.voor+' '+s.ach,shv:shv,punten:punten};
+  }).sort(function(a,b){return b.punten-a.punten;});
+
+  html+='<div class="blk-t" style="margin:.75rem 0 .5rem">Leaderboard ('+hidden.length+' holes)</div>';
+  html+='<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>SH</th><th>Punten</th></tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td><span class="badge bg">'+r.shv+'</span></td><td style="font-weight:600;color:var(--gm)">'+r.punten+'</td></tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+function hiddenToggle(wId,hole,btn){
+  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['hidden'])SCORES[wId]['hidden']=[];
+  var idx=SCORES[wId]['hidden'].indexOf(hole);
+  if(idx>=0){SCORES[wId]['hidden'].splice(idx,1);btn.className='btn btn-s btn-xs';}
+  else{SCORES[wId]['hidden'].push(hole);btn.className='btn btn-p btn-xs';}
+  // Herrender
+  var el=document.getElementById('stab-hh');
+  if(el){var wId2=parseInt(document.getElementById('sc-w').value);var w=WEDSTRIJDEN.find(function(x){return x.id===wId2;});if(w){var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId2&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);el.innerHTML=uiHiddenHoles(wId2,0,baan,sps,w);}}
+}
+
+// ── 14. Stokkenroof ──────────────────────────────────────────
+function uiStokkenroof(wId, ronde, baan, sps, w) {
+  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['stok'])SCORES[wId]['stok']={};
+  // Elke speler begint met 1 club. Bij bogey of slechter verliest ie een club aan de wedstrijdleider.
+  // Speler met meeste clubs aan het einde wint.
+  var stokken={};
+  sps.forEach(function(s){stokken[s.id]=SCORES[wId]['stok'][s.id]!==undefined?SCORES[wId]['stok'][s.id]:14;});
+
+  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Stokkenroof · elke speler begint met 14 clubs. Bij bogey of slechter (bruto) verliest ie een club. Minste clubs verloren wint.</div>';
+  html+='<table class="tbl"><thead><tr><th>Speler</th><th>Clubs over</th><th>Verloren</th><th></th></tr></thead><tbody>';
+  sps.forEach(function(s){
+    var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
+    var verloren=0;
+    sc.forEach(function(v,i){if(v&&v!==''&&Number(v)>baan.par[i])verloren++;});
+    html+='<tr><td style="font-weight:500">'+esc(s.voor+' '+s.ach)+'</td>';
+    html+='<td style="font-weight:600">'+(14-verloren)+'</td>';
+    html+='<td style="color:var(--red)">'+verloren+'</td>';
+    html+='<td><span style="font-size:20px">'+'🏌'.repeat(Math.max(0,Math.min(5,14-verloren)))+'</span></td></tr>';
+  });
+  return html+'</tbody></table>';
 }
 
 
@@ -4887,6 +5615,20 @@ function switchScoreTab(tab) {
   else if (tab === 'pc') el.innerHTML = uiParComp(wId, ronde, baan, sps, w);
   else if (tab === 'fs') el.innerHTML = uiFoursomes(wId, ronde, baan, sps, w);
   else if (tab === 'ko') el.innerHTML = uiBracket(wId, ronde, baan, sps, w);
+  else if (tab === 'msf') el.innerHTML = uiModifiedStableford(wId, ronde, baan, sps, w);
+  else if (tab === 'tsf') el.innerHTML = uiTeamStableford(wId, ronde, baan, sps, w);
+  else if (tab === 'all') el.innerHTML = uiAlliance(wId, ronde, baan, sps, w);
+  else if (tab === 'vl') el.innerHTML = uiVlaggenwedstrijd(wId, ronde, baan, sps, w);
+  else if (tab === 'so') el.innerHTML = uiShootout(wId, ronde, baan, sps, w);
+  else if (tab === 'am') el.innerHTML = uiAmerikaans(wId, ronde, baan, sps, w);
+  else if (tab === 'bbb') el.innerHTML = uiBingoBangoBongo(wId, ronde, baan, sps, w);
+  else if (tab === 'rb') el.innerHTML = uiRabbit(wId, ronde, baan, sps, w);
+  else if (tab === 'sh') el.innerHTML = uiShamble(wId, ronde, baan, sps, w);
+  else if (tab === 'ch') el.innerHTML = uiChapman(wId, ronde, baan, sps, w);
+  else if (tab === 'vos') el.innerHTML = uiVossenjacht(wId, baan, sps, w);
+  else if (tab === 'hh') el.innerHTML = uiHiddenHoles(wId, ronde, baan, sps, w);
+  else if (tab === 'stok') el.innerHTML = uiStokkenroof(wId, ronde, baan, sps, w);
+  else if (tab === 'oom') el.innerHTML = uiOrderOfMerit();
 }
 
 // ============================================================
