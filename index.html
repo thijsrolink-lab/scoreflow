@@ -1699,7 +1699,13 @@ function initAdminInterface(){
   document.getElementById('admin-naam').textContent=u.voor+' '+u.ach;
   document.getElementById('admin-rol-label').textContent=u.rol;
   buildAdminNav();
-  adminNav('dashboard');
+  // Laad wedstrijden en gebruikers uit Supabase
+  laadAlleData().then(function() {
+    adminNav('dashboard');
+  }).catch(function() {
+    // Fallback: gebruik lokale data
+    adminNav('dashboard');
+  });
 }
 
 function buildAdminNav(){
@@ -1881,6 +1887,9 @@ function delW(id){
   if(!confirm('Wedstrijd verwijderen?'))return;
   WEDSTRIJDEN=WEDSTRIJDEN.filter(function(x){return x.id!==id;});
   renderWedstrijden();toast('Wedstrijd verwijderd.');
+  // Supabase verwijderen
+  supa('wedstrijden','DELETE',null,{id:'eq.'+id})
+    .catch(function(e){console.warn('delW:',e.message);});
 }
 
 // ============================================================
@@ -1948,17 +1957,73 @@ function saveConcept(){
   _editId=null;toast('Opgeslagen als concept.');adminNav('wedstrijden');
 }
 
-function publishW(){
-  var naam=document.getElementById('fn').value||'';
-  if(!naam.trim()){toast('Vul een naam in.','err');return;}
-  var btn=document.querySelector('#vorm-tg .tgb.on');var vorm=btn?btn.dataset.vorm:'Strokeplay';
-  if(_editId){
-    var i=WEDSTRIJDEN.findIndex(function(x){return x.id===_editId;});
-    if(i>-1){WEDSTRIJDEN[i].naam=naam;WEDSTRIJDEN[i].status='gepubliceerd';}
-  } else {
-    WEDSTRIJDEN.push({id:Date.now(),naam:naam,datum:document.getElementById('fd').value||'2025-12-01',baan:document.getElementById('fb').value||'GCC Zeewolde',vorm:vorm,status:'gepubliceerd',max:parseInt(document.getElementById('fmax').value)||72,ing:0,kleur:'ceg',cr:parseFloat(document.getElementById('fcr').value)||72.1,slope:parseInt(document.getElementById('fsl').value)||131,holes:parseInt(document.getElementById('fh').value)||18,flt:parseInt(document.getElementById('fflt').value)||3,hcpmax:parseFloat(document.getElementById('fhmax').value)||36,hcpmin:0,hcpperc:parseInt(document.getElementById('fhp').value)||100,esc:document.getElementById('fesc').value||'geen',rondes:1,startgeld:parseFloat(document.getElementById('fsg').value)||0,skinsPot:5,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:document.getElementById('fomschr').value||'',inschrijfOpen:document.getElementById('fop').value||'',inschrijfSluit:document.getElementById('fsluit').value||''});
+
+// ── Bouw wedstrijd object uit wizard formulier ────────────────
+function bouwWedstrijdUitFormulier(status) {
+  var naam = (document.getElementById('fn').value||'').trim();
+  if (!naam) { toast('Vul een naam in.', 'err'); return null; }
+  var btn = document.querySelector('#vorm-tg .tgb.on');
+  var vorm = btn ? btn.dataset.vorm : 'Stableford';
+  return {
+    naam: naam,
+    datum: document.getElementById('fd').value || '2025-12-01',
+    baan: document.getElementById('fb').value || 'GCC Zeewolde',
+    cr: parseFloat(document.getElementById('fcr').value) || 72.1,
+    slope: parseInt(document.getElementById('fsl').value) || 131,
+    holes: parseInt(document.getElementById('fh').value) || 18,
+    vorm: vorm,
+    status: status,
+    max: parseInt(document.getElementById('fmax').value) || 72,
+    hcpmax: parseFloat(document.getElementById('fhmax').value) || 36,
+    hcpmin: 0,
+    hcpperc: parseInt(document.getElementById('fhp').value) || 100,
+    esc: document.getElementById('fesc').value || 'geen',
+    startgeld: parseFloat(document.getElementById('fsg').value) || 0,
+    skinsPot: 0,
+    rondes: 1,
+    kleur: status === 'gepubliceerd' ? 'ceg' : 'ceb',
+    omschrijving: document.getElementById('fomschr').value || '',
+    inschrijfOpen: document.getElementById('fop').value || '',
+    inschrijfSluit: document.getElementById('fsluit').value || '',
+  };
+}
+
+async function bouwEnSlaWedstrijdOp(status) {
+  var data = bouwWedstrijdUitFormulier(status);
+  if (!data) return;
+
+  // Als we bewerken: update
+  if (_editId) {
+    data.id = _editId;
+    var i = WEDSTRIJDEN.findIndex(function(x) { return x.id === _editId; });
+    if (i > -1) Object.assign(WEDSTRIJDEN[i], data);
+    dbSaveWedstrijd(data).catch(function(e) { console.warn('dbSaveWedstrijd:', e.message); });
+    _editId = null;
+    toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
+    adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
+    return;
   }
-  _editId=null;toast('Wedstrijd gepubliceerd!');adminNav('kalender');
+
+  // Nieuw: lokaal toevoegen + Supabase
+  var lokaalId = Date.now();
+  var lokaalW = Object.assign({ id: lokaalId, ing: 0 }, data);
+  WEDSTRIJDEN.push(lokaalW);
+  _editId = null;
+  toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
+  adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
+
+  // Async naar Supabase — vervang lokaal ID door UUID
+  dbSaveWedstrijd(data).then(function(nieuwW) {
+    if (nieuwW && nieuwW.id) {
+      // Vervang lokaal ID door echte UUID
+      var i = WEDSTRIJDEN.findIndex(function(x) { return x.id === lokaalId; });
+      if (i > -1) WEDSTRIJDEN[i] = Object.assign(WEDSTRIJDEN[i], nieuwW);
+    }
+  }).catch(function(e) { console.warn('dbSaveWedstrijd:', e.message); });
+}
+
+function publishW(){
+  bouwEnSlaWedstrijdOp('gepubliceerd');
 }
 
 // ============================================================
@@ -3247,10 +3312,18 @@ function snelBouwWedstrijd(status) {
 function snelPubliceren() {
   var w = snelBouwWedstrijd('gepubliceerd');
   if (!w) return;
+  var lokaalId = w.id;
   WEDSTRIJDEN.push(w);
   closeModal('modal-snel');
   toast('Wedstrijd "' + w.naam + '" gepubliceerd!');
   adminNav('wedstrijden');
+  // Supabase opslaan
+  dbSaveWedstrijd(w).then(function(nieuwW) {
+    if (nieuwW && nieuwW.id) {
+      var i = WEDSTRIJDEN.findIndex(function(x) { return x.id === lokaalId; });
+      if (i > -1) WEDSTRIJDEN[i] = Object.assign(WEDSTRIJDEN[i], nieuwW);
+    }
+  }).catch(function(e) { console.warn('snelPubliceren:', e.message); });
 }
 
 function snelAanmakenWizard() {
@@ -3409,18 +3482,24 @@ function dupliceerWedstrijd(id) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === id; });
   if (!w) return;
   var kopie = Object.assign({}, w);
-  kopie.id = Date.now();
+  var lokaalId = Date.now();
+  kopie.id = lokaalId;
   kopie.naam = 'Kopie van ' + w.naam;
   kopie.status = 'concept';
   kopie.ing = 0;
   kopie.kleur = 'ceb';
-  // Datum +7 dagen
   var d = new Date(w.datum); d.setDate(d.getDate() + 7);
   kopie.datum = d.toISOString().split('T')[0];
   WEDSTRIJDEN.push(kopie);
   toast('"' + kopie.naam + '" aangemaakt als concept.');
-  // Open in wizard
-  editW(kopie.id);
+  editW(lokaalId);
+  // Supabase opslaan
+  dbSaveWedstrijd(kopie).then(function(nieuwW) {
+    if (nieuwW && nieuwW.id) {
+      var i = WEDSTRIJDEN.findIndex(function(x) { return x.id === lokaalId; });
+      if (i > -1) WEDSTRIJDEN[i] = Object.assign(WEDSTRIJDEN[i], nieuwW);
+    }
+  }).catch(function(e) { console.warn('dupliceerWedstrijd:', e.message); });
 }
 
 // ============================================================
