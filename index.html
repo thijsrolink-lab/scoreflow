@@ -419,6 +419,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .ecl-rtab.beste{color:var(--gold)}
 .ecl-beste-cel{background:#e4f5e9!important;color:#0a4020;font-weight:600}
 
+
+/* ── HELP SYSTEEM ─────────────────────────────────────────── */
+.help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1200;opacity:0;pointer-events:none;transition:opacity .2s}
+.help-overlay.on{opacity:1;pointer-events:all}
+.help-paneel{position:fixed;top:0;right:-440px;width:420px;max-width:95vw;height:100vh;background:var(--card);z-index:1201;box-shadow:-4px 0 32px rgba(0,0,0,.18);transition:right .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.help-paneel.on{right:0}
+.help-header{padding:1.25rem 1.5rem;background:var(--g);color:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.help-titel{font-size:17px;font-weight:600;font-family:'Playfair Display',serif}
+.help-sluit{background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.help-sluit:hover{background:rgba(255,255,255,.3)}
+.help-body{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
+.help-intro{font-size:14px;color:var(--tx);line-height:1.6;margin:0}
+.help-sectie{border-left:3px solid var(--lime);padding:.5rem 0 .5rem .75rem}
+.help-kop{font-size:11px;font-weight:600;color:var(--g);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.help-tekst{font-size:13px;color:var(--txm);line-height:1.6;margin:0}
+
 </style>
 </head>
 <body>
@@ -517,7 +533,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem" id="quick-pills"></div>
         <div class="g4" style="margin-bottom:1rem" id="dash-stats"></div>
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1rem">
-          <div class="card" style="margin-bottom:0"><div class="card-hd">Aankomende wedstrijden</div><div id="dash-upcoming"></div></div>
+          <div class="card" style="margin-bottom:0"><div class="card-hd">Aankomende wedstrijden<div class="card-hd-r"><button class="help-knop" onclick="openHelp('dashboard')">? Help</button></div></div><div id="dash-upcoming"></div></div>
           <div class="card" style="margin-bottom:0"><div class="card-hd">Bezetting</div><div class="bar-chart" id="dash-chart"></div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
@@ -546,6 +562,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
         <div class="card">
           <div class="card-hd">Alle wedstrijden
             <div class="card-hd-r">
+              <button class="help-knop" onclick="openHelp('wedstrijden')">? Help</button>
+              <button class="help-knop" onclick="openHelp('kalender')">? Help</button>
               <input type="text" id="w-search" placeholder="Zoeken..." style="padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);width:150px;font-family:'DM Sans',sans-serif" oninput="renderWedstrijden()"/>
               <button class="btn btn-s btn-xs" id="btn-snel-w" onclick="openSnelModal()">&#9889; Snel</button>
               <button class="btn btn-p btn-xs" id="btn-nieuw-w" onclick="adminNav('nieuw')">+ Nieuw</button>
@@ -566,7 +584,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
         </div>
         <div id="s0">
           <div class="card">
-            <div class="card-hd">Basisgegevens</div>
+            <div class="card-hd">Basisgegevens<div class="card-hd-r"><button class="help-knop" onclick="openHelp('nieuw')">? Help</button></div></div>
             <div class="g2">
               <div class="field"><label>Naam wedstrijd</label><input id="fn" type="text" placeholder="bv. Clubkampioenschap 2025"/></div>
               <div class="field"><label>Datum</label><input id="fd" type="date"/></div>
@@ -734,6 +752,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
         <div class="card">
           <div class="card-hd">Ledenbestand
             <div class="card-hd-r">
+              <button class="help-knop" onclick="openHelp('spelers')">? Help</button>
               <input type="text" id="sp-q" placeholder="Naam of nummer..." style="padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);width:160px;font-family:'DM Sans',sans-serif" oninput="renderSpelers()"/>
               <select id="sp-ft" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="renderSpelers()">
                 <option value="">Alle types</option><option>Volledig lid</option><option>Weekendlid</option><option>Junior</option><option>Senior</option><option>Gast</option>
@@ -755,6 +774,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
         <div class="card">
           <div class="card-hd">Inschrijvingen beheren
             <div class="card-hd-r">
+              <button class="help-knop" onclick="openHelp('inschrijvingen')">? Help</button>
               <select id="ing-fw" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="renderInschrijvingen()"><option value="">Alle wedstrijden</option></select>
               <button class="btn btn-p btn-xs" onclick="openAdminInschrijfModal()">+ Inschrijven</button>
             </div>
@@ -768,6 +788,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
         <div class="card">
           <div class="card-hd">Flight-indeling
             <div class="card-hd-r">
+              <button class="help-knop" onclick="openHelp('flights')">? Help</button>
               <select id="fl-w" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="renderFlights()"><option value="">Kies wedstrijd</option></select>
               <select id="fl-sort" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="autoFlights()">
                 <option value="hcp-asc">HCP laag→hoog</option>
@@ -789,6 +810,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
         <div class="card">
           <div class="card-hd">Scores &amp; leaderboard
             <div class="card-hd-r">
+              <button class="help-knop" onclick="openHelp('scores')">? Help</button>
               <button class="btn btn-s btn-xs" id="btn-live-lb" onclick="openLiveLeaderboard()" style="display:none">&#127358; Live LB</button>
               <select id="sc-w" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="initScoreView()"><option value="">Kies wedstrijd</option></select>
               <select id="sc-ronde" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif;display:none" onchange="renderScoreInvoer()"></select>
@@ -803,7 +825,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
         <div class="card">
           <div class="card-hd">Admins &amp; rollen
             <button class="btn btn-p btn-xs" onclick="openNieuwAdmin()">+ Admin toevoegen</button>
-          </div>
+          <div class="card-hd-r"><button class="help-knop" onclick="openHelp('admins')">? Help</button></div></div>
           <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Naam</th><th>E-mail</th><th>Rol</th><th>Laatste login</th><th></th></tr></thead><tbody id="admins-body"></tbody></table></div>
         </div>
       </div>
@@ -814,7 +836,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
           <div class="card" style="margin-bottom:0">
             <div class="card-hd">Verstuurde berichten
               <button class="btn btn-p btn-xs" onclick="openNotifModal()">+ Nieuw bericht</button>
-            </div>
+            <div class="card-hd-r"><button class="help-knop" onclick="openHelp('notificaties')">? Help</button></div></div>
             <div id="notif-list"></div>
           </div>
           <div class="card" style="margin-bottom:0"><div class="card-hd">Sjablonen</div><div id="notif-tmpl" style="display:flex;flex-direction:column;gap:6px"></div></div>
@@ -825,7 +847,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
       <div id="v-rapportages" class="view">
         <div class="g4" style="margin-bottom:1rem" id="r-stats"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
-          <div class="card" style="margin-bottom:0"><div class="card-hd">Deelnames per wedstrijd</div><div class="bar-chart" id="r-chart1"></div></div>
+          <div class="card" style="margin-bottom:0"><div class="card-hd">Deelnames per wedstrijd<div class="card-hd-r"><button class="help-knop" onclick="openHelp('rapportages')">? Help</button></div></div><div class="bar-chart" id="r-chart1"></div></div>
           <div class="card" style="margin-bottom:0"><div class="card-hd">Handicapverdeling</div><div class="bar-chart" id="r-chart2"></div></div>
         </div>
         <div class="card">
@@ -1130,36 +1152,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-s" onclick="closeModal('modal-notif')">Annuleren</button>
-      <button class="btn btn-p" onclick="sendNotif()">Versturen</button>
-    </div>
-  </div>
-</div>
-
-<!-- Bevestiging inschrijving/afmelding speler -->
-<div class="modal-bg" id="modal-bevestig">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-title" id="bevestig-title">Bevestiging <button class="modal-close" onclick="closeModal('modal-bevestig')">&#215;</button></div>
-    <p style="font-size:14px;color:var(--txm);margin-bottom:1.5rem" id="bevestig-tekst"></p>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn btn-s" onclick="closeModal('modal-bevestig')">Annuleren</button>
-      <button class="btn btn-p" id="bevestig-btn">Bevestigen</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- Supabase loader -->
-<div id="sf-loader" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px">
-  <div style="background:#fff;border-radius:16px;padding:2rem 3rem;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-    <div style="width:36px;height:36px;border:3px solid var(--gl2);border-top-color:var(--g);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1rem"></div>
-    <div id="sf-loader-msg" style="font-size:14px;color:var(--txm);font-weight:500">Laden...</div>
-  </div>
-</div>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-
-<div class="toast" id="toast"></div>
-
-<script>
+ 
 
 // ============================================================
 // SUPABASE CLIENT — ScoreFlow v5
@@ -1754,6 +1747,7 @@ function adminNav(id){
   if(!heeftToegang(id)){toast('Geen toegang tot dit onderdeel.','err');return;}
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});
   var t=document.getElementById('v-'+id);if(t)t.classList.add('on');
+  setTimeout(function(){if(typeof addHelpKnop==='function')addHelpKnop(id);},50);
   document.querySelectorAll('[data-anavid]').forEach(function(el){el.classList.toggle('on',el.dataset.anavid===id);});
   document.getElementById('page-title').textContent=(id==='nieuw'&&_editId)?'Wedstrijd bewerken':ADMIN_TITLES[id]||'';
   var bc=ADMIN_BC[id];
@@ -1933,6 +1927,19 @@ function updateVormInfo(){
   var btn=document.querySelector('#vorm-tg .tgb.on');
   var el=document.getElementById('vorm-info');
   if(el)el.textContent=btn?VORM_INFO[btn.dataset.vorm]||'':'';
+  // Uitleg knop naast spelvorm
+  var vorm=btn?btn.dataset.vorm:null;
+  var vhEl=document.getElementById('vorm-help-btn');
+  if(!vhEl){
+    vhEl=document.createElement('div');
+    vhEl.id='vorm-help-btn';
+    vhEl.style.marginTop='6px';
+    var vInfoEl=document.getElementById('vorm-info');
+    if(vInfoEl&&vInfoEl.parentNode)vInfoEl.parentNode.insertBefore(vhEl,vInfoEl.nextSibling);
+  }
+  if(vorm&&typeof VORM_HELP!=='undefined'&&VORM_HELP[vorm]){
+    vhEl.innerHTML='<button class="help-knop" onclick="openVormHelp(''+vorm.replace(/'/g,"\'")+'')">📖 Hoe werkt '+vorm+'?</button>';
+  } else { vhEl.innerHTML=''; }
 }
 
 function goStep(n){
@@ -5773,6 +5780,444 @@ function spOpslaan(wId) {
   spNav('scores', document.querySelector('[data-spview="scores"]'));
 }
 
+
+
+// ============================================================
+// HELP SYSTEEM — Contextgevoelige uitleg voor beheerders
+// ============================================================
+
+// ── Help content per pagina ──────────────────────────────────
+var HELP = {
+  dashboard: {
+    titel: 'Dashboard',
+    intro: 'Het dashboard geeft een overzicht van alle lopende activiteiten in je club.',
+    secties: [
+      { kop: 'Aankomende wedstrijden', tekst: 'De eerstvolgende gepubliceerde wedstrijden met bezettingsbalk. Klik op een wedstrijd om direct naar de inschrijvingen te gaan.' },
+      { kop: 'Snelle acties', tekst: 'De pills bovenaan geven snel toegang tot de meest gebruikte functies: wedstrijden, inschrijvingen, flights, scores en leden.' },
+      { kop: 'Wachtlijst badge', tekst: 'De rode badge bij "Inschrijvingen" toont hoeveel spelers op de wachtlijst staan. Klik om ze direct toe te laten.' },
+    ]
+  },
+  kalender: {
+    titel: 'Wedstrijdkalender',
+    intro: 'De kalender toont alle wedstrijden per maand. Klik op een wedstrijd in de kalender om ernaar toe te navigeren.',
+    secties: [
+      { kop: 'Kleuren', tekst: 'Groen = Strokeplay/Stableford, Blauw = Matchplay, Oranje = Skins/Scramble, Paars = overig.' },
+      { kop: 'Navigeren', tekst: 'Gebruik de pijlen om door de maanden te bladeren. De huidige dag heeft een dikke rand.' },
+    ]
+  },
+  wedstrijden: {
+    titel: 'Wedstrijden beheren',
+    intro: 'Hier zie je alle wedstrijden van de club. Concept-wedstrijden zijn alleen zichtbaar voor admins.',
+    secties: [
+      { kop: 'Status', tekst: '"Concept" = nog niet zichtbaar voor leden. "Gepubliceerd" = inschrijving mogelijk. Gebruik de wizard om alles in te stellen.' },
+      { kop: 'Snel aanmaken', tekst: 'De ⚡ knop opent een vereenvoudigd formulier. Kies vorm, datum en naam — klaar. Ideaal voor terugkerende wedstrijden.' },
+      { kop: 'Kopiëren', tekst: 'Dupliceer een bestaande wedstrijd als template. Datum wordt automatisch +7 dagen gezet.' },
+      { kop: 'Rechten', tekst: 'Alleen Superadmin en Wedstrijdleider kunnen wedstrijden aanmaken, bewerken of verwijderen.' },
+    ]
+  },
+  nieuw: {
+    titel: 'Wedstrijd aanmaken',
+    intro: 'De wizard begeleidt je stap voor stap door het aanmaken van een wedstrijd.',
+    secties: [
+      { kop: 'Stap 1 — Basis', tekst: 'Naam, datum, baan, spelervorm en aantal rondes. Kies de juiste spelervorm — dit bepaalt hoe scores berekend worden.' },
+      { kop: 'Stap 2 — Deelnemers', tekst: 'Min/max deelnemers, inschrijfperiode, startgeld en toelatingscriteria (lidmaatschapstype, geslacht).' },
+      { kop: 'Stap 3 — Regels', tekst: 'Handicap-instellingen (max EGA, percentage), ESC-regel en tiebreak-methode.' },
+      { kop: 'Stap 4 — Categorieën', tekst: 'Optioneel: handicap-categorieën, prijzen en speciale prijzen (nearest to pin, longest drive).' },
+      { kop: 'Stap 5 — Overzicht', tekst: 'Controleer alles en kies "Concept opslaan" (later bewerken) of "Publiceren" (direct live voor leden).' },
+      { kop: 'Tip', tekst: 'Je kunt later altijd nog terugkeren naar een concept via Wedstrijden → Bewerken.' },
+    ]
+  },
+  spelers: {
+    titel: 'Ledenbestand',
+    intro: 'Beheer alle spelers van de club. Spelers kunnen inloggen via hun e-mailadres.',
+    secties: [
+      { kop: 'Handicap', tekst: 'De EGA-handicap wordt gebruikt voor alle speelhandicap-berekeningen. Houd dit actueel voor eerlijke wedstrijden.' },
+      { kop: 'Lidmaatschapstype', tekst: 'Volledig lid, Weekendlid, Junior, Senior of Gast. Dit kan gebruikt worden als toelatingscriteria bij wedstrijden.' },
+      { kop: 'Zoeken', tekst: 'Zoek op naam of lidnummer. Filter op lidmaatschapstype via het dropdown menu.' },
+      { kop: 'Import', tekst: 'Leden toevoegen via Supabase (bulk) of één voor één via het + Speler formulier.' },
+    ]
+  },
+  inschrijvingen: {
+    titel: 'Inschrijvingen beheren',
+    intro: 'Beheer alle inschrijvingen per wedstrijd. Spelers kunnen zichzelf inschrijven via het speler portaal.',
+    secties: [
+      { kop: 'Wachtlijst', tekst: 'Als een wedstrijd vol is gaan spelers automatisch op de wachtlijst. Klik "Toelaten" om een wachtlijst-speler toe te laten.' },
+      { kop: 'Speelhandicap', tekst: 'De SH-kolom toont de berekende speelhandicap voor die specifieke wedstrijd (EGA × slope/113 + CR-par).' },
+      { kop: 'Handmatig inschrijven', tekst: 'Als wedstrijdleider kun je spelers handmatig inschrijven via "+ Inschrijven". Handig voor aanmeldingen per telefoon of e-mail.' },
+      { kop: 'Afmelden', tekst: 'Afgemelde spelers blijven zichtbaar in de lijst (status: afgemeld) maar tellen niet mee voor het maximum.' },
+    ]
+  },
+  flights: {
+    titel: 'Flight-indeling',
+    intro: 'Verdeel ingeschreven spelers in flights (groepen). Kies eerst de wedstrijd.',
+    secties: [
+      { kop: 'Auto-indeling', tekst: 'Klik "Auto" om automatisch flights te genereren. Kies de sorteervolgorde: HCP laag→hoog, hoog→laag, alfabetisch of willekeurig.' },
+      { kop: 'Groepsgrootte', tekst: 'De groepsgrootte stel je in bij het aanmaken van de wedstrijd (stap 2, "Per flight"). Standaard is 3.' },
+      { kop: 'Starttijden', tekst: 'Starttijden worden automatisch berekend vanaf 08:00 met 10 minuten per flight. Pas de starttijd van de wedstrijd aan in de wizard.' },
+      { kop: 'Opslaan', tekst: 'Klik "Opslaan" om de flight-indeling te bewaren. Spelers zien hun flight dan in het speler portaal onder "Mijn start".' },
+    ]
+  },
+  scores: {
+    titel: 'Scores & leaderboard',
+    intro: 'Voer scores in per wedstrijd. De leaderboard wordt automatisch berekend op basis van de spelervorm.',
+    secties: [
+      { kop: 'Scores invoeren', tekst: 'Selecteer een wedstrijd en voer scores in per speler per hole. Kleuren geven direct feedback: groen = birdie of beter, rood = dubbel bogey of slechter.' },
+      { kop: 'Tabs', tekst: 'De tabs bovenaan wisselen tussen scores invoeren en het leaderboard. Bij speciale vormen (Matchplay, Skins, etc.) verschijnen extra tabs.' },
+      { kop: 'Live leaderboard', tekst: 'De "Live LB" knop opent een deelbaar leaderboard zonder login. Ideaal om op een tv of tablet in de club te tonen.' },
+      { kop: 'Speelhandicap', tekst: 'De SH-kolom toont de berekende speelhandicap. Scores worden automatisch gecorrigeerd met de juiste slagen per hole (SI).' },
+    ]
+  },
+  admins: {
+    titel: 'Admins & rollen',
+    intro: 'Beheer wie toegang heeft tot de admin omgeving en welke rechten ze hebben.',
+    secties: [
+      { kop: 'Superadmin', tekst: 'Volledige toegang. Kan alles beheren inclusief andere admins toevoegen en verwijderen.' },
+      { kop: 'Wedstrijdleider', tekst: 'Kan wedstrijden aanmaken en bewerken, inschrijvingen beheren, flights indelen en scores invoeren.' },
+      { kop: 'Secretaris', tekst: 'Kan leden beheren, inschrijvingen bekijken en berichten sturen. Geen toegang tot wedstrijden aanmaken.' },
+      { kop: 'Tip', tekst: 'Maak minimaal 2 Superadmins aan als backup. Als de enige Superadmin geen toegang meer heeft, is er geen herstel mogelijk.' },
+    ]
+  },
+  notificaties: {
+    titel: 'Notificaties & berichten',
+    intro: 'Stuur berichten naar ingeschreven spelers of alle leden.',
+    secties: [
+      { kop: 'Sjablonen', tekst: 'Gebruik de kant-en-klare sjablonen voor veelgebruikte berichten: inschrijfbevestiging, herinnering, vluchtindeling beschikbaar.' },
+      { kop: 'Ontvangers', tekst: 'Kies "Alle ingeschrevenen" voor wedstrijd-specifieke berichten, of "Alle leden" voor club-brede aankondigingen.' },
+      { kop: 'Berichten in portaal', tekst: 'Spelers zien berichten in hun portaal onder "Berichten". Ongelezen berichten worden gemarkeerd met een badge.' },
+    ]
+  },
+  rapportages: {
+    titel: 'Rapportages',
+    intro: 'Overzicht van alle wedstrijdstatistieken van het seizoen.',
+    secties: [
+      { kop: 'Bezetting', tekst: 'Gemiddeld percentage deelnemers t.o.v. het maximum. Een lage bezetting kan wijzen op te hoge drempel (HCP-eis, datum, startgeld).' },
+      { kop: 'CSV export', tekst: 'Exporteer alle wedstrijden naar een CSV-bestand voor verdere analyse in Excel.' },
+      { kop: 'Populairste vorm', tekst: 'De meest gespeelde spelervorm in dit seizoen. Handig voor het plannen van volgend seizoen.' },
+    ]
+  },
+};
+
+// ── Wedstrijdvorm uitleg (uitgebreid) ────────────────────────
+var VORM_HELP = {
+  'Strokeplay': {
+    omschrijving: 'Elke speler telt het totale aantal slagen over alle holes. Laagste netto score wint.',
+    handicap: 'Speelhandicap = ronde(EGA × slope/113 + (CR − par)). Netto = bruto − speelhandicap.',
+    punten: null,
+    esc: 'ESC (Equitable Stroke Control) beperkt de maximale score per hole. Gebruik "Netto double bogey" voor officiële handicap-verwerking.',
+    voorbeeld: 'Jan heeft EGA 12.4, slope 131, CR 72.1. SH = ronde(12.4 × 131/113 + (72.1−72)) = ronde(14.4 + 0.1) = 14. Bruto 88 − 14 = netto 74.',
+    tip: 'Gebruik Strokeplay voor officiële wedstrijden en kampioenschappen.',
+  },
+  'Stableford': {
+    omschrijving: 'Punten per hole op basis van netto score versus par. Meeste punten wint.',
+    handicap: 'Zelfde als Strokeplay. Slagen per hole worden verdeeld via SI (stroke index).',
+    punten: 'Albatros of beter: 5 ptn · Eagle: 4 ptn · Birdie: 3 ptn · Par: 2 ptn · Bogey: 1 ptn · Dubbel bogey of slechter: 0 ptn',
+    esc: 'Bij Stableford is een aparte ESC-regel minder belangrijk — holes met 0 punten tellen niet mee.',
+    voorbeeld: 'Maria heeft SH 18. Op hole 7 (par 4, SI 10) krijgt ze 1 extra slag. Ze speelt een 5 (bruto), netto = 4 = par → 2 punten.',
+    tip: 'Stableford is het meest gespeeld op clubniveau omdat ook hogere handicappers competitief kunnen meedoen.',
+  },
+  'Modified Stableford': {
+    omschrijving: 'Variant van Stableford met een aangepaste puntenschaal. Hogere beloningen voor uitzonderlijke scores, hogere straffen voor slechte holes.',
+    handicap: 'Zelfde als regulier Stableford.',
+    punten: 'Albatros: +5 · Eagle: +3 · Birdie: +1 · Par: 0 · Bogey: -1 · Dubbel bogey of slechter: -3',
+    esc: 'Geen ESC nodig — de negatieve punten fungeren als automatische penalty.',
+    voorbeeld: 'Speler maakt 3 birdies (+3), 10 pars (0) en 5 bogeys (-5). Totaal: -2 punten.',
+    tip: 'Populair bij pro-toernooien (zoals de PGA Tour). Beloont aanvallend spel en bestraft voorzichtig spelen.',
+  },
+  'Bogey competition': {
+    omschrijving: 'Elke hole speel je netto tegen par. Win (+1), gelijk (0) of verlies (-1). Meeste punten wint.',
+    handicap: 'Slagen per hole via SI. Op holes waar je een extra slag krijgt mag je één slag meer dan par spelen zonder te verliezen.',
+    punten: 'Gewonnen hole: +1 · Gelijk: 0 · Verloren hole: -1',
+    esc: 'Geen ESC nodig.',
+    voorbeeld: 'Speler met SH 18 krijgt op alle 18 holes 1 extra slag. Op par 4 holes speelt hij netto als par als hij 5 speelt.',
+    tip: 'Vergelijkbaar met par competition, maar de terminologie verschilt per club. Bogey comp is iets minder formeel.',
+  },
+  'Par competition': {
+    omschrijving: 'Identiek aan Bogey competition. Per hole win, gelijk of verlies versus par. Ook wel "Tegen par" genoemd.',
+    handicap: 'Zelfde als Bogey competition.',
+    punten: 'Gewonnen: +1 (win) · Gelijk: AS · Verloren: -1',
+    esc: 'Geen ESC nodig.',
+    voorbeeld: 'Eindscore "+3" betekent 3 meer gewonnen dan verloren holes. "AS" = all square = evenveel gewonnen als verloren.',
+    tip: 'De naam "Par competition" is gangbaarder op Nederlandse golfclubs dan "Bogey competition".',
+  },
+  'Matchplay': {
+    omschrijving: 'Hole voor hole. Wie de hole wint met de laagste netto score staat "voor". Meeste holes voor wint.',
+    handicap: 'Verschil in speelhandicap wordt verdeeld over de moeilijkste holes (SI). De speler met de hoogste handicap krijgt slagen.',
+    punten: null,
+    esc: 'Geen ESC — je kunt een hole al conceden als je te veel slagen hebt.',
+    voorbeeld: 'Jan (SH 14) vs Pieter (SH 6). Verschil = 8. Jan krijgt 8 slagen op de 8 moeilijkste holes (SI 1 t/m 8).',
+    tip: 'Matchplay is spannender dan strokeplay omdat één slechte hole je niet uit het toernooi gooit.',
+  },
+  'Skins': {
+    omschrijving: 'Elke hole heeft een waarde (pot). Wie de hole wint met de laagste netto score pakt de skin. Bij gelijkspel: carry-over naar de volgende hole.',
+    handicap: 'Netto scoring via speelhandicap en SI.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Pot van €5 per hole. Holes 1-3 gelijkspel (carry-over). Op hole 4 wint Jan: €20 (€5 × 4 holes).',
+    tip: 'Skins is bijzonder geschikt voor kleine groepen (4-8 spelers) op een vrije middag. Stel een pot in bij het aanmaken.',
+  },
+  'Eclectic': {
+    omschrijving: 'Beste score per hole over meerdere rondes gedurende het seizoen. Eindscore = laagste bruto per hole gecombineerd.',
+    handicap: 'Eclectic handicap = gemiddelde SH × 75%. Netto = gecombineerde bruto − eclectic HCP.',
+    punten: null,
+    esc: 'Geen ESC — de beste score telt automatisch.',
+    voorbeeld: 'Jan speelt hole 5 in 3 rondes: 6, 4, 5. Beste score = 4. Die telt mee voor zijn eclectic kaart.',
+    tip: 'Minimaal 2 volledige rondes vereist voor een geldige eclectic. Spelers hebben een seizoen om hun kaart te verbeteren.',
+  },
+  'Texas Scramble': {
+    omschrijving: 'Alle teamleden slaan af. Beste bal wordt gekozen, iedereen speelt verder vanaf die plek. Dit herhaalt zich tot de bal in de hole is.',
+    handicap: 'Teamhandicap = (HCP1 + HCP2×0.6 + HCP3×0.4 + HCP4×0.2) / 4. Speelhandicap hiervan berekend.',
+    punten: null,
+    esc: 'Geen ESC — teamspel.',
+    voorbeeld: 'Team van 4: HCP 8, 12, 18, 24. TeamHCP = (8 + 7.2 + 7.2 + 4.8)/4 = 6.8 ≈ 7.',
+    tip: 'Scramble is de meest sociale format. Iedereen doet altijd mee, ook na een slechte slag. Ideaal voor sponsorgolf en clubdagen.',
+  },
+  'Shamble': {
+    omschrijving: 'Alle teamleden slaan af. Beste drive wordt gekozen. Daarna speelt iedereen zijn eigen bal verder (Stableford scoring).',
+    handicap: 'Individuele speelhandicap voor scoring na de drive.',
+    punten: 'Stableford punten per speler, opgeteld voor het team.',
+    esc: 'Geen ESC.',
+    voorbeeld: 'Drive van Tom (langste) wordt gekozen. Daarna speelt elk lid zijn eigen bal. Jan maakt een birdie (+3), Maria een par (+2).',
+    tip: 'Shamble combineert het sociale van scramble (beste drive) met individuele verantwoordelijkheid. Goede middenweg.',
+  },
+  'Fourball': {
+    omschrijving: 'Teams van 2. Per hole telt de beste netto score van elk team. Vergelijkbaar met matchplay maar het gaat om de beste bal per team.',
+    handicap: 'Verschil t.o.v. laagste speler × 90%. Per speler afzonderlijk berekend.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Team A: Jan (netto 4) en Pieter (netto 5) → beste = 4. Team B: Maria (netto 4) en Tom (netto 6) → beste = 4. Gelijkspel op deze hole.',
+    tip: 'Fourball is minder afhankelijk van één goede speler dan Foursomes. Beide spelers blijven relevant.',
+  },
+  'Greensome': {
+    omschrijving: 'Teams van 2. Beide spelers slaan af. Beste drive kiezen. Daarna speelt de ander de tweede slag. Daarna afwisselend (alternate shot).',
+    handicap: 'Teamhandicap = lagere HCP × 0.6 + hogere HCP × 0.4.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Jan (HCP 10) en Maria (HCP 20). TeamHCP = 10×0.6 + 20×0.4 = 6+8 = 14. SH berekend op basis van 14.',
+    tip: 'Greensome is een goede team-introductie voor mixed koppels. Beide spelers slaan altijd af bij de tee.',
+  },
+  'Foursomes': {
+    omschrijving: 'Teams van 2. 1 bal per team. Afwisselend slaan (alternate shot). Speler A slaat op oneven holes af, speler B op even holes.',
+    handicap: 'Teamhandicap = (HCP A + HCP B) / 2, afgerond.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Jan en Pieter. TeamHCP = (12+6)/2 = 9. SH berekend op basis van 9.',
+    tip: 'Foursomes vereist goede communicatie en vertrouwen in elkaars spel. Populair bij clubmatches en Ryder Cup-stijl toernooien.',
+  },
+  'Chapman': {
+    omschrijving: 'Variant van Greensome. Beide slaan af, wisselen van bal, kiezen de beste bal na de tweede slag, daarna afwisselend.',
+    handicap: 'Teamhandicap = lagere HCP × 0.6 + hogere HCP × 0.4 (zelfde als Greensome).',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Jan slaat op hole 1. Maria speelt zijn bal als tweede. Als Jans bal beter ligt, speelt Jan verder (de derde slag). Daarna afwisselend.',
+    tip: 'Chapman wordt ook wel "Pinehurst" of "American Foursomes" genoemd. Beide spelers zijn meer betrokken dan bij reguliere Foursomes.',
+  },
+  'Alliance': {
+    omschrijving: 'Teams van 2-4 spelers. Per hole tellen de beste N netto scores (standaard 2). Som van alle holes = teamtotaal. Laagste netto wint.',
+    handicap: 'Individuele speelhandicap per speler.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Team van 4. Op hole 3: scores 4, 5, 6, 7 (netto). Beste 2 = 4+5 = 9. Dit telt als de teamscore voor hole 3.',
+    tip: 'Alliance is populair bij bedrijfs- en sponsorgolf. Iedereen doet mee maar slechte holes wegen minder zwaar.',
+  },
+  'Team Stableford': {
+    omschrijving: 'Teams van 2-4 spelers. Per hole tellen de beste N Stableford punten (standaard 2). Meeste punten wint.',
+    handicap: 'Individuele speelhandicap per speler.',
+    punten: 'Stableford punten per speler (albatros=5, eagle=4, birdie=3, par=2, bogey=1, dubbel=0).',
+    esc: 'Geen ESC bij Stableford.',
+    voorbeeld: 'Hole 5: Jan 3 ptn (birdie), Maria 2 ptn (par), Pieter 1 ptn (bogey), Tom 0 ptn (dubbel). Beste 2 = 3+2 = 5.',
+    tip: 'Team Stableford combineert het teamgevoel van scramble met de spanning van individueel scoren.',
+  },
+  'Knockout': {
+    omschrijving: 'Toernooisysteem. Spelers worden gekoppeld via loting of seeding op basis van HCP. Winnaar gaat door, verliezer is uitgeschakeld.',
+    handicap: 'Per match: matchplay handicap-berekening (verschil verdelen over SI).',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Bij 16 spelers: kwartfinale (8 matches), halve finale (4), finale (2), finale (1). Winner takes all.',
+    tip: 'Gebruik de bracket-generator (Scores tab) om automatisch een schema te maken. Bij oneven aantallen worden byes toegewezen aan de beste spelers.',
+  },
+  'Order of Merit': {
+    omschrijving: 'Seizoenscompetitie. Punten per wedstrijd op basis van eindpositie. Speler met meeste punten aan het einde van het seizoen wint.',
+    handicap: 'Per wedstrijd normale HCP-berekening. OoM-punten op basis van eindpositie.',
+    punten: 'Positie 1: 25 · Positie 2: 20 · Positie 3: 16 · Positie 4: 13 · Positie 5: 11 · Positie 6: 9 · Positie 7: 7 · Positie 8-10: 4-6',
+    esc: 'Per wedstrijd de ESC-instelling van die wedstrijd.',
+    voorbeeld: 'Jan wint de Damesdag (25 ptn) en wordt 3e op het clubkampioenschap (16 ptn). Seizoenstotaal: 41 punten.',
+    tip: 'Activeer "Order of Merit" bij het aanmaken van wedstrijden die mee moeten tellen. Niet alle wedstrijden hoeven mee te tellen.',
+  },
+  'Vlaggenwedstrijd': {
+    omschrijving: 'Elke speler heeft (par + speelhandicap) slagen. Als de slagen op zijn, plant hij zijn vlag op dat punt op de baan. Verste vlag wint.',
+    handicap: 'Totaal slagen = par van de baan + speelhandicap.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Par 72, SH 18 → 90 slagen. Speler raakt op na 16 holes en 2 slagen op hole 17. Vlag bij de 2e slag op hole 17.',
+    tip: 'Verrassend spannend format. Spelers weten niet precies hoe ver ze komen. Leuk alternatief voor een reguliere ronde.',
+  },
+  'Shoot-out': {
+    omschrijving: 'Na elke hole valt de speler met de hoogste netto score af. Bij gelijkspel blijft iedereen. De laatste overgebleven speler wint.',
+    handicap: 'Netto scoring via speelhandicap en SI.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: '8 spelers starten. Na hole 1 valt de slechtste af (7 over). Na hole 2 weer 1 af (6 over). Etc. Na 7 holes: 1 winnaar.',
+    tip: 'Shoot-out is spectaculair maar vereist dat alle spelers tegelijk spelen (shotgun start). Ideaal voor afsluiting van een seizoen.',
+  },
+  'Amerikaantje': {
+    omschrijving: 'Per hole worden punten verdeeld op basis van netto score. Laagste score = meeste punten. Bij gelijkspel worden punten gesplitst.',
+    handicap: 'Netto scoring via speelhandicap en SI.',
+    punten: 'Bij 4 spelers: winnaar 4 ptn, 2e 3 ptn, 3e 2 ptn, 4e 1 ptn. Bij gelijkspel worden de te verdelen punten gesplitst.',
+    esc: 'Geen ESC.',
+    voorbeeld: '4 spelers op hole 3 (netto): 3, 4, 4, 5. Verdeling: 4 ptn (score 3), 2.5 ptn elk (score 4), 1 ptn (score 5).',
+    tip: 'Amerikaantje is altijd spannend — elke hole telt. Populair bij vaste vrijdagroepjes als alternatief voor skins.',
+  },
+  'Bingo Bango Bongo': {
+    omschrijving: '3 punten per hole: Bingo = eerst op de green, Bango = dichtst bij de pin als iedereen op de green staat, Bongo = eerst de bal in de hole.',
+    handicap: 'Speelhandicap-slagen gelden bij Bingo/Bongo niet direct, maar kunnen de volgorde van spelen beïnvloeden.',
+    punten: 'Bingo: 1 pnt · Bango: 1 pnt · Bongo: 1 pnt · Max 3 punten per hole per speler',
+    esc: 'Geen ESC.',
+    voorbeeld: 'Op hole 7: Jan eerst op green (Bingo +1). Maria dichtst bij pin (Bango +1). Tom eerst in hole (Bongo +1).',
+    tip: 'Bingo Bango Bongo nivellert handicap-verschillen. Ook een beginner kan een Bongo scoren door handig te puten. Leuk voor gemengde groepen.',
+  },
+  'Rabbit': {
+    omschrijving: 'Wie een hole wint "heeft de haas". De haas moet verdedigd worden. Verlies je een hole met de haas → haas gaat naar de winner. Pot per haas.',
+    handicap: 'Netto scoring via speelhandicap en SI.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Jan wint hole 1 → heeft de haas. Hole 2 wint Maria → haas gaat naar Maria. Maria verdedigt t/m hole 5, dan wint Jan terug. Maria verdient de pot voor holes 2-5.',
+    tip: 'Combineer Rabbit met Skins voor een extra spannende variatie. Stel de pot in bij wedstrijd aanmaken (Skins pot veld).',
+  },
+  'Vossenjacht': {
+    omschrijving: 'Spelers starten op verschillende holes. De voorste speler is de "vos". Wie de vos inhaalt (op dezelfde hole komt) vangt de vos en wordt zelf de nieuwe vos.',
+    handicap: 'Geen handicap-correctie tijdens de jacht zelf. Speelhandicap kan gebruikt worden voor startposities.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Jan start op hole 10, Maria op hole 12. Als Maria Jan inhaalt op hole 15, vangt ze de vos en gaat verder als vos.',
+    tip: 'Vossenjacht werkt het best op een rustige baan. Registreer startposities in de app, de verdere afhandeling gebeurt op de baan zelf.',
+  },
+  'Hidden holes': {
+    omschrijving: 'Na afloop wordt bekendgemaakt welke holes tellen voor de eindstand. Spelers weten dit niet van tevoren en moeten elke hole serieus nemen.',
+    handicap: 'Stableford scoring op de geselecteerde holes.',
+    punten: 'Stableford punten op de uitgekozen holes.',
+    esc: 'Geen ESC.',
+    voorbeeld: '18 holes gespeeld. Na afloop: holes 3, 7, 12, 16 tellen. Wie op die 4 holes de meeste Stableford punten heeft wint.',
+    tip: 'Selecteer de hidden holes in de Scores tab vóór het bekendmaken. Pas na bekendmaking zichtbaar voor spelers.',
+  },
+  'Stokkenroof': {
+    omschrijving: 'Elke speler begint met 14 clubs. Bij een bogey of slechter (bruto) verliest de speler een club. Speler die het seizoen eindigt met de meeste clubs wint.',
+    handicap: 'Geen handicap in Stokkenroof — het gaat om bruto scores.',
+    punten: null,
+    esc: 'Geen ESC.',
+    voorbeeld: 'Jan speelt hole 4 in 6 (par 4, dus bogey). Hij verliest een club: 13 over. Na 18 holes: 14 − 5 bogeys of slechter = 9 clubs over.',
+    tip: 'Stokkenroof werkt goed als seizoenscompetitie naast de reguliere wedstrijden. Bijhouden via de scores invoer.',
+  },
+};
+
+// ── Help slide-in paneel ─────────────────────────────────────
+var _helpActief = null;
+
+function openHelp(pagina) {
+  _helpActief = pagina;
+  var content = HELP[pagina];
+  if (!content) return;
+
+  var html = '<div class="help-header">' +
+    '<div class="help-titel">' + content.titel + '</div>' +
+    '<button class="help-sluit" onclick="sluitHelp()">&#215;</button>' +
+    '</div>' +
+    '<div class="help-body">' +
+    '<p class="help-intro">' + content.intro + '</p>';
+
+  content.secties.forEach(function(s) {
+    html += '<div class="help-sectie"><div class="help-kop">' + s.kop + '</div><p class="help-tekst">' + s.tekst + '</p></div>';
+  });
+
+  html += '</div>';
+  document.getElementById('help-paneel').innerHTML = html;
+  document.getElementById('help-paneel').classList.add('on');
+  document.getElementById('help-overlay').classList.add('on');
+}
+
+function openVormHelp(vorm) {
+  var content = VORM_HELP[vorm];
+  if (!content) { toast('Geen uitleg beschikbaar voor ' + vorm); return; }
+
+  var html = '<div class="help-header">' +
+    '<div class="help-titel">⛳ ' + vorm + '</div>' +
+    '<button class="help-sluit" onclick="sluitHelp()">&#215;</button>' +
+    '</div>' +
+    '<div class="help-body">' +
+    '<p class="help-intro">' + content.omschrijving + '</p>';
+
+  if (content.handicap) html += '<div class="help-sectie"><div class="help-kop">Handicap</div><p class="help-tekst">' + content.handicap + '</p></div>';
+  if (content.punten) html += '<div class="help-sectie"><div class="help-kop">Puntentelling</div><p class="help-tekst">' + content.punten + '</p></div>';
+  if (content.esc) html += '<div class="help-sectie"><div class="help-kop">ESC-regel</div><p class="help-tekst">' + content.esc + '</p></div>';
+  if (content.voorbeeld) html += '<div class="help-sectie"><div class="help-kop">Voorbeeld</div><p class="help-tekst" style="font-family:monospace;font-size:12px;background:var(--surf);padding:.5rem;border-radius:var(--r)">' + content.voorbeeld + '</p></div>';
+  if (content.tip) html += '<div class="help-sectie" style="background:var(--gl);border-radius:var(--r);padding:.75rem"><div class="help-kop" style="color:var(--gm)">💡 Tip</div><p class="help-tekst">' + content.tip + '</p></div>';
+
+  html += '</div>';
+  document.getElementById('help-paneel').innerHTML = html;
+  document.getElementById('help-paneel').classList.add('on');
+  document.getElementById('help-overlay').classList.add('on');
+}
+
+function sluitHelp() {
+  document.getElementById('help-paneel').classList.remove('on');
+  document.getElementById('help-overlay').classList.remove('on');
+  _helpActief = null;
+}
+
+// ── Voeg help knop toe aan topbar ────────────────────────────
+function addHelpKnop(pagina) {
+  var ctx = document.getElementById('admin-ctx');
+  if (!ctx) return;
+  // Verwijder bestaande helpknop
+  var bestaand = document.getElementById('help-knop-ctx');
+  if (bestaand) bestaand.remove();
+  // Voeg nieuwe toe
+  var btn = document.createElement('button');
+  btn.id = 'help-knop-ctx';
+  btn.className = 'btn btn-s btn-sm';
+  btn.innerHTML = '? Help';
+  btn.onclick = function() { openHelp(pagina); };
+  ctx.appendChild(btn);
+}
+
+// ── updateVormInfo uitbreiden ─────────────────────────────────
+// Bestaande updateVormInfo wordt uitgebreid met "Meer info" link
+var _origUpdateVormInfo = updateVormInfo;
+
+res.netto : '—';
+  html += '<div style="text-align:center;font-size:12px;font-weight:600;border-right:1px solid var(--surf)" id="sp-csk-bruto-' + wId + '">' + brutoStr + '</div>';
+  html += '<div style="text-align:center;font-size:12px;font-weight:600;color:var(--gm)" id="sp-csk-netto-' + wId + '">' + nettoStr + '</div>';
+  html += '</div>';
+
+  // Stableford rij
+  if (w.vorm === 'Stableford') {
+    html += '<div style="display:grid;grid-template-columns:' + gridCols + ';align-items:center;background:var(--gl);border-top:1px solid var(--gl2)">';
+    html += '<div style="padding:4px 8px;font-size:11px;color:var(--gm);border-right:1px solid var(--gl2)">Punten</div>';
+    sf.ph.forEach(function(h) {
+      html += '<div style="padding:4px 2px;text-align:center;font-size:11px;font-weight:500;color:var(--gm);border-right:1px solid var(--gl2)">' + (h.s !== null ? h.ptn : '') + '</div>';
+    });
+    html += '<div style="text-align:center;font-size:11px;font-weight:600;color:var(--gm);border-right:1px solid var(--gl2)" id="sp-csk-sf-' + wId + '">' + (res.ges > 0 ? sf.punten : '—') + '</div>';
+    html += '<div></div>';
+    html += '</div>';
+  }
+
+  html += '</div>';
+
+  // Opslaan knop
+  html += '<div style="display:flex;justify-content:flex-end;margin-top:.75rem">';
+  html += '<button class="btn btn-p btn-full" onclick="spOpslaan(' + wId + ')">✓ Scorekaart opslaan</button>';
+  html += '</div>';
+
+  return html;
+}
+
+// Input handler voor speler scorekaart
+
+// Opslaan vanuit speler scorekaart
+
 </script>
+
+<div class="help-overlay" id="help-overlay" onclick="sluitHelp()"></div>
+<div class="help-paneel" id="help-paneel"></div>
+
 </body>
 </html>
