@@ -1695,6 +1695,8 @@ var USERS=[
   {id:10,voor:'Kees',ach:'Hofman',email:'kees@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0007',ltype:'Senior',hcp:28.3,gs:'M',jaar:1955,tel:'06-77777777',deelnames:20},
   {id:11,voor:'Roos',ach:'Peters',email:'roos@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0008',ltype:'Volledig lid',hcp:9.7,gs:'V',jaar:1993,tel:'06-88888888',deelnames:4},
 ];
+var DEMO_USERS = USERS.slice(); // bewaar lokale demo users
+
 
 var WEDSTRIJDEN=[
   {id:1,naam:'Clubkampioenschap 2025',datum:'2025-06-14',baan:'GCC Zeewolde',vorm:'Strokeplay',status:'gepubliceerd',max:72,ing:5,kleur:'ceg',cr:72.1,slope:131,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:15,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Het jaarlijkse clubkampioenschap. Iedereen welkom, beste netto score wint.',inschrijfOpen:'2025-05-01',inschrijfSluit:'2025-06-10'},
@@ -1759,6 +1761,16 @@ function heeftToegang(view){
 function doLogin(){
   var email=document.getElementById('login-email').value.trim().toLowerCase();
   var pw=document.getElementById('login-pw').value;
+  // Check eerst lokale demo users (met wachtwoorden)
+  var demoUser=DEMO_USERS.find(function(u){return u.email.toLowerCase()===email&&u.pw===pw;});
+  if(demoUser){
+    // Zoek de bijgewerkte user uit USERS (heeft Supabase ID etc.)
+    var liveUser=USERS.find(function(u){return u.email.toLowerCase()===email;});
+    document.getElementById('login-err').textContent='';
+    startSessie(liveUser||demoUser);
+    return;
+  }
+  // Fallback: check in USERS (voor het geval pw nog aanwezig is)
   var user=USERS.find(function(u){return u.email.toLowerCase()===email&&u.pw===pw;});
   if(!user){document.getElementById('login-err').textContent='Onbekend e-mailadres of onjuist wachtwoord.';return;}
   document.getElementById('login-err').textContent='';
