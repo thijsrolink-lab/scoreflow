@@ -6316,7 +6316,7 @@ function openCompWizard(id) {
       var d = new Date(w.datum);
       html += '<label style="display:flex;align-items:center;gap:10px;padding:.6rem .75rem;border-bottom:1px solid var(--surf);cursor:pointer">';
       html += '<input type="checkbox" id="comp-w-'+w.id+'" '+(checked?'checked':'')+' style="width:16px;height:16px;accent-color:var(--g)">';
-      html += '<div style="flex:1"><div style="font-size:13px;font-weight:500">'+esc(w.naam)+'</div>';
+      html += '<div style="flex:1"><div style="font-size:13px;font-weight:500">'+escHtml(w.naam)+'</div>';
       html += '<div style="font-size:11px;color:var(--txm)">'+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear()+' · '+w.vorm+'</div></div>';
       html += '</label>';
     });
@@ -6487,7 +6487,7 @@ function renderCompeties() {
 
     return '<div class="lr">' +
       '<div class="lr-l">' +
-        '<div class="lr-n">'+esc(comp.naam)+'</div>' +
+        '<div class="lr-n">'+escHtml(comp.naam)+'</div>' +
         '<div class="lr-m">' +
           '<span class="badge bg" style="background:var(--gm)">'+typeInfo.label+'</span> · ' +
           ws.length + ' wedstrijd' + (ws.length !== 1 ? 'en' : '') +
@@ -6495,7 +6495,7 @@ function renderCompeties() {
           (d2 ? ' t/m ' + d2.getDate()+' '+MN[d2.getMonth()]+' '+d2.getFullYear() : '') +
         '</div>' +
         (ws.length > 0 ? '<div style="font-size:11px;color:var(--txm);margin-top:3px">' +
-          ws.map(function(w){return esc(w.naam);}).join(' · ') + '</div>' : '') +
+          ws.map(function(w){return escHtml(w.naam);}).join(' · ') + '</div>' : '') +
       '</div>' +
       '<div class="lr-r" style="display:flex;gap:6px;flex-wrap:wrap">' +
         '<button class="btn btn-p btn-xs" onclick="openKlassement('+comp.id+')">Klassement</button>' +
@@ -6524,7 +6524,7 @@ function openKlassement(compId) {
   baan.cr = comp.cr || w0.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
 
-  var html = '<div class="modal-title">'+esc(comp.naam)+' — Klassement' +
+  var html = '<div class="modal-title">'+escHtml(comp.naam)+' — Klassement' +
     '<button class="modal-close" onclick="closeModal(\'modal-klassement\')">&#215;</button></div>';
 
   if (comp.type === 'eclectic') {
@@ -6603,7 +6603,7 @@ function renderEclectiekKlassement(comp, ws, baan) {
     var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     html += '<tr>';
     html += '<td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
-    html += '<td style="font-weight:500">'+esc(r.sp.voor+' '+r.sp.ach)+'</td>';
+    html += '<td style="font-weight:500">'+escHtml(r.sp.voor+' '+r.sp.ach)+'</td>';
     html += '<td>'+r.aantalRondes+'/'+ws.length+'</td>';
     html += '<td>'+r.gespeeld+'/'+(comp.holes||18)+'</td>';
     html += '<td>'+r.eclSH+'</td>';
@@ -6621,7 +6621,7 @@ function renderEclectiekKlassement(comp, ws, baan) {
     var ingCount = INSCHRIJVINGEN.filter(function(x){return x.wid===w.id&&x.status==='ingeschreven';}).length;
     html += '<div style="display:flex;align-items:center;gap:8px;padding:.4rem 0;border-bottom:1px solid var(--surf);font-size:13px">';
     html += '<div class="lb-pos lpn" style="width:20px;height:20px;font-size:9px">'+(i+1)+'</div>';
-    html += '<div style="flex:1">'+esc(w.naam)+'</div>';
+    html += '<div style="flex:1">'+escHtml(w.naam)+'</div>';
     html += '<div style="color:var(--txm);font-size:12px">'+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear()+'</div>';
     html += '<div style="color:var(--txm);font-size:12px">'+ingCount+' spelers</div>';
     html += '</div>';
@@ -6657,7 +6657,7 @@ function renderStrokeplayKlassement(comp, ws, baan) {
   lb.forEach(function(r, i) {
     var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     html += '<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
-    html += '<td style="font-weight:500">'+esc(r.sp.voor+' '+r.sp.ach)+'</td>';
+    html += '<td style="font-weight:500">'+escHtml(r.sp.voor+' '+r.sp.ach)+'</td>';
     html += '<td><span class="badge bg">'+r.shv+'</span></td>';
     html += '<td>'+r.rondesGespeeld+'/'+ws.length+'</td>';
     html += '<td>'+(r.rondesGespeeld>0?r.totalBruto:'—')+'</td>';
@@ -6695,7 +6695,7 @@ function renderOomKlassement(comp, ws, baan) {
   html += '<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>Wedstrijden</th><th>OoM punten</th></tr></thead><tbody>';
   lb.forEach(function(r,i){
     var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td>'+r.wedstrijden+'</td><td style="font-weight:700;color:var(--gm);font-size:16px">'+r.punten+'</td></tr>';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+escHtml(r.naam)+'</td><td>'+r.wedstrijden+'</td><td style="font-weight:700;color:var(--gm);font-size:16px">'+r.punten+'</td></tr>';
   });
   return html+'</tbody></table>';
 }
