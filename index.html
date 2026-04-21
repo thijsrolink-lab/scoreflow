@@ -26,9 +26,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 /* ── SCHERMEN ── */
 .screen{display:none;min-height:100vh}
 .screen.active{display:block}
+#screen-login.active{display:flex}
 
 /* ── LOGIN ── */
-#screen-login{background:linear-gradient(145deg,#0f2619,#1a3d2b,#214d34,#1a3d2b);display:flex;align-items:center;justify-content:center;padding:1rem}
+#screen-login{min-height:100vh;display:flex}
+.login-left{flex:1;background:linear-gradient(160deg,#0f2619 0%,#1a3d2b 50%,#2a6040 100%);display:flex;flex-direction:column;justify-content:center;padding:3rem 3.5rem;position:relative;overflow:hidden}
+.login-left::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.login-brand{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:#fff;line-height:1;margin-bottom:.5rem;position:relative}
+.login-tagline{font-size:16px;color:rgba(255,255,255,.6);margin-bottom:3rem;position:relative}
+.login-features{display:flex;flex-direction:column;gap:1rem;position:relative}
+.login-feat{display:flex;align-items:center;gap:.875rem}
+.login-feat-icon{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.login-feat-text{color:rgba(255,255,255,.85);font-size:14px;line-height:1.4}
+.login-feat-text strong{color:#fff;display:block;font-size:13px;margin-bottom:1px}
+.login-right{width:440px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:2rem}
+.login-box{width:100%;max-width:380px}
+.login-logo{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--g);margin-bottom:.25rem}
+.login-sub{font-size:13px;color:var(--txm);margin-bottom:2rem}
+@media(max-width:720px){.login-left{display:none}.login-right{width:100%;background:linear-gradient(160deg,#0f2619,#1a3d2b)}.login-box{max-width:400px}.login-logo{color:#fff}.login-sub{color:rgba(255,255,255,.6)}.login-field label{color:rgba(255,255,255,.8)}.login-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3)}.login-demo{border-color:rgba(255,255,255,.15)}.login-demo-title{color:rgba(255,255,255,.5)}.demo-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff}}
 .login-box{background:#fff;border-radius:var(--rxl);padding:2.5rem 2rem;width:100%;max-width:390px;box-shadow:0 24px 80px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.05)}
 .login-logo{font-family:Playfair Display,serif;font-size:22px;font-weight:700;color:var(--g);text-align:center;margin-bottom:.25rem}
 .login-sub{font-size:13px;color:var(--txm);text-align:center;margin-bottom:2rem}
@@ -465,6 +480,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
      LOGIN SCHERM
 ══════════════════════════════════════ -->
 <div id="screen-login" class="screen active">
+
+  <!-- Links: branding & features -->
+  <div class="login-left">
+    <div class="login-brand">ScoreFlow</div>
+    <div class="login-tagline">ez pz golf tournament software</div>
+    <div class="login-features">
+      <div class="login-feat">
+        <div class="login-feat-icon">⛳</div>
+        <div class="login-feat-text"><strong>25 wedstrijdvormen</strong>Van Strokeplay tot Texas Scramble</div>
+      </div>
+      <div class="login-feat">
+        <div class="login-feat-icon">🏆</div>
+        <div class="login-feat-text"><strong>Competities &amp; seizoenen</strong>Eclectic, Order of Merit, Weekcompetitie</div>
+      </div>
+      <div class="login-feat">
+        <div class="login-feat-icon">✈️</div>
+        <div class="login-feat-text"><strong>Snake flight-indeling</strong>Gebalanceerde teams automatisch</div>
+      </div>
+      <div class="login-feat">
+        <div class="login-feat-icon">📊</div>
+        <div class="login-feat-text"><strong>Live leaderboard</strong>Realtime scores tijdens de ronde</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rechts: login form -->
+  <div class="login-right">
   <div class="login-box">
     <div class="login-logo">ScoreFlow</div>
     <div class="login-sub">ez pz golf tournament software</div>
@@ -514,6 +556,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
   <div class="lb-body" id="lb-live-body"></div>
   <div class="lb-footer" id="lb-footer">Automatisch vernieuwen elke 30 seconden &middot; <span id="lb-share-url"></span></div>
 </div>
+  </div><!-- login-right -->
 
 <!-- ══════════════════════════════════════
      ADMIN INTERFACE
@@ -1244,6 +1287,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .stp{font-size:12px;font-weight:500;color:var(--txm);padding:.6rem .5rem;cursor:default;border-bottom:2px solid transparent;transition:all .15s;text-align:center}
 .stp.active{color:var(--g);border-bottom-color:var(--g
 
+<script>
 // ============================================================
 // SUPABASE CLIENT — ScoreFlow v5
 // ============================================================
@@ -6911,14 +6955,11 @@ function renderOomKlassement(comp, ws, baan) {
   return html+'</tbody></table>';
 }
 
+
+
+
+
 function renderWeeklyKlassement(comp, ws, baan) {
-  // Zelfde als OoM maar telt ook nul-rondes mee
-  return renderOomKlassement(comp, ws, baan);
-}
-
-
-
-rWeeklyKlassement(comp, ws, baan) {
   // Zelfde als OoM maar telt ook nul-rondes mee
   return renderOomKlassement(comp, ws, baan);
 }
