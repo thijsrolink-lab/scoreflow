@@ -559,6 +559,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
       </div>
 
       <!-- WEDSTRIJDEN -->
+      id="v-competities" class="view">
+        <div class="card">
+          <div class="card-hd">Competities
+            <div class="card-hd-r">
+              <button class="btn btn-p btn-sm" onclick="openCompWizard()">+ Nieuwe competitie</button>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--txm);margin-bottom:1rem">Een competitie groepeert meerdere wedstrijden met één gecombineerd klassement — ideaal voor eclectic, clubkampioenschap of seizoenscompetitie.</div>
+          <div id="comp-lijst"></div>
+        </div>
+      </div>
+
       <div id="v-wedstrijden" class="view">
         <div class="card">
           <div class="card-hd">Alle wedstrijden
@@ -1711,6 +1723,7 @@ var ADMIN_NAV_ITEMS=[
   {id:'dashboard',label:'Dashboard',sec:'Overzicht',rollen:['Superadmin','Wedstrijdleider','Secretaris'],icon:'<rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>'},
   {id:'kalender',label:'Kalender',rollen:['Superadmin','Wedstrijdleider','Secretaris'],icon:'<rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 1v4M11 1v4M2 7h12"/>'},
   {sec:'Wedstrijden',rollen:['Superadmin','Wedstrijdleider']},
+  {id:'competities',label:'Competities',rollen:['Superadmin','Wedstrijdleider'],icon:'<path d="M8 2l1.5 4.5H15l-4.5 3 1.5 4.5L8 11.5 4.5 14 6 9.5 1.5 6.5H7.5z"/>'},
   {id:'wedstrijden',label:'Alle wedstrijden',rollen:['Superadmin','Wedstrijdleider','Secretaris'],icon:'<path d="M2 4h12M2 8h12M2 12h8"/>'},
   {id:'nieuw',label:'Nieuwe wedstrijd',rollen:['Superadmin','Wedstrijdleider'],icon:'<circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/>'},
   {sec:'Deelnemers',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
@@ -6222,8 +6235,495 @@ var _origUpdateVormInfo = updateVormInfo;
 
 
 
+
+
+// ============================================================
+// COMPETITIES — laag boven wedstrijden
+// Competitie bevat meerdere wedstrijden + gecombineerd klassement
+// ============================================================
+
+var COMPETITIES = [];
+
+// Competitie types
+var COMP_TYPES = [
+  { id: 'eclectic',   label: 'Eclectic',           omschrijving: 'Beste score per hole over alle rondes' },
+  { id: 'strokeplay', label: 'Strokeplay multi-ronde', omschrijving: 'Totaal slagen over alle rondes (bijv. clubkampioenschap)' },
+  { id: 'oom',        label: 'Order of Merit',      omschrijving: 'Punten per wedstrijd, seizoensklassement' },
+  { id: 'weekly',     label: 'Weekcompetitie',      omschrijving: 'Speler kan elke week meedoen, totaal over alle weken' },
+];
+
+// ── Competitie wizard ────────────────────────────────────────
+var _compWizardStap = 0;
+var _compEdit = null;
+
+function openCompWizard(id) {
+  _compEdit = id || null;
+  _compWizardStap = 0;
+  var comp = id ? COMPETITIES.find(function(c){return c.id===id;}) : null;
+
+  var html = '<div class="modal-title">' + (comp ? 'Competitie bewerken' : 'Nieuwe competitie') +
+    '<button class="modal-close" onclick="closeModal(\'modal-comp\')">&#215;</button></div>';
+
+  // Wizard stappen
+  html += '<div style="display:flex;gap:0;border-bottom:1px solid var(--bd);margin-bottom:1.25rem">';
+  ['Basis','Wedstrijden','Instellingen'].forEach(function(s, i) {
+    html += '<div class="stp' + (i===0?' active':'') + '" id="comp-stp-'+i+'" style="padding:.5rem 1rem;font-size:12px;flex:1;text-align:center">'+s+'</div>';
+  });
+  html += '</div>';
+
+  // Stap 0: Basis
+  html += '<div id="comp-s0">';
+  html += '<div class="fg"><label class="fl">Naam competitie</label>';
+  html += '<input class="fi" id="comp-naam" placeholder="bijv. Eclectic Winter 2025" value="'+(comp?comp.naam:'')+'" /></div>';
+
+  html += '<div class="fg"><label class="fl">Type</label>';
+  html += '<div class="tg" id="comp-type-tg">';
+  COMP_TYPES.forEach(function(t) {
+    var on = comp ? comp.type===t.id : t.id==='eclectic';
+    html += '<button class="tgb'+(on?' on':'')+'" data-ctype="'+t.id+'" onclick="tSingle(this,\'ct\');compUpdateTypeInfo()">'
+      + t.label + '</button>';
+  });
+  html += '</div></div>';
+  html += '<div id="comp-type-info" style="font-size:12px;color:var(--txm);margin-top:.5rem;padding:.5rem;background:var(--surf);border-radius:var(--r)"></div>';
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">';
+  html += '<div class="fg"><label class="fl">Startdatum</label>';
+  html += '<input class="fi" type="date" id="comp-start" value="'+(comp?comp.start:new Date().toISOString().split('T')[0])+'"/></div>';
+  html += '<div class="fg"><label class="fl">Einddatum</label>';
+  html += '<input class="fi" type="date" id="comp-eind" value="'+(comp?comp.eind:'')+'" /></div>';
+  html += '</div>';
+
+  html += '<div class="fg"><label class="fl">Omschrijving</label>';
+  html += '<textarea class="fi" id="comp-omschr" rows="2" placeholder="Optionele omschrijving">'+(comp?comp.omschrijving||'':'')+'</textarea></div>';
+  html += '</div>'; // stap 0
+
+  // Stap 1: Wedstrijden koppelen
+  html += '<div id="comp-s1" style="display:none">';
+  html += '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Selecteer welke wedstrijden bij deze competitie horen, of maak nieuwe wedstrijden aan als onderdeel van de competitie.</div>';
+
+  // Bestaande wedstrijden die nog niet in een competitie zitten
+  var vrij = WEDSTRIJDEN.filter(function(w){
+    return !COMPETITIES.some(function(c){ return c.wids && c.wids.indexOf(w.id) >= 0; }) || (comp && comp.wids && comp.wids.indexOf(w.id) >= 0);
+  });
+  var gekoppeld = comp && comp.wids ? comp.wids : [];
+
+  html += '<div style="max-height:280px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--r)">';
+  if (vrij.length === 0) {
+    html += '<div style="padding:1rem;color:var(--txm);font-size:13px;text-align:center">Geen wedstrijden beschikbaar. Maak eerst wedstrijden aan.</div>';
+  } else {
+    vrij.forEach(function(w) {
+      var checked = gekoppeld.indexOf(w.id) >= 0;
+      var d = new Date(w.datum);
+      html += '<label style="display:flex;align-items:center;gap:10px;padding:.6rem .75rem;border-bottom:1px solid var(--surf);cursor:pointer">';
+      html += '<input type="checkbox" id="comp-w-'+w.id+'" '+(checked?'checked':'')+' style="width:16px;height:16px;accent-color:var(--g)">';
+      html += '<div style="flex:1"><div style="font-size:13px;font-weight:500">'+esc(w.naam)+'</div>';
+      html += '<div style="font-size:11px;color:var(--txm)">'+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear()+' · '+w.vorm+'</div></div>';
+      html += '</label>';
+    });
+  }
+  html += '</div>';
+
+  html += '<div style="margin-top:.75rem;padding:.75rem;background:var(--gl);border-radius:var(--r);font-size:12px;color:var(--txm)">';
+  html += '💡 Tip: je kunt ook eerst de competitie opslaan en daarna wedstrijden aanmaken — die kun je later koppelen via "Bewerken".';
+  html += '</div>';
+  html += '</div>'; // stap 1
+
+  // Stap 2: Instellingen
+  html += '<div id="comp-s2" style="display:none">';
+  html += '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Instellingen gelden als standaard voor alle wedstrijden in deze competitie.</div>';
+
+  html += '<div class="fg"><label class="fl">Baan</label>';
+  html += '<input class="fi" id="comp-baan" placeholder="GCC Zeewolde" value="'+(comp?comp.baan||'GCC Zeewolde':'GCC Zeewolde')+'"/></div>';
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">';
+  html += '<div class="fg"><label class="fl">CR</label><input class="fi" type="number" step="0.1" id="comp-cr" value="'+(comp?comp.cr||72.1:72.1)+'"/></div>';
+  html += '<div class="fg"><label class="fl">Slope</label><input class="fi" type="number" id="comp-slope" value="'+(comp?comp.slope||131:131)+'"/></div>';
+  html += '</div>';
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">';
+  html += '<div class="fg"><label class="fl">Holes</label>';
+  html += '<select class="fi" id="comp-holes"><option value="18"'+((!comp||comp.holes===18)?' selected':'')+'>18 holes</option><option value="9"'+((comp&&comp.holes===9)?' selected':'')+'>9 holes</option></select></div>';
+  html += '<div class="fg"><label class="fl">HCP %</label><input class="fi" type="number" id="comp-hcpperc" value="'+(comp?comp.hcpperc||100:100)+'"/></div>';
+  html += '</div>';
+
+  // Eclectic specifiek
+  html += '<div id="comp-eclectic-instellingen" style="margin-top:.75rem;padding:.75rem;background:var(--surf);border-radius:var(--r)">';
+  html += '<div style="font-size:11px;font-weight:600;color:var(--g);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">Eclectic instellingen</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">';
+  html += '<div class="fg"><label class="fl">Min. rondes voor geldig</label>';
+  html += '<input class="fi" type="number" id="comp-minrondes" value="'+(comp?comp.minRondes||2:2)+'" min="1" max="10"/></div>';
+  html += '<div class="fg"><label class="fl">HCP % voor eclectic</label>';
+  html += '<input class="fi" type="number" id="comp-eclhcp" value="'+(comp?comp.eclHcpPerc||75:75)+'" min="50" max="100"/></div>';
+  html += '</div></div>';
+
+  html += '</div>'; // stap 2
+
+  // Navigatie knoppen
+  html += '<div style="display:flex;justify-content:space-between;margin-top:1.25rem;border-top:1px solid var(--surf);padding-top:1rem">';
+  html += '<button class="btn btn-s" id="comp-prev-btn" onclick="compStap(-1)" style="display:none">&#8592; Terug</button>';
+  html += '<div style="flex:1"></div>';
+  html += '<button class="btn btn-s" id="comp-next-btn" onclick="compStap(1)">Volgende &#8594;</button>';
+  html += '<button class="btn btn-p" id="comp-save-btn" onclick="saveCompetitie()" style="display:none">&#10003; Opslaan</button>';
+  html += '</div>';
+
+  document.getElementById('modal-comp-body').innerHTML = html;
+  openModal('modal-comp');
+  compUpdateTypeInfo();
+}
+
+function compStap(richting) {
+  var nieuw = _compWizardStap + richting;
+  if (nieuw < 0 || nieuw > 2) return;
+
+  document.getElementById('comp-s' + _compWizardStap).style.display = 'none';
+  document.getElementById('comp-s' + nieuw).style.display = '';
+
+  // Update stap indicators
+  for (var i = 0; i <= 2; i++) {
+    var el = document.getElementById('comp-stp-' + i);
+    if (el) el.className = 'stp' + (i < nieuw ? ' done' : i === nieuw ? ' active' : '');
+  }
+
+  _compWizardStap = nieuw;
+
+  document.getElementById('comp-prev-btn').style.display = nieuw > 0 ? '' : 'none';
+  document.getElementById('comp-next-btn').style.display = nieuw < 2 ? '' : 'none';
+  document.getElementById('comp-save-btn').style.display = nieuw === 2 ? '' : 'none';
+}
+
+function compUpdateTypeInfo() {
+  var btn = document.querySelector('#comp-type-tg .tgb.on');
+  var type = btn ? btn.dataset.ctype : 'eclectic';
+  var info = COMP_TYPES.find(function(t){return t.id===type;});
+  var el = document.getElementById('comp-type-info');
+  if (el && info) el.textContent = info.omschrijving;
+
+  // Toon/verberg eclectic instellingen
+  var eclEl = document.getElementById('comp-eclectic-instellingen');
+  if (eclEl) eclEl.style.display = type === 'eclectic' ? '' : 'none';
+}
+
+function saveCompetitie() {
+  var naam = (document.getElementById('comp-naam').value || '').trim();
+  if (!naam) { toast('Vul een naam in.', 'err'); return; }
+
+  var btn = document.querySelector('#comp-type-tg .tgb.on');
+  var type = btn ? btn.dataset.ctype : 'eclectic';
+
+  // Verzamel geselecteerde wedstrijden
+  var wids = [];
+  WEDSTRIJDEN.forEach(function(w) {
+    var cb = document.getElementById('comp-w-' + w.id);
+    if (cb && cb.checked) wids.push(w.id);
+  });
+
+  var comp = {
+    id: _compEdit || Date.now(),
+    naam: naam,
+    type: type,
+    start: document.getElementById('comp-start').value,
+    eind: document.getElementById('comp-eind').value,
+    omschrijving: document.getElementById('comp-omschr').value,
+    baan: document.getElementById('comp-baan').value || 'GCC Zeewolde',
+    cr: parseFloat(document.getElementById('comp-cr').value) || 72.1,
+    slope: parseInt(document.getElementById('comp-slope').value) || 131,
+    holes: parseInt(document.getElementById('comp-holes').value) || 18,
+    hcpperc: parseInt(document.getElementById('comp-hcpperc').value) || 100,
+    minRondes: parseInt(document.getElementById('comp-minrondes').value) || 2,
+    eclHcpPerc: parseInt(document.getElementById('comp-eclhcp').value) || 75,
+    wids: wids,
+    status: 'actief',
+    aangemaakt: new Date().toISOString(),
+  };
+
+  if (_compEdit) {
+    var idx = COMPETITIES.findIndex(function(c){return c.id===_compEdit;});
+    if (idx > -1) COMPETITIES[idx] = comp;
+  } else {
+    COMPETITIES.push(comp);
+  }
+
+  closeModal('modal-comp');
+  toast('"' + naam + '" opgeslagen!');
+  renderCompeties();
+
+  // Supabase opslaan
+  dbSaveCompetitie(comp).catch(function(e){console.warn('dbSaveCompetitie:',e.message);});
+}
+
+async function dbSaveCompetitie(comp) {
+  // Opslaan in Supabase (tabel: competities)
+  // Wordt later gekoppeld als de tabel aangemaakt is
+  console.log('Competitie opslaan:', comp.naam);
+}
+
+function delCompetitie(id) {
+  if (!confirm('Competitie verwijderen? De gekoppelde wedstrijden blijven bestaan.')) return;
+  COMPETITIES = COMPETITIES.filter(function(c){return c.id !== id;});
+  renderCompeties();
+  toast('Competitie verwijderd.');
+}
+
+// ── Competitie render ────────────────────────────────────────
+function renderCompeties() {
+  var el = document.getElementById('comp-lijst');
+  if (!el) return;
+
+  if (COMPETITIES.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--txm)">' +
+      '<div style="font-size:36px;margin-bottom:.75rem">🏆</div>' +
+      '<div style="font-size:15px;font-weight:500;color:var(--tx);margin-bottom:.5rem">Nog geen competities</div>' +
+      '<div style="font-size:13px;margin-bottom:1rem">Maak een competitie aan voor meerdere wedstrijden met één gecombineerd klassement.</div>' +
+      '<button class="btn btn-p" onclick="openCompWizard()">+ Nieuwe competitie</button>' +
+      '</div>';
+    return;
+  }
+
+  el.innerHTML = COMPETITIES.map(function(comp) {
+    var ws = WEDSTRIJDEN.filter(function(w){ return comp.wids && comp.wids.indexOf(w.id) >= 0; });
+    var typeInfo = COMP_TYPES.find(function(t){return t.id===comp.type;}) || {label: comp.type};
+    var d1 = comp.start ? new Date(comp.start) : null;
+    var d2 = comp.eind ? new Date(comp.eind) : null;
+
+    return '<div class="lr">' +
+      '<div class="lr-l">' +
+        '<div class="lr-n">'+esc(comp.naam)+'</div>' +
+        '<div class="lr-m">' +
+          '<span class="badge bg" style="background:var(--gm)">'+typeInfo.label+'</span> · ' +
+          ws.length + ' wedstrijd' + (ws.length !== 1 ? 'en' : '') +
+          (d1 ? ' · ' + d1.getDate()+' '+MN[d1.getMonth()]+' '+d1.getFullYear() : '') +
+          (d2 ? ' t/m ' + d2.getDate()+' '+MN[d2.getMonth()]+' '+d2.getFullYear() : '') +
+        '</div>' +
+        (ws.length > 0 ? '<div style="font-size:11px;color:var(--txm);margin-top:3px">' +
+          ws.map(function(w){return esc(w.naam);}).join(' · ') + '</div>' : '') +
+      '</div>' +
+      '<div class="lr-r" style="display:flex;gap:6px;flex-wrap:wrap">' +
+        '<button class="btn btn-p btn-xs" onclick="openKlassement('+comp.id+')">Klassement</button>' +
+        '<button class="btn btn-s btn-xs" onclick="openCompWizard('+comp.id+')">Bewerken</button>' +
+        '<button class="btn btn-d btn-xs" onclick="delCompetitie('+comp.id+')">&#215;</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Competitie klassement ────────────────────────────────────
+function openKlassement(compId) {
+  var comp = COMPETITIES.find(function(c){return c.id===compId;});
+  if (!comp) return;
+
+  var ws = WEDSTRIJDEN.filter(function(w){ return comp.wids && comp.wids.indexOf(w.id) >= 0; });
+  if (ws.length === 0) {
+    toast('Geen wedstrijden gekoppeld aan deze competitie.', 'err');
+    return;
+  }
+
+  // Gebruik de eerste wedstrijd voor baaninstellingen
+  var w0 = ws[0];
+  var baan = getBaan(comp.holes || w0.holes);
+  baan.slope = comp.slope || w0.slope;
+  baan.cr = comp.cr || w0.cr;
+  baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
+
+  var html = '<div class="modal-title">'+esc(comp.naam)+' — Klassement' +
+    '<button class="modal-close" onclick="closeModal(\'modal-klassement\')">&#215;</button></div>';
+
+  if (comp.type === 'eclectic') {
+    html += renderEclectiekKlassement(comp, ws, baan);
+  } else if (comp.type === 'strokeplay') {
+    html += renderStrokeplayKlassement(comp, ws, baan);
+  } else if (comp.type === 'oom') {
+    html += renderOomKlassement(comp, ws, baan);
+  } else if (comp.type === 'weekly') {
+    html += renderWeeklyKlassement(comp, ws, baan);
+  }
+
+  document.getElementById('modal-klassement-body').innerHTML = html;
+  openModal('modal-klassement');
+}
+
+function renderEclectiekKlassement(comp, ws, baan) {
+  // Verzamel alle spelers die in minstens 1 wedstrijd zitten
+  var sidSet = {};
+  ws.forEach(function(w) {
+    INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';})
+      .forEach(function(i){sidSet[i.sid]=true;});
+  });
+  var sps = Object.keys(sidSet).map(function(sid){
+    return USERS.find(function(u){return u.id==sid;});
+  }).filter(Boolean);
+
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">' +
+    'Eclectic · beste score per hole over alle ' + ws.length + ' rondes · ' +
+    'min. ' + comp.minRondes + ' rondes vereist · HCP ' + comp.eclHcpPerc + '%</div>';
+
+  // Per speler: beste score per hole over alle wedstrijden
+  var leaderboard = sps.map(function(sp) {
+    var shv = berekenSpeelhandicap(sp.hcp, baan.slope, baan.cr, baan.parTotaal, (comp.hcpperc||100)/100, comp.holes||18);
+    var ex = extraSlagenPerHole(shv, baan.si);
+    var aantalRondes = 0;
+
+    // Verzamel alle scores over alle wedstrijden
+    var allScores = ws.map(function(w) {
+      var sc = SCORES[w.id] && SCORES[w.id][0] && SCORES[w.id][0][sp.id];
+      if (!sc) return null;
+      var ges = sc.filter(function(s){return s!==''&&s!==null;}).length;
+      if (ges > 0) aantalRondes++;
+      return sc;
+    }).filter(Boolean);
+
+    // Beste score per hole
+    var beste = baan.par.map(function(par, i) {
+      var vals = allScores.map(function(sc){
+        var v = sc[i]; return (v!==''&&v!==null&&v!==undefined) ? Number(v) : null;
+      }).filter(function(v){return v!==null;});
+      return vals.length ? Math.min.apply(null, vals) : null;
+    });
+
+    var gespeeld = beste.filter(function(v){return v!==null;}).length;
+    var bruto = beste.reduce(function(a,v){return a+(v||0);},0);
+    var eclSH = Math.round(shv * (comp.eclHcpPerc||75) / 100);
+    var netto = bruto - eclSH;
+    var geldig = aantalRondes >= comp.minRondes;
+
+    return { sp: sp, shv: shv, ex: ex, beste: beste, bruto: bruto, netto: netto,
+             eclSH: eclSH, gespeeld: gespeeld, aantalRondes: aantalRondes, geldig: geldig };
+  }).sort(function(a,b){
+    if (!a.geldig && !b.geldig) return 0;
+    if (!a.geldig) return 1;
+    if (!b.geldig) return -1;
+    return a.netto - b.netto;
+  });
+
+  // Tabel
+  html += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>';
+  html += '<th style="width:32px">#</th><th>Speler</th><th>Rondes</th><th>Holes</th><th>Ecl.HCP</th><th>Bruto</th><th>Netto</th><th>Status</th>';
+  html += '</tr></thead><tbody>';
+
+  leaderboard.forEach(function(r, i) {
+    var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html += '<tr>';
+    html += '<td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
+    html += '<td style="font-weight:500">'+esc(r.sp.voor+' '+r.sp.ach)+'</td>';
+    html += '<td>'+r.aantalRondes+'/'+ws.length+'</td>';
+    html += '<td>'+r.gespeeld+'/'+(comp.holes||18)+'</td>';
+    html += '<td>'+r.eclSH+'</td>';
+    html += '<td>'+(r.gespeeld>0?r.bruto:'—')+'</td>';
+    html += '<td style="font-weight:600;color:var(--gm)">'+(r.geldig&&r.gespeeld===(comp.holes||18)?r.netto:'—')+'</td>';
+    html += '<td><span class="badge '+(r.geldig?'bg':'bx')+'">'+(r.geldig?'Geldig':'Min '+comp.minRondes+' rondes')+'</span></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Rondes overzicht
+  html += '<div style="margin-top:1rem"><div style="font-size:11px;font-weight:600;color:var(--g);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">Rondes</div>';
+  ws.forEach(function(w, i) {
+    var d = new Date(w.datum);
+    var ingCount = INSCHRIJVINGEN.filter(function(x){return x.wid===w.id&&x.status==='ingeschreven';}).length;
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:.4rem 0;border-bottom:1px solid var(--surf);font-size:13px">';
+    html += '<div class="lb-pos lpn" style="width:20px;height:20px;font-size:9px">'+(i+1)+'</div>';
+    html += '<div style="flex:1">'+esc(w.naam)+'</div>';
+    html += '<div style="color:var(--txm);font-size:12px">'+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear()+'</div>';
+    html += '<div style="color:var(--txm);font-size:12px">'+ingCount+' spelers</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  return html;
+}
+
+function renderStrokeplayKlassement(comp, ws, baan) {
+  var sidSet = {};
+  ws.forEach(function(w){
+    INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';})
+      .forEach(function(i){sidSet[i.sid]=true;});
+  });
+  var sps = Object.keys(sidSet).map(function(sid){return USERS.find(function(u){return u.id==sid;});}).filter(Boolean);
+
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Strokeplay multi-ronde · totaal slagen over alle rondes</div>';
+
+  var lb = sps.map(function(sp) {
+    var shv = berekenSpeelhandicap(sp.hcp, baan.slope, baan.cr, baan.parTotaal, (comp.hcpperc||100)/100, comp.holes||18);
+    var totalBruto = 0, totalNetto = 0, rondesGespeeld = 0;
+    ws.forEach(function(w) {
+      var sc = SCORES[w.id] && SCORES[w.id][0] && SCORES[w.id][0][sp.id];
+      if (!sc) return;
+      var res = berekenStrokeplay(sc, baan, shv, 'geen');
+      if (res.ges === baan.holes) { totalBruto += res.bruto; totalNetto += res.netto; rondesGespeeld++; }
+    });
+    return { sp: sp, shv: shv, totalBruto: totalBruto, totalNetto: totalNetto, rondesGespeeld: rondesGespeeld };
+  }).sort(function(a,b){return !a.rondesGespeeld?1:!b.rondesGespeeld?-1:a.totalNetto-b.totalNetto;});
+
+  html += '<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>SH</th><th>Rondes</th><th>Totaal bruto</th><th>Totaal netto</th></tr></thead><tbody>';
+  lb.forEach(function(r, i) {
+    var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html += '<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
+    html += '<td style="font-weight:500">'+esc(r.sp.voor+' '+r.sp.ach)+'</td>';
+    html += '<td><span class="badge bg">'+r.shv+'</span></td>';
+    html += '<td>'+r.rondesGespeeld+'/'+ws.length+'</td>';
+    html += '<td>'+(r.rondesGespeeld>0?r.totalBruto:'—')+'</td>';
+    html += '<td style="font-weight:600;color:var(--gm)">'+(r.rondesGespeeld>0?r.totalNetto:'—')+'</td></tr>';
+  });
+  return html + '</tbody></table>';
+}
+
+function renderOomKlassement(comp, ws, baan) {
+  var schaal = {1:25,2:20,3:16,4:13,5:11,6:9,7:7,8:6,9:5,10:4};
+  var puntenTotaal = {};
+
+  ws.forEach(function(w) {
+    var wBaan = getBaan(w.holes); wBaan.slope=w.slope; wBaan.cr=w.cr;
+    wBaan.parTotaal=wBaan.par.reduce(function(a,b){return a+b;},0);
+    var sps = INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';})
+      .map(function(i){return USERS.find(function(u){return u.id===i.sid;});}).filter(Boolean);
+    var rows = sps.map(function(sp){
+      var shv=berekenSpeelhandicap(sp.hcp,w.slope,w.cr,wBaan.parTotaal,(w.hcpperc||100)/100,w.holes);
+      var sc=(SCORES[w.id]&&SCORES[w.id][0]&&SCORES[w.id][0][sp.id])||Array(w.holes).fill('');
+      var sf=berekenStableford(sc,wBaan,shv);
+      return{id:sp.id,naam:sp.voor+' '+sp.ach,punten:sf.punten,ges:sf.ges};
+    }).sort(function(a,b){return !a.ges?1:!b.ges?-1:b.punten-a.punten;});
+
+    rows.forEach(function(r,i){
+      if(!r.ges)return;
+      if(!puntenTotaal[r.id])puntenTotaal[r.id]={naam:r.naam,punten:0,wedstrijden:0};
+      var p=schaal[i+1]||Math.max(1,3-Math.floor(i/5));
+      puntenTotaal[r.id].punten+=p; puntenTotaal[r.id].wedstrijden++;
+    });
+  });
+
+  var lb = Object.values(puntenTotaal).sort(function(a,b){return b.punten-a.punten;});
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Order of Merit · punten per wedstrijd op basis van eindpositie</div>';
+  html += '<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>Wedstrijden</th><th>OoM punten</th></tr></thead><tbody>';
+  lb.forEach(function(r,i){
+    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td>'+r.wedstrijden+'</td><td style="font-weight:700;color:var(--gm);font-size:16px">'+r.punten+'</td></tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+function renderWeeklyKlassement(comp, ws, baan) {
+  // Zelfde als OoM maar telt ook nul-rondes mee
+  return renderOomKlassement(comp, ws, baan);
+}
+
+
+
 </script>
 <div class="help-overlay" id="help-overlay" onclick="sluitHelp()"></div>
 <div class="help-paneel" id="help-paneel"></div>
+
+<!-- Competitie wizard modal -->
+<div class="modal-bg" id="modal-comp">
+  <div class="modal" style="max-width:560px;width:95%">
+    <div id="modal-comp-body"></div>
+  </div>
+</div>
+
+<!-- Klassement modal -->
+<div class="modal-bg" id="modal-klassement">
+  <div class="modal" style="max-width:680px;width:95%;max-height:85vh;overflow-y:auto">
+    <div id="modal-klassement-body"></div>
+  </div>
+</div>
+
 </body>
 </html>
