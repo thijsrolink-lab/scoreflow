@@ -1962,11 +1962,11 @@ function renderWedstrijden(){
     var ic=INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';}).length;
     var pct=Math.round((ic/w.max)*100);
     var acts='';
-    if(kanNieuw)acts+='<button class="btn btn-s btn-xs" onclick="editW('+w.id+')">Bewerken</button>';
-    if(heeftToegang('inschrijvingen'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'inschrijvingen\','+w.id+')">Inschrijvingen</button>';
-    if(heeftToegang('flights'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'flights\','+w.id+')">Flights</button>';
-    if(heeftToegang('scores'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'scores\','+w.id+')">Scores</button>';
-    if(kanNieuw)acts+='<button class="btn btn-d btn-xs" onclick="delW('+w.id+')">&#215;</button>';
+    if(kanNieuw)acts+='<button class="btn btn-s btn-xs" onclick="editW(\''+w.id+'\')">Bewerken</button>';
+    if(heeftToegang('inschrijvingen'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'inschrijvingen\',\''+w.id+'\')">Inschrijvingen</button>';
+    if(heeftToegang('flights'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'flights\',\''+w.id+'\')">Flights</button>';
+    if(heeftToegang('scores'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'scores\',\''+w.id+'\')">Scores</button>';
+    if(kanNieuw)acts+='<button class="btn btn-d btn-xs" onclick="delW(\''+w.id+'\')">&#215;</button>';
     return '<div class="lr"><div class="lr-l"><div class="lr-n">'+w.naam+'</div><div class="lr-m">'+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear()+' &middot; <span class="badge bx">'+w.vorm+'</span> &middot; '+w.holes+'h</div><div style="display:flex;align-items:center;gap:6px;margin-top:3px"><div class="pb" style="width:80px"><div class="pf" style="width:'+pct+'%"></div></div><span style="font-size:11px;color:var(--txm)">'+ic+'/'+w.max+'</span></div></div><div class="lr-r"><span class="badge '+(w.status==='gepubliceerd'?'bg':'bx')+'">'+w.status+'</span>'+acts+'</div></div>';
   }).join(''):'<p style="font-size:13px;color:var(--txm);padding:8px 0">Geen wedstrijden gevonden.</p>';
 }
@@ -2166,7 +2166,7 @@ function renderSpelers(){
   var cols=['#e8f5ee','#E6F1FB','#faf3e0','#fbeaf0','#EEEDFE','#fce8e8'];
   document.getElementById('sp-body').innerHTML=list.map(function(s){
     var bg=cols[s.id%cols.length];
-    return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:30px;height:30px;font-size:11px;background:'+bg+';color:var(--g)">'+s.voor[0]+s.ach[0]+'</div><div><div style="font-weight:500">'+s.voor+' '+s.ach+'</div><div style="font-size:11px;color:var(--txm)">'+s.email+'</div></div></div></td><td><span class="badge '+(s.hcp<=10?'bg':s.hcp<=20?'bb':'bx')+'">'+s.hcp.toFixed(1)+'</span></td><td><span class="badge bx">'+s.ltype+'</span></td><td style="color:var(--txm)">'+s.email+'</td><td style="color:var(--txm)">'+s.lid+'</td><td style="color:var(--txm)">'+s.deelnames+'</td><td><div style="display:flex;gap:4px"><button class="btn btn-s btn-xs" onclick="editSpeler('+s.id+')">Bewerk</button><button class="btn btn-d btn-xs" onclick="delSpeler('+s.id+')">&#215;</button></div></td></tr>';
+    return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:30px;height:30px;font-size:11px;background:'+bg+';color:var(--g)">'+s.voor[0]+s.ach[0]+'</div><div><div style="font-weight:500">'+s.voor+' '+s.ach+'</div><div style="font-size:11px;color:var(--txm)">'+s.email+'</div></div></div></td><td><span class="badge '+(s.hcp<=10?'bg':s.hcp<=20?'bb':'bx')+'">'+s.hcp.toFixed(1)+'</span></td><td><span class="badge bx">'+s.ltype+'</span></td><td style="color:var(--txm)">'+s.email+'</td><td style="color:var(--txm)">'+s.lid+'</td><td style="color:var(--txm)">'+s.deelnames+'</td><td><div style="display:flex;gap:4px"><button class="btn btn-s btn-xs" onclick="editSpeler(\'' + s.id + '\')">Bewerk</button><button class="btn btn-d btn-xs" onclick="delSpeler(\'' + s.id + '\')">&#215;</button></div></td></tr>';
   }).join('');
 }
 
@@ -2212,7 +2212,7 @@ function renderAdmins(){
   var admins=USERS.filter(function(u){return u.rol!=='Speler';});
   document.getElementById('admins-body').innerHTML=admins.map(function(u){
     var rolCls='role-'+u.rol.toLowerCase().replace(' ','');
-    return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;font-size:11px;background:var(--gl);color:var(--g)">'+u.voor[0]+u.ach[0]+'</div><span style="font-weight:500">'+u.voor+' '+u.ach+'</span></div></td><td style="color:var(--txm)">'+u.email+'</td><td><span class="role-badge '+rolCls+'">'+u.rol+'</span></td><td style="color:var(--txh);font-size:12px">Vandaag</td><td><div style="display:flex;gap:4px">'+(u.id!==_currentUser.id?'<button class="btn btn-s btn-xs" onclick="editAdmin('+u.id+')">Bewerk</button><button class="btn btn-d btn-xs" onclick="delAdmin('+u.id+')">&#215;</button>':'<span style="font-size:12px;color:var(--txh)">Jijzelf</span>')+'</div></td></tr>';
+    return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;font-size:11px;background:var(--gl);color:var(--g)">'+u.voor[0]+u.ach[0]+'</div><span style="font-weight:500">'+u.voor+' '+u.ach+'</span></div></td><td style="color:var(--txm)">'+u.email+'</td><td><span class="role-badge '+rolCls+'">'+u.rol+'</span></td><td style="color:var(--txh);font-size:12px">Vandaag</td><td><div style="display:flex;gap:4px">'+(u.id!==_currentUser.id?'<button class="btn btn-s btn-xs" onclick="editAdmin(\'' + u.id + '\')">Bewerk</button><button class="btn btn-d btn-xs" onclick="delAdmin(\'' + u.id + '\')">&#215;</button>':'<span style="font-size:12px;color:var(--txh)">Jijzelf</span>')+'</div></td></tr>';
   }).join('');
 }
 
@@ -2271,7 +2271,7 @@ function renderInschrijvingen(){
     if(!s||!w)return '';
     var sh=berekenSpeelhandicap(s.hcp,w.slope,w.cr,w.holes===9?36:72,w.hcpperc/100,w.holes);
     var sb=i.status==='ingeschreven'?'bg':i.status==='wachtlijst'?'ba':'bx';
-    return '<tr><td style="font-weight:500">'+s.voor+' '+s.ach+'</td><td style="color:var(--txm)">'+w.naam+'</td><td><span class="badge '+(s.hcp<=10?'bg':s.hcp<=20?'bb':'bx')+'">'+s.hcp.toFixed(1)+'</span></td><td><span class="badge bg">'+sh+'</span></td><td style="color:var(--txm)">'+i.datum+'</td><td><span class="badge '+sb+'">'+i.status+'</span></td><td><div style="display:flex;gap:4px">'+(i.status==='wachtlijst'?'<button class="btn btn-p btn-xs" onclick="adminPromote('+i.id+')">Toelaten</button>':'')+'<button class="btn btn-d btn-xs" onclick="adminAfmelden('+i.id+')">Afmelden</button></div></td></tr>';
+    return '<tr><td style="font-weight:500">'+s.voor+' '+s.ach+'</td><td style="color:var(--txm)">'+w.naam+'</td><td><span class="badge '+(s.hcp<=10?'bg':s.hcp<=20?'bb':'bx')+'">'+s.hcp.toFixed(1)+'</span></td><td><span class="badge bg">'+sh+'</span></td><td style="color:var(--txm)">'+i.datum+'</td><td><span class="badge '+sb+'">'+i.status+'</span></td><td><div style="display:flex;gap:4px">'+(i.status==='wachtlijst'?'<button class="btn btn-p btn-xs" onclick="adminPromote(\'' + i.id + '\')">Toelaten</button>':'')+'<button class="btn btn-d btn-xs" onclick="adminAfmelden(\'' + i.id + '\')">Afmelden</button></div></td></tr>';
   }).join('');
   updateAdminBadges();
 }
@@ -3789,7 +3789,7 @@ function openNotifModal(){
 
 function renderNotificaties(){
   document.getElementById('notif-list').innerHTML=NOTIFICATIES.map(function(n){
-    return '<div class="notif-item"><div class="ndot '+(n.gelezen?'ndot-read':'ndot-new')+'"></div><div style="flex:1"><div style="font-size:13px;font-weight:'+(n.gelezen?400:500)+'">'+n.onderwerp+'</div><div style="font-size:12px;color:var(--txm)">'+n.datum+' &middot; '+n.ontvangers+' ontvangers</div></div><button class="btn btn-s btn-xs" onclick="markRead('+n.id+')">Gelezen</button></div>';
+    return '<div class="notif-item"><div class="ndot '+(n.gelezen?'ndot-read':'ndot-new')+'"></div><div style="flex:1"><div style="font-size:13px;font-weight:'+(n.gelezen?400:500)+'">'+n.onderwerp+'</div><div style="font-size:12px;color:var(--txm)">'+n.datum+' &middot; '+n.ontvangers+' ontvangers</div></div><button class="btn btn-s btn-xs" onclick="markRead(\'' + n.id + '\')">Gelezen</button></div>';
   }).join('')||'<p style="font-size:13px;color:var(--txm)">Geen berichten.</p>';
   var tmpls=['Bevestiging inschrijving','Herinnering wedstrijd','Vluchtindeling beschikbaar','Uitslag beschikbaar'];
   document.getElementById('notif-tmpl').innerHTML=tmpls.map(function(t){return '<button class="btn btn-s" style="justify-content:flex-start;font-size:12px" onclick="loadTmpl(\''+t+'\')">'+t+'</button>';}).join('');
@@ -6686,9 +6686,9 @@ function renderCompeties() {
           ws.map(function(w){return escHtml(w.naam);}).join(' · ') + '</div>' : '') +
       '</div>' +
       '<div class="lr-r" style="display:flex;gap:6px;flex-wrap:wrap">' +
-        '<button class="btn btn-p btn-xs" onclick="openKlassement('+comp.id+')">Klassement</button>' +
-        '<button class="btn btn-s btn-xs" onclick="openCompWizard('+comp.id+')">Bewerken</button>' +
-        '<button class="btn btn-d btn-xs" onclick="delCompetitie('+comp.id+')">&#215;</button>' +
+        '<button class="btn btn-p btn-xs" onclick="openKlassement(\'' + comp.id + '\')">Klassement</button>' +
+        '<button class="btn btn-s btn-xs" onclick="openCompWizard(\'' + comp.id + '\')">Bewerken</button>' +
+        '<button class="btn btn-d btn-xs" onclick="delCompetitie(\'' + comp.id + '\')">&#215;</button>' +
       '</div>' +
     '</div>';
   }).join('');
