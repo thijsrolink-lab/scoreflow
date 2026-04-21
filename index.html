@@ -2277,7 +2277,7 @@ function renderInschrijvingen(){
 }
 
 function checkInschrijving(){
-  var wId=parseInt(document.getElementById('mi-w').value);
+  var wId=document.getElementById('mi-w').value;
   var sId=parseInt(document.getElementById('mi-s').value);
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;}),s=USERS.find(function(x){return x.id===sId;});
   var el=document.getElementById('mi-check');if(!w||!s){el.textContent='';return;}
@@ -2289,7 +2289,7 @@ function checkInschrijving(){
 }
 
 function doAdminInschrijven(){
-  var wId=parseInt(document.getElementById('mi-w').value);
+  var wId=document.getElementById('mi-w').value;
   var sId=parseInt(document.getElementById('mi-s').value);
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});if(!w)return;
   var ic=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).length;
@@ -2327,7 +2327,7 @@ function renderFlightsInit(){
 }
 
 function renderFlights(){
-  var wId=parseInt(document.getElementById('fl-w').value);if(!wId)return;
+  var wId=document.getElementById('fl-w').value;if(!wId)return;
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});
   var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
   document.getElementById('fl-info').innerHTML='<span class="badge bg">'+sps.length+' ingeschreven</span> <span class="badge bx">'+Math.ceil(sps.length/(w.flt||3))+' flights</span>';
@@ -2341,7 +2341,7 @@ function renderFlights(){
 }
 
 function autoFlights(){
-  var wId=parseInt(document.getElementById('fl-w').value);if(!wId){toast('Kies een wedstrijd.','err');return;}
+  var wId=document.getElementById('fl-w').value;if(!wId){toast('Kies een wedstrijd.','err');return;}
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});
   var sort=document.getElementById('fl-sort').value||'hcp-asc';
   var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
@@ -2396,7 +2396,7 @@ function renderScoresInit(){
 }
 
 function initScoreView(){
-  var wId=parseInt(document.getElementById('sc-w').value);if(!wId){renderScoresInit();return;}
+  var wId=document.getElementById('sc-w').value;if(!wId){renderScoresInit();return;}
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});if(!w)return;
   var rondeEl=document.getElementById('sc-ronde');
   if(w.rondes>1){rondeEl.style.display='';rondeEl.innerHTML=Array.from({length:w.rondes},function(_,i){return '<option value="'+i+'">Ronde '+(i+1)+'</option>';}).join('');}
@@ -2412,7 +2412,7 @@ function getRonde(){return parseInt(document.getElementById('sc-ronde').value)||
 
 // Overschrijf renderScoreInvoer met uitgebreide versie
 function renderScoreInvoer() {
-  var wId = parseInt(document.getElementById('sc-w').value); if (!wId) return;
+  var wId = document.getElementById('sc-w').value; if (!wId) return;
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; }); if (!w) return;
   var ronde = getRonde();
   var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
@@ -3469,7 +3469,7 @@ function hiddenToggle(wId,hole,btn){
   else{SCORES[wId]['hidden'].push(hole);btn.className='btn btn-p btn-xs';}
   // Herrender
   var el=document.getElementById('stab-hh');
-  if(el){var wId2=parseInt(document.getElementById('sc-w').value);var w=WEDSTRIJDEN.find(function(x){return x.id===wId2;});if(w){var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId2&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);el.innerHTML=uiHiddenHoles(wId2,0,baan,sps,w);}}
+  if(el){var wId2=document.getElementById('sc-w').value;var w=WEDSTRIJDEN.find(function(x){return x.id===wId2;});if(w){var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId2&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);el.innerHTML=uiHiddenHoles(wId2,0,baan,sps,w);}}
 }
 
 // ── 14. Stokkenroof ──────────────────────────────────────────
@@ -3726,7 +3726,7 @@ function switchTab(tab){
   var el=document.getElementById('stab-'+tab);if(el)el.style.display='block';
   var btn=document.getElementById('tab-'+tab);if(btn)btn.classList.add('on');
   if(tab==='lb'){
-    var wId=parseInt(document.getElementById('sc-w').value);
+    var wId=document.getElementById('sc-w').value;
     var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});
     if(w){
       var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
@@ -3737,7 +3737,7 @@ function switchTab(tab){
 }
 
 function updateScore(inp){
-  var wId=parseInt(inp.dataset.wid),ronde=parseInt(inp.dataset.ronde),sid=parseInt(inp.dataset.sid),hi=parseInt(inp.dataset.hi);
+  var wId=inp.dataset.wid,ronde=parseInt(inp.dataset.ronde),sid=inp.dataset.sid,hi=parseInt(inp.dataset.hi);
   var par=parseInt(inp.dataset.par),ex=parseInt(inp.dataset.ex);
   if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId][ronde])SCORES[wId][ronde]={};if(!SCORES[wId][ronde][sid])SCORES[wId][ronde][sid]=Array(18).fill('');
   SCORES[wId][ronde][sid][hi]=inp.value;
@@ -4008,7 +4008,7 @@ function renderSpelerScores(){
 
 // Ranglijst
 function renderRanglijst(){
-  var wId=parseInt(document.getElementById('rang-w').value)||0;
+  var wId=document.getElementById('rang-w').value;
   if(!wId){document.getElementById('sp-rang-content').innerHTML='<p style="font-size:13px;color:var(--txm)">Kies een wedstrijd om de ranglijst te bekijken.</p>';return;}
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});if(!w){return;}
   var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
@@ -4083,7 +4083,7 @@ var _skWId = 0;
 var _skScores = [];
 
 function initScorekaart() {
-  var wId = parseInt(document.getElementById('sk-w').value) || 0;
+  var wId = document.getElementById('sk-w').value;
   if (!wId) { document.getElementById('sp-scorekaart-content').innerHTML = ''; return; }
   var u = _currentUser;
   var ing = INSCHRIJVINGEN.find(function(i) { return i.wid === wId && i.sid === u.id && i.status === 'ingeschreven'; });
@@ -4545,7 +4545,7 @@ var _lbRefillTimeout = null;
 var _lbTerugNaar = null;
 
 function openLiveLeaderboard() {
-  var wId = parseInt(document.getElementById('sc-w').value) || 0;
+  var wId = document.getElementById('sc-w').value;
   if (!wId) { toast('Kies eerst een wedstrijd.', 'err'); return; }
   _lbWId = wId;
   _lbTerugNaar = _currentUser ? (_currentUser.rol === 'Speler' ? 'speler' : 'admin') : 'login';
@@ -4625,7 +4625,7 @@ function stopLbRefresh() {
 // Leaderboard knop in scores view
 function onScoreWSelect() {
   initScoreView();
-  var wId = parseInt(document.getElementById('sc-w').value) || 0;
+  var wId = document.getElementById('sc-w').value;
   var btn = document.getElementById('btn-live-lb');
   if (btn) btn.style.display = wId ? '' : 'none';
 }
@@ -5693,7 +5693,7 @@ function switchScoreTab(tab) {
   if (btn) btn.classList.add('on');
   if (el) el.style.display = 'block';
 
-  var wId = parseInt(document.getElementById('sc-w').value);
+  var wId = document.getElementById('sc-w').value;
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w) return;
   var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
