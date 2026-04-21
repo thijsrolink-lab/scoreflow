@@ -434,8 +434,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .help-sectie{border-left:3px solid var(--lime);padding:.5rem 0 .5rem .75rem}
 .help-kop{font-size:11px;font-weight:600;color:var(--g);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
 .help-tekst{font-size:13px;color:var(--txm);line-height:1.6;margin:0}
-.help-knop{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:20px;background:var(--card);color:var(--txm);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
-.help-knop:hover{border-color:var(--g);color:var(--g);background:var(--gl)}
+.help-knop{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;font-size:11px;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--txm);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;font-weight:500}
+.help-knop:hover{border-color:var(--gm);color:var(--g);background:var(--gl)}
 
 </style>
 </head>
@@ -551,7 +551,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
             <button class="btn btn-s btn-xs" onclick="calNav(-1)">&#8592;</button>
             <span class="cal-month" id="cal-lbl"></span>
             <button class="btn btn-s btn-xs" onclick="calNav(1)">&#8594;</button>
-          </div>
+          <span style="margin-left:auto"><button class="help-knop" onclick="openHelp('kalender')">&#63; Help</button></span></div>
           <div class="cal-body">
             <div class="cg" id="cal-dow"></div>
             <div class="cg" id="cal-days"></div>
@@ -563,7 +563,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
       <div id="v-wedstrijden" class="view">
         <div class="card">
           <div class="card-hd">Alle wedstrijden
-            <div class="card-hd-r"><button class="help-knop" onclick="openHelp('wedstrijden')">&#63; Help</button><button class="help-knop" onclick="openHelp('kalender')">&#63; Help</button>
+            <div class="card-hd-r"><button class="help-knop" onclick="openHelp('wedstrijden')">&#63; Help</button>
               <input type="text" id="w-search" placeholder="Zoeken..." style="padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);width:150px;font-family:'DM Sans',sans-serif" oninput="renderWedstrijden()"/>
               <button class="btn btn-s btn-xs" id="btn-snel-w" onclick="openSnelModal()">&#9889; Snel</button>
               <button class="btn btn-p btn-xs" id="btn-nieuw-w" onclick="adminNav('nieuw')">+ Nieuw</button>
@@ -1132,71 +1132,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 
 <div class="modal-bg" id="modal-notif">
   <div class="modal">
-    <div class="modal-title">Bericht sturen <button class="modal-close" onclick="closeModal('modal-notif')">&#215;</button></div>
-    <div class="field"><label>Wedstrijd</label><select id="mn-w"></select></div>
-    <div class="field"><label>Ontvangers</label>
-      <div class="tg">
-        <button class="tgb on" onclick="tSingle(this,'nr')">Alle ingeschrevenen</button>
-        <button class="tgb" onclick="tSingle(this,'nr')">Wachtlijst</button>
-        <button class="tgb" onclick="tSingle(this,'nr')">Alle leden</button>
-      </div>
-    </div>
-    <div class="field"><label>Onderwerp</label><input id="mn-subj" type="text" placeholder="bv. Herinnering wedstrijd zaterdag"/></div>
-    <div class="field"><label>Bericht</label><textarea id="mn-body" style="min-height:100px" placeholder="Beste {naam},&#10;&#10;..."></textarea></div>
-    <div style="background:var(--surf);border-radius:var(--r);padding:.75rem;margin-bottom:.75rem;font-size:12px;color:var(--txm)">
-      Variabelen: <code style="background:var(--card);padding:1px 5px;border-radius:3px">{naam}</code> <code style="background:var(--card);padding:1px 5px;border-radius:3px">{starttijd}</code> <code style="background:var(--card);padding:1px 5px;border-radius:3px">{flight}</code>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn btn-s" onclick="closeModal('modal-notif')">Annuleren</button>
-      <button class="btn btn-p" onclick="sendNotif()">Versturen</button>
-    </div>
-  </div>
-</div>
-
-<!-- Bevestiging inschrijving/afmelding speler -->
-<div class="modal-bg" id="modal-bevestig">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-title" id="bevestig-title">Bevestiging <button class="modal-close" onclick="closeModal('modal-bevestig')">&#215;</button></div>
-    <p style="font-size:14px;color:var(--txm);margin-bottom:1.5rem" id="bevestig-tekst"></p>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn btn-s" onclick="closeModal('modal-bevestig')">Annuleren</button>
-      <button class="btn btn-p" id="bevestig-btn">Bevestigen</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- Supabase loader -->
-<div id="sf-loader" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px">
-  <div style="background:#fff;border-radius:16px;padding:2rem 3rem;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-    <div style="width:36px;height:36px;border:3px solid var(--gl2);border-top-color:var(--g);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1rem"></div>
-    <div id="sf-loader-msg" style="font-size:14px;color:var(--txm);font-weight:500">Laden...</div>
-  </div>
-</div>
-<style>@keyframes spin{to{transform:rotate(360deg)}}
-/* ── HELP SYSTEEM ─────────────────────────────────────────── */
-.help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1200;opacity:0;pointer-events:none;transition:opacity .2s}
-.help-overlay.on{opacity:1;pointer-events:all}
-.help-paneel{position:fixed;top:0;right:-440px;width:420px;max-width:95vw;height:100vh;background:var(--card);z-index:1201;box-shadow:-4px 0 32px rgba(0,0,0,.18);transition:right .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
-.help-paneel.on{right:0}
-.help-header{padding:1.25rem 1.5rem;background:var(--g);color:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.help-titel{font-size:17px;font-weight:600;font-family:'Playfair Display',serif}
-.help-sluit{background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.help-sluit:hover{background:rgba(255,255,255,.3)}
-.help-body{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
-.help-intro{font-size:14px;color:var(--tx);line-height:1.6;margin:0}
-.help-sectie{border-left:3px solid var(--lime);padding:.5rem 0 .5rem .75rem}
-.help-kop{font-size:11px;font-weight:600;color:var(--g);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
-.help-tekst{font-size:13px;color:var(--txm);line-height:1.6;margin:0}
-.help-knop{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:20px;background:var(--card);color:var(--txm);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
-.help-knop:hover{border-color:var(--g);color:var(--g);background:var(--gl)}
-
-</style>
-
-<div class="toast" id="toast"></div>
+    <div class="modal-title">Bericht sturen <butto
 
 <script>
-
 // ============================================================
 // SUPABASE CLIENT — ScoreFlow v5
 // ============================================================
@@ -1790,7 +1728,6 @@ function adminNav(id){
   if(!heeftToegang(id)){toast('Geen toegang tot dit onderdeel.','err');return;}
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});
   var t=document.getElementById('v-'+id);if(t)t.classList.add('on');
-  setTimeout(function(){if(typeof addHelpKnop==='function')addHelpKnop(id);},50);
   document.querySelectorAll('[data-anavid]').forEach(function(el){el.classList.toggle('on',el.dataset.anavid===id);});
   document.getElementById('page-title').textContent=(id==='nieuw'&&_editId)?'Wedstrijd bewerken':ADMIN_TITLES[id]||'';
   var bc=ADMIN_BC[id];
@@ -1970,17 +1907,20 @@ function updateVormInfo(){
   var btn=document.querySelector('#vorm-tg .tgb.on');
   var el=document.getElementById('vorm-info');
   if(el)el.textContent=btn?VORM_INFO[btn.dataset.vorm]||'':'';
-  // Help knop naast spelvorm
   var vorm=btn?btn.dataset.vorm:null;
   var vhEl=document.getElementById('vorm-help-btn');
   if(!vhEl){
-    vhEl=document.createElement('div');vhEl.id='vorm-help-btn';vhEl.style.marginTop='6px';
+    vhEl=document.createElement('div');
+    vhEl.id='vorm-help-btn';
+    vhEl.style.marginTop='6px';
     var vInfoEl=document.getElementById('vorm-info');
     if(vInfoEl&&vInfoEl.parentNode)vInfoEl.parentNode.insertBefore(vhEl,vInfoEl.nextSibling);
   }
   if(vorm&&typeof VORM_HELP!=='undefined'&&VORM_HELP[vorm]){
-    vhEl.innerHTML='<button class="help-knop" onclick="openVormHelp(this.dataset.v)" data-v="'+vorm+'">&#128216; Hoe werkt '+vorm+'?</button>';
-  } else { vhEl.innerHTML=''; }
+    vhEl.innerHTML='<button class="help-knop" data-v="'+vorm+'" onclick="openVormHelp(this.dataset.v)">&#128216; Hoe werkt '+vorm+'?</button>';
+  } else {
+    vhEl.innerHTML='';
+  }
 }
 
 function goStep(n){
@@ -6222,13 +6162,12 @@ function addHelpKnop(pagina) {
 
 // ── updateVormInfo uitbreiden ─────────────────────────────────
 // Bestaande updateVormInfo wordt uitgebreid met "Meer info" link
-var _origUpdateVormInfo = updateVormInfo;
-// updateVormInfo override verwijderd (zit in eerste definitie)
+// help systeem - updateVormInfo integratie via patch
+
 
 </script>
 
 <div class="help-overlay" id="help-overlay" onclick="sluitHelp()"></div>
 <div class="help-paneel" id="help-paneel"></div>
-
 </body>
 </html>
