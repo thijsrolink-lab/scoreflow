@@ -6297,35 +6297,62 @@ function openCompWizard(id) {
   html += '<textarea class="fi" id="comp-omschr" rows="2" placeholder="Optionele omschrijving">'+(comp?comp.omschrijving||'':'')+'</textarea></div>';
   html += '</div>'; // stap 0
 
-  // Stap 1: Wedstrijden koppelen
+  // Stap 1: Wedstrijden aanmaken + koppelen
   html += '<div id="comp-s1" style="display:none">';
-  html += '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Selecteer welke wedstrijden bij deze competitie horen, of maak nieuwe wedstrijden aan als onderdeel van de competitie.</div>';
 
-  // Bestaande wedstrijden die nog niet in een competitie zitten
+  // ── Sectie A: Rondes genereren ──────────────────────────────
+  html += '<div class="blk" style="margin-bottom:1rem">';
+  html += '<div class="blk-t">Rondes automatisch aanmaken</div>';
+  html += '<div style="font-size:12px;color:var(--txm);margin-bottom:.75rem">Vul een reeks datums in — de app maakt de wedstrijden automatisch aan met de instellingen van deze competitie.</div>';
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">';
+  html += '<div class="fg"><label class="fl">Startdatum eerste ronde</label><input class="fi" type="date" id="comp-gen-start"/></div>';
+  html += '<div class="fg"><label class="fl">Aantal rondes</label><input class="fi" type="number" id="comp-gen-aantal" value="6" min="1" max="52"/></div>';
+  html += '</div>';
+
+  html += '<div class="fg" style="margin-bottom:.75rem"><label class="fl">Interval</label>';
+  html += '<div class="tg" id="comp-interval-tg">';
+  html += '<button class="tgb on" data-interval="week" onclick="tSingle(this,\'ci\')">Wekelijks</button>';
+  html += '<button class="tgb" data-interval="2week" onclick="tSingle(this,\'ci\')">2-wekelijks</button>';
+  html += '<button class="tgb" data-interval="maand" onclick="tSingle(this,\'ci\')">Maandelijks</button>';
+  html += '<button class="tgb" data-interval="handmatig" onclick="tSingle(this,\'ci\');toggleHandmatigDatums()">Handmatig</button>';
+  html += '</div></div>';
+
+  // Handmatige datums invoer (verborgen tenzij handmatig geselecteerd)
+  html += '<div id="comp-handmatig-datums" style="display:none;margin-bottom:.75rem">';
+  html += '<label class="fl">Datums (één per regel)</label>';
+  html += '<textarea class="fi" id="comp-handmatig-input" rows="4" placeholder="2025-10-04&#10;2025-11-01&#10;2025-12-06"></textarea>';
+  html += '<div style="font-size:11px;color:var(--txm);margin-top:3px">Formaat: JJJJ-MM-DD, één datum per regel</div>';
+  html += '</div>';
+
+  html += '<button class="btn btn-p btn-sm" onclick="compGenereerRondes()">&#9889; Genereer rondes</button>';
+  html += '</div>';
+
+  // ── Sectie B: Gegenereerde / handmatige rondes ──────────────
+  html += '<div id="comp-rondes-lijst" style="margin-bottom:1rem"></div>';
+
+  // ── Sectie C: Bestaande wedstrijden koppelen ────────────────
   var vrij = WEDSTRIJDEN.filter(function(w){
     return !COMPETITIES.some(function(c){ return c.wids && c.wids.indexOf(w.id) >= 0; }) || (comp && comp.wids && comp.wids.indexOf(w.id) >= 0);
   });
   var gekoppeld = comp && comp.wids ? comp.wids : [];
 
-  html += '<div style="max-height:280px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--r)">';
-  if (vrij.length === 0) {
-    html += '<div style="padding:1rem;color:var(--txm);font-size:13px;text-align:center">Geen wedstrijden beschikbaar. Maak eerst wedstrijden aan.</div>';
-  } else {
+  if (vrij.length > 0) {
+    html += '<div class="blk">';
+    html += '<div class="blk-t">Of koppel bestaande wedstrijden</div>';
+    html += '<div style="max-height:200px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--r)">';
     vrij.forEach(function(w) {
       var checked = gekoppeld.indexOf(w.id) >= 0;
       var d = new Date(w.datum);
-      html += '<label style="display:flex;align-items:center;gap:10px;padding:.6rem .75rem;border-bottom:1px solid var(--surf);cursor:pointer">';
-      html += '<input type="checkbox" id="comp-w-'+w.id+'" '+(checked?'checked':'')+' style="width:16px;height:16px;accent-color:var(--g)">';
-      html += '<div style="flex:1"><div style="font-size:13px;font-weight:500">'+escHtml(w.naam)+'</div>';
-      html += '<div style="font-size:11px;color:var(--txm)">'+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear()+' · '+w.vorm+'</div></div>';
+      html += '<label style="display:flex;align-items:center;gap:10px;padding:.5rem .75rem;border-bottom:1px solid var(--surf);cursor:pointer">';
+      html += '<input type="checkbox" id="comp-w-' + w.id + '" ' + (checked ? 'checked' : '') + ' style="width:15px;height:15px;accent-color:var(--g)">';
+      html += '<div style="flex:1"><div style="font-size:13px;font-weight:500">' + escHtml(w.naam) + '</div>';
+      html += '<div style="font-size:11px;color:var(--txm)">' + d.getDate() + ' ' + MN[d.getMonth()] + ' ' + d.getFullYear() + ' · ' + w.vorm + '</div></div>';
       html += '</label>';
     });
+    html += '</div></div>';
   }
-  html += '</div>';
 
-  html += '<div style="margin-top:.75rem;padding:.75rem;background:var(--gl);border-radius:var(--r);font-size:12px;color:var(--txm)">';
-  html += '💡 Tip: je kunt ook eerst de competitie opslaan en daarna wedstrijden aanmaken — die kun je later koppelen via "Bewerken".';
-  html += '</div>';
   html += '</div>'; // stap 1
 
   // Stap 2: Instellingen
@@ -6403,6 +6430,102 @@ function compUpdateTypeInfo() {
   if (eclEl) eclEl.style.display = type === 'eclectic' ? '' : 'none';
 }
 
+
+// ── Competitie: rondes genereren ────────────────────────────
+var _compGegenereerdeRondes = []; // {datum, naam, id}
+
+function toggleHandmatigDatums() {
+  var btn = document.querySelector('#comp-interval-tg .tgb.on');
+  var isHandmatig = btn && btn.dataset.interval === 'handmatig';
+  var el = document.getElementById('comp-handmatig-datums');
+  if (el) el.style.display = isHandmatig ? '' : 'none';
+  var genStart = document.getElementById('comp-gen-start');
+  var genAantal = document.getElementById('comp-gen-aantal');
+  if (genStart) genStart.parentElement.parentElement.style.display = isHandmatig ? 'none' : '';
+  if (genAantal) genAantal.parentElement.parentElement.style.display = isHandmatig ? 'none' : '';
+}
+
+function compGenereerRondes() {
+  var btn = document.querySelector('#comp-interval-tg .tgb.on');
+  var interval = btn ? btn.dataset.interval : 'week';
+  var compNaam = (document.getElementById('comp-naam').value || 'Ronde').trim();
+  var datums = [];
+
+  if (interval === 'handmatig') {
+    var raw = (document.getElementById('comp-handmatig-input').value || '').trim();
+    datums = raw.split('\n').map(function(d){return d.trim();}).filter(function(d){return d.match(/\d{4}-\d{2}-\d{2}/);});
+    if (!datums.length) { toast('Vul minimaal één geldige datum in (JJJJ-MM-DD).', 'err'); return; }
+  } else {
+    var startVal = document.getElementById('comp-gen-start').value;
+    if (!startVal) { toast('Vul een startdatum in.', 'err'); return; }
+    var aantal = parseInt(document.getElementById('comp-gen-aantal').value) || 6;
+    var d = new Date(startVal);
+    for (var i = 0; i < aantal; i++) {
+      datums.push(d.toISOString().split('T')[0]);
+      if (interval === 'week')  d.setDate(d.getDate() + 7);
+      else if (interval === '2week') d.setDate(d.getDate() + 14);
+      else if (interval === 'maand') d.setMonth(d.getMonth() + 1);
+    }
+  }
+
+  _compGegenereerdeRondes = datums.map(function(datum, i) {
+    return { id: 'nieuw-' + i, datum: datum, naam: compNaam + ' — Ronde ' + (i + 1) };
+  });
+
+  compRenderGegenereerdeRondes();
+  toast(datums.length + ' rondes gegenereerd ✓');
+}
+
+function compRenderGegenereerdeRondes() {
+  var el = document.getElementById('comp-rondes-lijst');
+  if (!el) return;
+  if (!_compGegenereerdeRondes.length) { el.innerHTML = ''; return; }
+
+  var html = '<div class="blk" style="margin-bottom:.75rem">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">';
+  html += '<div class="blk-t" style="margin:0">Gegenereerde rondes (' + _compGegenereerdeRondes.length + ')</div>';
+  html += '<button class="btn btn-d btn-xs" onclick="_compGegenereerdeRondes=[];compRenderGegenereerdeRondes()">Wissen</button>';
+  html += '</div>';
+
+  _compGegenereerdeRondes.forEach(function(r, i) {
+    var d = new Date(r.datum);
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:.4rem .5rem;background:var(--surf);border-radius:var(--r);margin-bottom:4px">';
+    html += '<div style="width:22px;height:22px;border-radius:50%;background:var(--gm);color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + (i+1) + '</div>';
+    html += '<input class="fi" style="flex:1;padding:4px 8px;font-size:12px" value="' + escHtml(r.naam) + '" onchange="_compGegenereerdeRondes[' + i + '].naam=this.value">';
+    html += '<input class="fi" style="width:130px;padding:4px 8px;font-size:12px" type="date" value="' + r.datum + '" onchange="_compGegenereerdeRondes[' + i + '].datum=this.value">';
+    html += '<button class="btn btn-d btn-xs" style="flex-shrink:0" onclick="_compGegenereerdeRondes.splice(' + i + ',1);compRenderGegenereerdeRondes()">&#215;</button>';
+    html += '</div>';
+  });
+
+  // Ronde toevoegen knop
+  html += '<button class="btn btn-s btn-xs" style="margin-top:4px" onclick="compVoegRondeToe()">+ Ronde toevoegen</button>';
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function compVoegRondeToe() {
+  // Voeg een extra ronde toe op basis van de laatste datum + interval
+  var laasteDatum = _compGegenereerdeRondes.length ?
+    new Date(_compGegenereerdeRondes[_compGegenereerdeRondes.length - 1].datum) :
+    new Date();
+
+  var btn = document.querySelector('#comp-interval-tg .tgb.on');
+  var interval = btn ? btn.dataset.interval : 'week';
+  var nieuweDatum = new Date(laasteDatum);
+  if (interval === 'week' || interval === 'handmatig') nieuweDatum.setDate(nieuweDatum.getDate() + 7);
+  else if (interval === '2week') nieuweDatum.setDate(nieuweDatum.getDate() + 14);
+  else nieuweDatum.setMonth(nieuweDatum.getMonth() + 1);
+
+  var compNaam = (document.getElementById('comp-naam').value || 'Ronde').trim();
+  _compGegenereerdeRondes.push({
+    id: 'nieuw-' + Date.now(),
+    datum: nieuweDatum.toISOString().split('T')[0],
+    naam: compNaam + ' — Ronde ' + (_compGegenereerdeRondes.length + 1)
+  });
+  compRenderGegenereerdeRondes();
+}
+
+
 function saveCompetitie() {
   var naam = (document.getElementById('comp-naam').value || '').trim();
   if (!naam) { toast('Vul een naam in.', 'err'); return; }
@@ -6410,11 +6533,34 @@ function saveCompetitie() {
   var btn = document.querySelector('#comp-type-tg .tgb.on');
   var type = btn ? btn.dataset.ctype : 'eclectic';
 
-  // Verzamel geselecteerde wedstrijden
+  // Maak gegenereerde rondes aan als wedstrijden
   var wids = [];
+  var baan = document.getElementById('comp-baan').value || 'GCC Zeewolde';
+  var cr = parseFloat(document.getElementById('comp-cr').value) || 72.1;
+  var slope = parseInt(document.getElementById('comp-slope').value) || 131;
+  var holes = parseInt(document.getElementById('comp-holes').value) || 18;
+  var hcpperc = parseInt(document.getElementById('comp-hcpperc').value) || 100;
+
+  _compGegenereerdeRondes.forEach(function(r) {
+    var newId = Date.now() + Math.floor(Math.random()*1000);
+    var nieuwW = {
+      id: newId, naam: r.naam, datum: r.datum, baan: baan,
+      cr: cr, slope: slope, holes: holes, vorm: type === 'eclectic' ? 'Eclectic' :
+        type === 'strokeplay' ? 'Strokeplay' : type === 'oom' ? 'Stableford' : 'Stableford',
+      status: 'gepubliceerd', max: 72, ing: 0, kleur: 'ceg',
+      hcpmax: 36, hcpmin: 0, hcpperc: hcpperc, esc: 'geen', rondes: 1,
+      startgeld: 0, skinsPot: 0, omschrijving: ''
+    };
+    WEDSTRIJDEN.push(nieuwW);
+    wids.push(newId);
+    dbSaveWedstrijd(nieuwW).catch(function(e){console.warn('dbSaveWedstrijd:',e.message);});
+  });
+  _compGegenereerdeRondes = []; // reset
+
+  // Voeg ook aangevinkte bestaande wedstrijden toe
   WEDSTRIJDEN.forEach(function(w) {
     var cb = document.getElementById('comp-w-' + w.id);
-    if (cb && cb.checked) wids.push(w.id);
+    if (cb && cb.checked && wids.indexOf(w.id) < 0) wids.push(w.id);
   });
 
   var comp = {
