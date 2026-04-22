@@ -467,6 +467,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 </style>
 
 <script>
+// ═══════════════ GLOBAL STATE (vooraan gedefinieerd) ═══════════════
+var COMPETITIES = [];
+
+// Competitie types
+var COMP_TYPES = [
+  { id: 'eclectic',   label: 'Eclectic',           omschrijving: 'Beste score per hole over alle rondes' },
+  { id: 'strokeplay', label: 'Strokeplay multi-ronde', omschrijving: 'Totaal slagen over alle rondes (bijv. clubkampioenschap)' },
+  { id: 'oom',        label: 'Order of Merit',      omschrijving: 'Punten per wedstrijd, seizoensklassement' },
+  { id: 'weekly',     label: 'Weekcompetitie',      omschrijving: 'Speler kan elke week meedoen, totaal over alle weken' },
+];
+
+
 // ============================================================
 // SUPABASE CLIENT — ScoreFlow v5
 // ============================================================
@@ -6052,15 +6064,7 @@ var _origUpdateVormInfo = updateVormInfo;
 // Competitie bevat meerdere wedstrijden + gecombineerd klassement
 // ============================================================
 
-var COMPETITIES = [];
 
-// Competitie types
-var COMP_TYPES = [
-  { id: 'eclectic',   label: 'Eclectic',           omschrijving: 'Beste score per hole over alle rondes' },
-  { id: 'strokeplay', label: 'Strokeplay multi-ronde', omschrijving: 'Totaal slagen over alle rondes (bijv. clubkampioenschap)' },
-  { id: 'oom',        label: 'Order of Merit',      omschrijving: 'Punten per wedstrijd, seizoensklassement' },
-  { id: 'weekly',     label: 'Weekcompetitie',      omschrijving: 'Speler kan elke week meedoen, totaal over alle weken' },
-];
 
 // ── Competitie wizard ────────────────────────────────────────
 var _compWizardStap = 0;
