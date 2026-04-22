@@ -474,34 +474,50 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 
 </style>
 <script>
-// Bootstrap: login functies beschikbaar vóór hoofdscript
-function loginAs(email, pw) {
-  var eEl = document.getElementById('login-email');
-  var pEl = document.getElementById('login-pw');
-  if (eEl) eEl.value = email;
-  if (pEl) pEl.value = pw;
-  doLogin();
-}
-function doLogin() {
-  var email = (document.getElementById('login-email').value || '').trim().toLowerCase();
-  var pw = document.getElementById('login-pw').value;
-  // Zoek in DEMO_USERS als die al geladen is, anders wacht op hoofdscript
-  var users = (window.DEMO_USERS || window.USERS || []);
-  var user = null;
-  for (var i = 0; i < users.length; i++) {
-    if (users[i].email && users[i].email.toLowerCase() === email && users[i].pw === pw) {
-      user = users[i]; break;
+// Bootstrap: login functies werken direct, ook voor hoofdscript geladen is
+(function(){
+  // Wacht tot hoofdscript klaar is, probeer max 50 keer (5 sec)
+  function tryLogin(email, pw, attempt) {
+    attempt = attempt || 0;
+    // Heeft hoofdscript USERS al gedefinieerd?
+    if (typeof USERS !== 'undefined' && USERS && USERS.length > 0) {
+      var users = (typeof DEMO_USERS !== 'undefined' && DEMO_USERS.length) ? DEMO_USERS : USERS;
+      var user = null;
+      for (var i = 0; i < users.length; i++) {
+        if (users[i].email && users[i].email.toLowerCase() === email && users[i].pw === pw) {
+          user = users[i]; break;
+        }
+      }
+      if (!user) {
+        document.getElementById('login-err').textContent = 'Onbekend e-mailadres of onjuist wachtwoord.';
+        return;
+      }
+      document.getElementById('login-err').textContent = '';
+      if (typeof startSessie === 'function') {
+        startSessie(user);
+      } else {
+        setTimeout(function(){ tryLogin(email, pw, attempt+1); }, 100);
+      }
+    } else if (attempt < 50) {
+      document.getElementById('login-err').textContent = 'App laden...';
+      setTimeout(function(){ tryLogin(email, pw, attempt+1); }, 100);
+    } else {
+      document.getElementById('login-err').textContent = 'App kon niet laden. Ververs de pagina.';
     }
   }
-  if (!user) {
-    var errEl = document.getElementById('login-err');
-    if (errEl) errEl.textContent = 'Onbekend e-mailadres of onjuist wachtwoord.';
-    return;
-  }
-  var errEl = document.getElementById('login-err');
-  if (errEl) errEl.textContent = '';
-  if (window.startSessie) window.startSessie(user);
-}
+
+  window.loginAs = function(email, pw) {
+    document.getElementById('login-email').value = email;
+    document.getElementById('login-pw').value = pw;
+    tryLogin(email, pw);
+  };
+
+  window.doLogin = function() {
+    var email = (document.getElementById('login-email').value || '').trim().toLowerCase();
+    var pw = document.getElementById('login-pw').value;
+    tryLogin(email, pw);
+  };
+})();
 </script>
 </head>
 <body>
