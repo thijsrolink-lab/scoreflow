@@ -890,12 +890,13 @@ var USERS=[
   {id:6,voor:'Pieter',ach:'Smit',email:'pieter@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0003',ltype:'Volledig lid',hcp:6.1,gs:'M',jaar:1982,tel:'06-33333333',deelnames:5},
   {id:7,voor:'Linda',ach:'van Dam',email:'linda@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0004',ltype:'Weekendlid',hcp:24.0,gs:'V',jaar:1971,tel:'06-44444444',deelnames:3},
   {id:8,voor:'Tom',ach:'Jansen',email:'tom@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0005',ltype:'Volledig lid',hcp:3.5,gs:'M',jaar:1990,tel:'06-55555555',deelnames:15},
-  {id:100,voor:'Thijs',ach:'Rolink',email:'thijs.rolink@gcc.nl',pw:'thijs123',rol:'Speler',lid:'NL93314949',ltype:'Volledig lid',hcp:5.4,gs:'M',jaar:1985,tel:'06-99999999',deelnames:10},
   {id:9,voor:'Sophie',ach:'Willems',email:'sophie@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0006',ltype:'Volledig lid',hcp:15.8,gs:'V',jaar:1985,tel:'06-66666666',deelnames:6},
   {id:10,voor:'Kees',ach:'Hofman',email:'kees@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0007',ltype:'Senior',hcp:28.3,gs:'M',jaar:1955,tel:'06-77777777',deelnames:20},
   {id:11,voor:'Roos',ach:'Peters',email:'roos@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0008',ltype:'Volledig lid',hcp:9.7,gs:'V',jaar:1993,tel:'06-88888888',deelnames:4},
 ];
 var DEMO_USERS = USERS.slice(); // bewaar lokale demo users
+// Voeg Thijs Rolink toe aan DEMO_USERS (voor wachtwoord check — echte user komt uit Supabase)
+DEMO_USERS.push({voor:'Thijs',ach:'Rolink',email:'thijs.rolink@gcc.nl',pw:'thijs123',rol:'Speler'});
 
 var WEDSTRIJDEN=[
   {id:1,naam:'Clubkampioenschap 2025',datum:'2025-06-14',baan:'GCC Zeewolde',vorm:'Strokeplay',status:'gepubliceerd',max:72,ing:5,kleur:'ceg',cr:72.1,slope:131,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:15,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Het jaarlijkse clubkampioenschap. Iedereen welkom, beste netto score wint.',inschrijfOpen:'2025-05-01',inschrijfSluit:'2025-06-10'},
@@ -3074,6 +3075,14 @@ function updateTeamScore(inp) {
   if (!SCORES[wId][ronde]) SCORES[wId][ronde] = {};
   if (!SCORES[wId][ronde][teamKey]) SCORES[wId][ronde][teamKey] = Array(18).fill('');
   SCORES[wId][ronde][teamKey][hole] = val;
+
+  // Sync naar alle teamleden (zodat na refresh de data zichtbaar blijft)
+  var flightIdx = parseInt(teamKey.replace('team-', ''));
+  var flight = (FLIGHTS[wId] || [])[flightIdx] || [];
+  flight.forEach(function(sid) {
+    if (!SCORES[wId][ronde][sid]) SCORES[wId][ronde][sid] = Array(18).fill('');
+    SCORES[wId][ronde][sid][hole] = val;
+  });
 
   // Live kleur update
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
