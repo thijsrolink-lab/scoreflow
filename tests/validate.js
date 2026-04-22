@@ -253,6 +253,18 @@ test('Demo accounts zichtbaar in HTML', () => {
   const count = (html.match(/onclick="loginAs/g) || []).length;
   return count >= 6 || `Slechts ${count} demo buttons (verwacht 6)`;
 });
+test('Kritieke DOM elementen aanwezig in HTML', () => {
+  // Functies als toast() doen getElementById — die element MOET in HTML staan
+  const required = [
+    'toast',           // feedback bij acties
+    'login-email',     // login
+    'login-pw',        // login
+    'login-err',       // login fouten
+  ];
+  const missing = required.filter(id => !html.includes(`id="${id}"`));
+  return missing.length === 0
+    || `DOM elementen ontbreken: ${missing.join(', ')}`;
+});
 
 test('Script tag staat vóór body content (garanties voor inline onclicks)', () => {
   // Alle scripts moeten vóór de onclick handlers komen

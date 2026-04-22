@@ -3306,8 +3306,11 @@ document.querySelectorAll('.modal-bg').forEach(function(m){
   m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});
 });
 function toast(msg,type){
-  var t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type==='err'?' err':'');
-  setTimeout(function(){t.classList.add('show');},10);setTimeout(function(){t.classList.remove('show');},3200);
+  var t=document.getElementById('toast');
+  if(!t){console.log('[toast]',type||'info',':',msg);return;}
+  t.textContent=msg;t.className='toast'+(type==='err'?' err':'');
+  setTimeout(function(){t.classList.add('show');},10);
+  setTimeout(function(){t.classList.remove('show');},3200);
 }
 
 // ============================================================
@@ -6944,5 +6947,6 @@ try {
 </div>
 
 
+<div id="toast" class="toast"></div>
 </body>
 </html>
