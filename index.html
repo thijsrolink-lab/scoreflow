@@ -475,6 +475,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 </style>
 <script>
 // Bootstrap: login werkt altijd, met eigen fallback demo data
+console.log('🔵 Bootstrap geladen');
+window.addEventListener('load', function(){
+  console.log('🟢 window.load: USERS=', typeof USERS, ' startSessie=', typeof startSessie);
+});
+window.addEventListener('DOMContentLoaded', function(){
+  console.log('🟡 DOMContentLoaded: USERS=', typeof USERS, ' startSessie=', typeof startSessie);
+});
 window._BOOTSTRAP_USERS = [
   {id:1,voor:'Erik',ach:'Janssen',email:'erik@gcc.nl',pw:'admin123',rol:'Superadmin',lid:'ADMIN-001',ltype:'Admin',hcp:null,gs:'M',jaar:1972,tel:'06-10000001',deelnames:0},
   {id:2,voor:'Sandra',ach:'Boer',email:'sandra@gcc.nl',pw:'wedstrijd1',rol:'Wedstrijdleider',lid:'ADMIN-002',ltype:'Admin',hcp:null,gs:'V',jaar:1978,tel:'06-10000002',deelnames:0},
