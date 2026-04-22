@@ -474,19 +474,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 
 </style>
 <script>
-// Bootstrap: loginAs beschikbaar maken vóórdat het hoofdscript geladen is
-window._loginQueue = [];
+// Bootstrap: login functies beschikbaar vóór hoofdscript
 function loginAs(email, pw) {
-  if (window._loginAsReady) {
-    window._loginAsReal(email, pw);
-  } else {
-    // Vul de velden in zodat de gebruiker ziet dat er wat gebeurt
-    var eEl = document.getElementById('login-email');
-    var pEl = document.getElementById('login-pw');
-    if (eEl) eEl.value = email;
-    if (pEl) pEl.value = pw;
-    window._loginQueue.push({email: email, pw: pw});
+  var eEl = document.getElementById('login-email');
+  var pEl = document.getElementById('login-pw');
+  if (eEl) eEl.value = email;
+  if (pEl) pEl.value = pw;
+  doLogin();
+}
+function doLogin() {
+  var email = (document.getElementById('login-email').value || '').trim().toLowerCase();
+  var pw = document.getElementById('login-pw').value;
+  // Zoek in DEMO_USERS als die al geladen is, anders wacht op hoofdscript
+  var users = (window.DEMO_USERS || window.USERS || []);
+  var user = null;
+  for (var i = 0; i < users.length; i++) {
+    if (users[i].email && users[i].email.toLowerCase() === email && users[i].pw === pw) {
+      user = users[i]; break;
+    }
   }
+  if (!user) {
+    var errEl = document.getElementById('login-err');
+    if (errEl) errEl.textContent = 'Onbekend e-mailadres of onjuist wachtwoord.';
+    return;
+  }
+  var errEl = document.getElementById('login-err');
+  if (errEl) errEl.textContent = '';
+  if (window.startSessie) window.startSessie(user);
 }
 </script>
 </head>
@@ -1788,14 +1802,7 @@ function loginAs(email,pw){
   document.getElementById('login-pw').value=pw;
   doLogin();
 }
-// Maak de echte loginAs beschikbaar voor de bootstrap wrapper
-window._loginAsReal = loginAs;
-window._loginAsReady = true;
-// Verwerk eventuele klikken die al plaatsvonden vóór het script laadde
-if (window._loginQueue && window._loginQueue.length) {
-  loginAs(window._loginQueue[0].email, window._loginQueue[0].pw);
-  window._loginQueue = [];
-}
+
 
 function startSessie(user){
   _currentUser=user;
