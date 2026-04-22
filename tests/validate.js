@@ -200,6 +200,23 @@ test('Kritieke login functies bestaan', () => {
   const missing = required.filter(fn => !allFns.has(fn));
   return missing.length === 0 || `Ontbreekt: ${missing.join(', ')}`;
 });
+test('Functies aangeroepen in innerHTML = X(...) bestaan', () => {
+  const mainScript = scripts[scripts.length - 1].content;
+  // Patroon: .innerHTML = functieNaam(...)
+  const regex = /\.innerHTML\s*=\s*(\w+)\s*\(/g;
+  const calledFns = new Set();
+  for (const m of mainScript.matchAll(regex)) {
+    calledFns.add(m[1]);
+  }
+
+  const missing = [];
+  calledFns.forEach(fn => {
+    if (!allFns.has(fn) && !builtins.has(fn)) {
+      missing.push(fn);
+    }
+  });
+  return missing.length === 0 || `Functies ontbreken: ${missing.join(', ')}`;
+});
 
 // ═══════════════════════════════════════════════════════════════
 // REGRESSIE — bugs die we vandaag hadden

@@ -4043,6 +4043,54 @@ function renderLiveLeaderboard() {
   document.getElementById('lb-update-time').textContent = 'Bijgewerkt: ' + new Date().toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
   var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var sps = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; }).map(function(i) { return USERS.find(function(s) { return s.id === i.sid; }); }).filter(Boolean);
+  // Texas Scramble: team leaderboard in plaats van individueel
+  if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
+    var flights = FLIGHTS[wId] || [];
+    var perc = (w.hcpperc || 100) / 100;
+    var teamRows = flights.map(function(flightSids, fi) {
+      var spelers = flightSids.map(function(sid) {
+        return sps.find(function(s) { return s.id === sid; });
+      }).filter(Boolean);
+      if (!spelers.length) return null;
+      var teamHcp = teamHandicapScramble(spelers, perc);
+      var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
+      var teamKey = 'team-' + fi;
+      var scores = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][teamKey]) || Array(baan.holes).fill('');
+      var sp = berekenStrokeplay(scores, baan, teamSh);
+      // Team naam: namen van spelers
+      var naam = 'Flight ' + (fi+1) + ' — ' + spelers.map(function(s) {
+        return s.voor + ' ' + s.ach[0] + '.';
+      }).join(', ');
+      return {
+        naam: naam, sh: teamSh,
+        netto: sp.netto, sfPts: 0,
+        nettoVsPar: sp.nettoVsPar,
+        gespeeld: sp.gespeeld,
+        has: sp.gespeeld > 0,
+      };
+    }).filter(Boolean);
+    teamRows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+
+    // Render team rows
+    var html = '';
+    teamRows.forEach(function(r, i) {
+      var p = i+1; var pcls = p===1?'lb-r1':p===2?'lb-r2':p===3?'lb-r3':'lb-rn';
+      var vsPar = r.has ? r.nettoVsPar : 0;
+      var vpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
+      html += '<div class="lb-row">';
+      html += '<div class="lb-row-pos ' + pcls + '">' + p + '</div>';
+      html += '<div class="lb-row-naam">' + r.naam + '</div>';
+      html += '<div style="text-align:right">';
+      html += '<div class="lb-row-score ' + vpCls + '">' + (r.has ? formatVsPar(r.nettoVsPar) : '—') + '</div>';
+      html += '<div class="lb-row-holes">' + r.gespeeld + '/' + baan.holes + ' · netto ' + (r.has ? r.netto : '—') + '</div>';
+      html += '</div>';
+      html += '</div>';
+    });
+    document.getElementById('lb-live-body').innerHTML = html ||
+      '<p style="color:rgba(255,255,255,.5);padding:2rem;text-align:center">Nog geen scores.</p>';
+    return;
+  }
+
   var rows = sps.map(function(s) {
     var sh = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
     var sc = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][s.id]) || Array(baan.holes).fill('');
@@ -5164,7 +5212,7 @@ function switchScoreTab(tab) {
   var ronde = getRonde();
 
   if (tab === 'invoer') return; // al gerenderd
-  else if (tab === 'lb') el.innerHTML = bouwLeaderboard(wId, ronde, baan, sps, w);
+  else if (tab === 'lb') el.innerHTML = buildLeaderboard(wId, ronde, baan, sps, w);
   else if (tab === 'bc') el.innerHTML = uiBogeyComp(wId, ronde, baan, sps, w);
   else if (tab === 'mp') el.innerHTML = uiMatchplay(wId, ronde, baan, sps, w);
   else if (tab === 'sk') el.innerHTML = uiSkins(wId, ronde, baan, sps, w);
