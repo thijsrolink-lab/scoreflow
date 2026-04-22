@@ -489,18 +489,29 @@ var SUPA_REALTIME_WS = null;
 
 async function supa(table, method, body, params) {
   var url = new URL(SUPA_URL + '/rest/v1/' + table);
-  if (params) Object.entries(params).forEach(function([k,v]) { url.searchParams.set(k,v); });
+  var isUpsert = false;
+  if (params) Object.entries(params).forEach(function([k,v]) {
+    url.searchParams.set(k,v);
+    if (k === 'on_conflict') isUpsert = true;
+  });
+  var preferParts = [];
+  if (method === 'POST') preferParts.push('return=representation');
+  if (isUpsert) preferParts.push('resolution=merge-duplicates');
   var res = await fetch(url.toString(), {
     method: method || 'GET',
     headers: {
       'apikey': SUPA_KEY,
       'Authorization': 'Bearer ' + ((SUPA_SESSION && SUPA_SESSION.access_token) || SUPA_KEY),
       'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=representation' : '',
+      'Prefer': preferParts.join(','),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) { var e = await res.json(); throw new Error(e.message || res.statusText); }
+  if (!res.ok) {
+    var errText = await res.text();
+    try { var e = JSON.parse(errText); throw new Error(e.message || e.hint || res.statusText); }
+    catch(_) { throw new Error(errText || res.statusText); }
+  }
   var ct = res.headers.get('content-type') || '';
   return ct.includes('json') ? res.json() : null;
 }
@@ -614,7 +625,9 @@ async function dbSaveScore(wId, sid, ronde, holeIdx, score) {
 
 async function dbSaveInschrijving(ing) {
   try {
-    var res = await supa('inschrijvingen', 'POST', { wid: ing.wid, sid: ing.sid, status: ing.status, opm: ing.opm || '' });
+    var res = await supa('inschrijvingen', 'POST',
+      { wid: ing.wid, sid: ing.sid, status: ing.status, opm: ing.opm || '' },
+      { on_conflict: 'wid,sid' });
     return res && res[0] ? dbIngNaarApp(res[0]) : ing;
   } catch(e) { console.warn('dbSaveInschrijving:', e.message); return ing; }
 }
