@@ -3586,10 +3586,28 @@ function renderSpelerMatchplay(wId, w, baan, shv, u) {
 
   // Per-hole stand voor in de hole-rijen
   function getStandBijHole(holeIdx) {
-    // Loop tot en met deze hole
-    var tempA = 0, tempB = 0;
+    var mijnSc = mijnScores[holeIdx];
+    var tegenSc = tegenScores[holeIdx];
+    var ikHeb = mijnSc !== '' && mijnSc !== null && mijnSc !== undefined;
+    var zijHeeft = tegenSc !== '' && tegenSc !== null && tegenSc !== undefined;
+
+    // Beide nog niet ingevuld
+    if (!ikHeb && !zijHeeft) return null;
+
+    // Alleen ik heb ingevuld — wacht op tegenstander
+    if (ikHeb && !zijHeeft) {
+      return { lbl: '⏳ wacht op ' + tegenstander.voor, color: 'var(--txm)' };
+    }
+
+    // Alleen tegenstander heeft ingevuld
+    if (!ikHeb && zijHeeft) {
+      return { lbl: tegenstander.voor + ' ' + tegenSc, color: 'var(--txm)' };
+    }
+
+    // Beide ingevuld — toon de stand
     var info = mp.perHole[holeIdx];
     if (!info || info.res === null) return null;
+    var tempA = 0, tempB = 0;
     for (var k = 0; k <= holeIdx; k++) {
       var p = mp.perHole[k];
       if (!p || p.res === null) continue;
@@ -3597,9 +3615,13 @@ function renderSpelerMatchplay(wId, w, baan, shv, u) {
       else if (p.res === 'B') tempB++;
     }
     var diff = tempA - tempB;
-    if (diff === 0) return { lbl: 'AS', color: 'var(--txm)' };
-    if (diff > 0) return { lbl: diff + ' UP', color: '#22c55e' };
-    return { lbl: Math.abs(diff) + ' DN', color: '#ef4444' };
+    var holeRes = info.res === 'A' ? 'WIN' : info.res === 'B' ? 'LOSS' : 'HALVED';
+    var holeKleur = info.res === 'A' ? '#22c55e' : info.res === 'B' ? '#ef4444' : 'var(--txm)';
+    var standTxt = diff === 0 ? 'AS' : diff > 0 ? diff + ' UP' : Math.abs(diff) + ' DN';
+    return {
+      lbl: holeRes + ' (' + tegenSc + ') · ' + standTxt,
+      color: holeKleur
+    };
   }
 
   var html = '';
