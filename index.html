@@ -3268,52 +3268,101 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     spelers.map(function(s) { return s.hcp; }).join(' / ') + '</div>';
   html += '</div>';
 
-  // Compacte score invoer 2 x 9 holes (zelfde als wedstrijdleider)
-  html += '<div class="tbl-wrap">';
-  var halves = baan.holes === 18 ? [[0,9],[9,18]] : [[0,baan.holes]];
-  halves.forEach(function(range, hi) {
-    html += '<table class="sc-tbl" style="margin-bottom:' + (hi === 0 && halves.length > 1 ? '.5rem' : '0') + '">';
-    html += '<thead><tr><th class="lft">Hole</th>';
-    for (var i = range[0]; i < range[1]; i++) html += '<th>' + (i+1) + '</th>';
-    html += '<th>Tot</th></tr></thead>';
-    html += '<tbody>';
+  // Bepaal actieve hole: eerste lege hole
+  var actiefHole = -1;
+  for (var i = 0; i < baan.holes; i++) {
+    if (scores[i] === '' || scores[i] === null || scores[i] === undefined) { actiefHole = i; break; }
+  }
 
-    // Par rij
-    html += '<tr class="par-row"><td class="lft">Par</td>';
-    var parSom = 0;
-    for (var i = range[0]; i < range[1]; i++) { html += '<td>' + baan.par[i] + '</td>'; parSom += baan.par[i]; }
-    html += '<td><strong>' + parSom + '</strong></td></tr>';
+  // Tabs voor eerste 9 / tweede 9
+  var halves = baan.holes === 18 ? [
+    { lbl: 'Eerste 9', range: [0, 9] },
+    { lbl: 'Tweede 9', range: [9, 18] }
+  ] : [{ lbl: 'Alle holes', range: [0, baan.holes] }];
 
-    // SI rij
-    html += '<tr class="si-row"><td class="lft">SI</td>';
-    for (var i = range[0]; i < range[1]; i++) html += '<td>' + baan.si[i] + '</td>';
-    html += '<td>—</td></tr>';
+  // Bepaal actieve tab: waar de actieve hole staat
+  if (typeof window._spActieveTab === 'undefined') window._spActieveTab = 0;
+  var actieveTab = window._spActieveTab;
+  if (actiefHole >= 9 && actieveTab === 0 && halves.length > 1) actieveTab = 1;
 
-    // Score rij
-    html += '<tr><td class="lft"><strong>Team</strong></td>';
-    var totaal = 0, ingevuld = 0;
-    for (var i = range[0]; i < range[1]; i++) {
-      var v = scores[i];
-      var isVal = v !== '' && v !== null && v !== undefined;
-      if (isVal) { totaal += Number(v); ingevuld++; }
-      var par = baan.par[i];
-      var scoreClass = '';
-      if (isVal) {
-        var diff = Number(v) - par;
-        if (diff <= -2) scoreClass = 'sc-eagle';
-        else if (diff === -1) scoreClass = 'sc-birdie';
-        else if (diff === 1) scoreClass = 'sc-bogey';
-        else if (diff >= 2) scoreClass = 'sc-double';
+  // Tab knoppen
+  if (halves.length > 1) {
+    html += '<div style="display:flex;gap:0;background:var(--surf);border-radius:var(--r);padding:3px;margin-bottom:.75rem;border:1px solid var(--bd)">';
+    halves.forEach(function(half, hi) {
+      var som = 0, ing = 0;
+      for (var j = half.range[0]; j < half.range[1]; j++) {
+        if (scores[j] !== '' && scores[j] !== null && scores[j] !== undefined) {
+          som += Number(scores[j]); ing++;
+        }
       }
-      html += '<td><input type="number" class="sc-inp ' + scoreClass + '" min="1" max="15" ' +
-        'value="' + (isVal ? v : '') + '" ' +
-        'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" data-hole="' + i + '" ' +
-        'onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);" onfocus="this.select()"/></td>';
-    }
-    html += '<td><strong>' + (ingevuld > 0 ? totaal : '—') + '</strong></td></tr>';
+      var active = hi === actieveTab;
+      html += '<button onclick="window._spActieveTab=' + hi + ';initScorekaart()" style="' +
+        'flex:1;padding:.6rem;font-size:13px;border:none;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:' + (active?'600':'500') + ';' +
+        'background:' + (active?'var(--card)':'transparent') + ';' +
+        'color:' + (active?'var(--g)':'var(--txm)') + ';' +
+        'box-shadow:' + (active?'0 1px 3px rgba(0,0,0,.08)':'none') + '">' +
+        half.lbl + ' <span style="font-size:11px;color:var(--txh);font-weight:400">· ' + ing + '/' + (half.range[1]-half.range[0]) +
+        (ing > 0 ? ' · ' + som + ' slagen' : '') + '</span></button>';
+    });
+    html += '</div>';
+  }
 
-    html += '</tbody></table>';
-  });
+  // Score rijen per hole (grote, mobiel-vriendelijk)
+  var actieveHalf = halves[actieveTab];
+  html += '<div style="display:flex;flex-direction:column;gap:6px">';
+
+  for (var i = actieveHalf.range[0]; i < actieveHalf.range[1]; i++) {
+    var v = scores[i];
+    var isVal = v !== '' && v !== null && v !== undefined;
+    var par = baan.par[i];
+    var si = baan.si[i];
+    var scoreClass = '';
+    var scoreColor = 'var(--txm)';
+    var scoreLabel = '';
+    if (isVal) {
+      var diff = Number(v) - par;
+      if (diff <= -2) { scoreClass = 'sc-eagle'; scoreLabel = 'Eagle'; }
+      else if (diff === -1) { scoreClass = 'sc-birdie'; scoreLabel = 'Birdie'; }
+      else if (diff === 0) { scoreLabel = 'Par'; }
+      else if (diff === 1) { scoreClass = 'sc-bogey'; scoreLabel = 'Bogey'; }
+      else if (diff === 2) { scoreClass = 'sc-double'; scoreLabel = 'Double'; }
+      else if (diff >= 3) { scoreClass = 'sc-double'; scoreLabel = '+' + diff; }
+    }
+
+    var isActief = (i === actiefHole);
+    var rowBorder = isActief ? '2px solid var(--gm)' : '1px solid var(--bd)';
+    var rowBg = isActief ? 'var(--gl)' : 'var(--card)';
+    var rowShadow = isActief ? '0 0 0 3px rgba(42,96,64,.15)' : 'none';
+
+    html += '<div style="display:grid;grid-template-columns:60px 1fr 80px;align-items:center;gap:10px;padding:.75rem 1rem;' +
+      'background:' + rowBg + ';border:' + rowBorder + ';border-radius:var(--r);box-shadow:' + rowShadow + ';transition:all .2s">';
+
+    // Hole nummer + par/si
+    html += '<div>';
+    html += '<div style="font-family:\'Playfair Display\',serif;font-size:22px;font-weight:700;color:var(--g);line-height:1">' + (i+1) + '</div>';
+    html += '<div style="font-size:10px;color:var(--txh);margin-top:2px">Par ' + par + ' · SI ' + si + '</div>';
+    html += '</div>';
+
+    // Score label midden
+    html += '<div style="text-align:center;font-size:12px;color:var(--txm);font-weight:500">';
+    if (isVal) {
+      html += '<span style="color:' + (scoreClass === 'sc-eagle' || scoreClass === 'sc-birdie' ? 'var(--gm)' : scoreClass === 'sc-bogey' ? 'var(--amb)' : scoreClass === 'sc-double' ? 'var(--red)' : 'var(--txm)') + '">' + scoreLabel + '</span>';
+    } else if (isActief) {
+      html += '<span style="color:var(--gm);font-weight:600">👉 Vul in</span>';
+    } else {
+      html += '<span style="color:var(--txh)">—</span>';
+    }
+    html += '</div>';
+
+    // Grote score input
+    html += '<input type="number" class="sc-inp ' + scoreClass + '" min="1" max="15" ' +
+      'style="width:100%;height:48px;font-size:22px;font-weight:700;text-align:center;padding:0;" ' +
+      'value="' + (isVal ? v : '') + '" ' +
+      'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" data-hole="' + i + '" ' +
+      'onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);" onfocus="this.select()"/>';
+
+    html += '</div>';
+  }
   html += '</div>';
 
   // Info
