@@ -476,6 +476,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 <script>
 // Bootstrap: login werkt altijd, met eigen fallback demo data
 console.log('🔵 Bootstrap geladen');
+window.addEventListener('error', function(e){
+  console.error('🔴 SCRIPT ERROR:', e.message, 'in', e.filename, 'regel', e.lineno);
+  var errEl = document.getElementById('login-err');
+  if (errEl) errEl.textContent = 'Script fout op regel ' + e.lineno + ': ' + e.message;
+});
 window.addEventListener('load', function(){
   console.log('🟢 window.load: USERS=', typeof USERS, ' startSessie=', typeof startSessie);
 });
