@@ -6069,7 +6069,8 @@ var _compEdit = null;
 function openCompWizard(id) {
   _compEdit = id || null;
   _compWizardStap = 0;
-  var comp = id ? COMPETITIES.find(function(c){return c.id===id;}) : null;
+  _compGegenereerdeRondes = [];  // reset bij elke opening
+  var comp = id ? (COMPETITIES || []).find(function(c){return c && c.id===id;}) : null;
 
   var html = '<div class="modal-title">' + (comp ? 'Competitie bewerken' : 'Nieuwe competitie') +
     '<button class="modal-close" onclick="closeModal(\'modal-comp\')">&#215;</button></div>';
@@ -6142,8 +6143,13 @@ function openCompWizard(id) {
   html += '<div id="comp-rondes-lijst" style="margin-bottom:1rem"></div>';
 
   // ── Sectie C: Bestaande wedstrijden koppelen ────────────────
-  var vrij = WEDSTRIJDEN.filter(function(w){
-    return !COMPETITIES.some(function(c){ return c.wids && c.wids.indexOf(w.id) >= 0; }) || (comp && comp.wids && comp.wids.indexOf(w.id) >= 0);
+  var vrij = (WEDSTRIJDEN || []).filter(function(w){
+    if (!w || !w.id) return false;
+    var alGekoppeld = (COMPETITIES || []).some(function(c){
+      return c && c.wids && Array.isArray(c.wids) && c.wids.indexOf(w.id) >= 0;
+    });
+    var ditIsDeze = comp && comp.wids && Array.isArray(comp.wids) && comp.wids.indexOf(w.id) >= 0;
+    return !alGekoppeld || ditIsDeze;
   });
   var gekoppeld = comp && comp.wids ? comp.wids : [];
 
@@ -6153,11 +6159,17 @@ function openCompWizard(id) {
     html += '<div style="max-height:200px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--r)">';
     vrij.forEach(function(w) {
       var checked = gekoppeld.indexOf(w.id) >= 0;
-      var d = new Date(w.datum);
+      var datumStr = '';
+      if (w.datum) {
+        var d = new Date(w.datum);
+        if (!isNaN(d.getTime())) {
+          datumStr = d.getDate() + ' ' + (MN[d.getMonth()] || '') + ' ' + d.getFullYear();
+        }
+      }
       html += '<label style="display:flex;align-items:center;gap:10px;padding:.5rem .75rem;border-bottom:1px solid var(--surf);cursor:pointer">';
       html += '<input type="checkbox" id="comp-w-' + w.id + '" ' + (checked ? 'checked' : '') + ' style="width:15px;height:15px;accent-color:var(--g)">';
-      html += '<div style="flex:1"><div style="font-size:13px;font-weight:500">' + escHtml(w.naam) + '</div>';
-      html += '<div style="font-size:11px;color:var(--txm)">' + d.getDate() + ' ' + MN[d.getMonth()] + ' ' + d.getFullYear() + ' · ' + w.vorm + '</div></div>';
+      html += '<div style="flex:1"><div style="font-size:13px;font-weight:500">' + escHtml(w.naam || '(zonder naam)') + '</div>';
+      html += '<div style="font-size:11px;color:var(--txm)">' + (datumStr || 'geen datum') + ' · ' + (w.vorm || '?') + '</div></div>';
       html += '</label>';
     });
     html += '</div></div>';
@@ -6288,7 +6300,9 @@ function compGenereerRondes() {
 function compRenderGegenereerdeRondes() {
   var el = document.getElementById('comp-rondes-lijst');
   if (!el) return;
-  if (!_compGegenereerdeRondes.length) { el.innerHTML = ''; return; }
+  if (!_compGegenereerdeRondes || !Array.isArray(_compGegenereerdeRondes) || !_compGegenereerdeRondes.length) {
+    el.innerHTML = ''; return;
+  }
 
   var html = '<div class="blk" style="margin-bottom:.75rem">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">';
