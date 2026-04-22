@@ -582,7 +582,7 @@ async function laadScores(wId) {
 
 async function dbSaveScore(wId, sid, ronde, holeIdx, score) {
   try {
-    await fetch(SUPA_URL + '/rest/v1/scores', {
+    var res = await fetch(SUPA_URL + '/rest/v1/scores?on_conflict=wid,sid,ronde,hole', {
       method: 'POST',
       headers: {
         'apikey': SUPA_KEY,
@@ -593,7 +593,11 @@ async function dbSaveScore(wId, sid, ronde, holeIdx, score) {
       body: JSON.stringify({ wid: wId, sid: sid, ronde: ronde, hole: holeIdx + 1,
         score: score || null, bijgewerkt: new Date().toISOString() }),
     });
-  } catch(e) { console.warn('dbSaveScore:', e.message); }
+    if (!res.ok) {
+      var errText = await res.text();
+      console.warn('dbSaveScore fout:', res.status, errText.slice(0, 200));
+    }
+  } catch(e) { console.warn('dbSaveScore exception:', e.message); }
 }
 
 async function dbSaveInschrijving(ing) {
@@ -3110,23 +3114,30 @@ function updateTeamScore(inp) {
 
 async function dbSaveTeamScore(wId, ronde, teamKey, holeIdx, score) {
   // Team scores voor Texas Scramble: sla dezelfde score op voor elk teamlid in de flight
-  // Dit maakt persistentie mogelijk via de bestaande scores tabel (sid = UUID van speler)
-  try {
-    var flightIdx = parseInt(teamKey.replace('team-', ''));
-    var flight = (FLIGHTS[wId] || [])[flightIdx];
-    if (!flight || !flight.length) return;
+  var flightIdx = parseInt(teamKey.replace('team-', ''));
+  var flight = (FLIGHTS[wId] || [])[flightIdx];
+  if (!flight || !flight.length) {
+    console.warn('dbSaveTeamScore: geen flight gevonden voor', teamKey);
+    return;
+  }
 
-    // Sla dezelfde score op voor elk teamlid + lokaal bijhouden in SCORES
-    for (var i = 0; i < flight.length; i++) {
-      var sid = flight[i];
-      // Lokale state bijwerken zodat UI synchroniseert
-      if (!SCORES[wId]) SCORES[wId] = {};
-      if (!SCORES[wId][ronde]) SCORES[wId][ronde] = {};
-      if (!SCORES[wId][ronde][sid]) SCORES[wId][ronde][sid] = Array(18).fill('');
-      SCORES[wId][ronde][sid][holeIdx] = score === '' ? '' : score;
+  for (var i = 0; i < flight.length; i++) {
+    var sid = flight[i];
+    // Lokaal bijwerken
+    if (!SCORES[wId]) SCORES[wId] = {};
+    if (!SCORES[wId][ronde]) SCORES[wId][ronde] = {};
+    if (!SCORES[wId][ronde][sid]) SCORES[wId][ronde][sid] = Array(18).fill('');
+    SCORES[wId][ronde][sid][holeIdx] = score === '' ? '' : score;
 
-      // Naar Supabase
-      await fetch(SUPA_URL + '/rest/v1/scores', {
+    // Upsert in Supabase (PUT-achtig via POST met merge-duplicates op unique constraint)
+    try {
+      var body = {
+        wid: wId, sid: sid, ronde: ronde,
+        hole: holeIdx + 1,
+        score: score === '' ? null : score,
+        bijgewerkt: new Date().toISOString()
+      };
+      var res = await fetch(SUPA_URL + '/rest/v1/scores?on_conflict=wid,sid,ronde,hole', {
         method: 'POST',
         headers: {
           'apikey': SUPA_KEY,
@@ -3134,15 +3145,16 @@ async function dbSaveTeamScore(wId, ronde, teamKey, holeIdx, score) {
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates',
         },
-        body: JSON.stringify({
-          wid: wId, sid: sid, ronde: ronde,
-          hole: holeIdx + 1,
-          score: score === '' ? null : score,
-          bijgewerkt: new Date().toISOString()
-        })
+        body: JSON.stringify(body)
       });
+      if (!res.ok) {
+        var errText = await res.text();
+        console.warn('dbSaveTeamScore fout:', res.status, errText.slice(0, 200));
+      }
+    } catch(e) {
+      console.warn('dbSaveTeamScore exception:', e.message);
     }
-  } catch(e) { console.warn('dbSaveTeamScore:', e.message); }
+  }
 }
 
 // Team leaderboard voor scramble
