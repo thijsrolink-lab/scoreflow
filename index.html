@@ -1566,7 +1566,7 @@ function renderInschrijvingen(){
 
 function checkInschrijving(){
   var wId=document.getElementById('mi-w').value;
-  var sId=parseInt(document.getElementById('mi-s').value);
+  var sId=document.getElementById('mi-s').value;
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;}),s=USERS.find(function(x){return x.id===sId;});
   var el=document.getElementById('mi-check');if(!w||!s){el.textContent='';return;}
   if(INSCHRIJVINGEN.find(function(i){return i.wid===wId&&i.sid===sId&&i.status!=='afgemeld';})){el.innerHTML='<span style="color:var(--red)">Al ingeschreven of op wachtlijst.</span>';return;}
@@ -1578,7 +1578,7 @@ function checkInschrijving(){
 
 function doAdminInschrijven(){
   var wId=document.getElementById('mi-w').value;
-  var sId=parseInt(document.getElementById('mi-s').value);
+  var sId=document.getElementById('mi-s').value;
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});if(!w)return;
   var ic=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).length;
   var status=ic>=w.max?'wachtlijst':'ingeschreven';

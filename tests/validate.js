@@ -231,11 +231,45 @@ test('Geen esc() aanroepen (moet escHtml zijn)', () => {
 });
 
 test('parseInt niet op dropdown .value (UUID bug)', () => {
+  // UUID velden zijn strings. parseInt('abc-123-def') = NaN.
+  // Als een dropdown waarde een UUID kan zijn, mag je er geen parseInt op doen.
+  //
+  // Lijst van dropdown IDs waar UUIDs in zitten (wedstrijd-IDs, speler-IDs, etc.)
+  // Patroon: ...-w = wedstrijd, ...-s = speler, ...-fw = flight-wedstrijd, etc.
   const mainScript = scripts[scripts.length - 1].content;
-  const pattern = /parseInt\s*\(\s*document\.getElementById\s*\(\s*['"](?:fl-w|sc-w|mi-w|rang-w|sk-w|ing-fw)['"][^)]*\)\.value/;
-  const matches = mainScript.match(new RegExp(pattern.source, 'g')) || [];
-  return matches.length === 0
-    || `parseInt op dropdown gevonden (UUIDs zijn strings!): ${matches.length}x`;
+
+  // Zoek alle parseInt(document.getElementById('xxx').value) patronen
+  const allMatches = [...mainScript.matchAll(
+    /parseInt\s*\(\s*document\.getElementById\s*\(\s*['"]([\w-]+)['"][^)]*\)\.value[^)]*\)/g
+  )];
+
+  // IDs die UUIDs kunnen bevatten (wedstrijd-select, speler-select, etc.)
+  const uuidIdPatterns = [
+    /-w$/,      // fl-w, sc-w, mi-w, rang-w, sk-w, ing-fw — wedstrijd ID
+    /-s$/,      // mi-s, gw-s — speler ID
+    /-fw$/,     // flight-wedstrijd
+    /^mi-/,     // modal-inschrijven: wedstrijd + speler
+    /^fl-/,     // flights: wedstrijd select
+    /^sc-/,     // scores: wedstrijd select
+  ];
+  // Expliciete uitzonderingen: velden die integer zijn
+  const integerIds = new Set([
+    'sc-ronde', 'mi-opm', 'fl-aantal', 'fl-per',
+    'comp-gen-aantal', 'comp-hcpperc', 'comp-holes', 'comp-slope',
+    'comp-minrondes', 'comp-eclhcp',
+  ]);
+
+  const problematic = [];
+  allMatches.forEach(m => {
+    const id = m[1];
+    if (integerIds.has(id)) return;
+    if (uuidIdPatterns.some(p => p.test(id))) {
+      problematic.push(id);
+    }
+  });
+
+  return problematic.length === 0
+    || `parseInt op UUID dropdown: ${[...new Set(problematic)].join(', ')}`;
 });
 test('Geen parseInt op dropdown values in onclick handlers (UUID bug)', () => {
   // Zoek onclick handlers die parseInt(...getElementById(...).value) gebruiken
