@@ -220,6 +220,14 @@ test('parseInt niet op dropdown .value (UUID bug)', () => {
   return matches.length === 0
     || `parseInt op dropdown gevonden (UUIDs zijn strings!): ${matches.length}x`;
 });
+test('Geen parseInt op dropdown values in onclick handlers (UUID bug)', () => {
+  // Zoek onclick handlers die parseInt(...getElementById(...).value) gebruiken
+  // UUID's kunnen niet via parseInt → resultaat is NaN
+  const pattern = /onclick="[^"]*parseInt\s*\(\s*document\.getElementById\s*\([^)]+\)\.value/g;
+  const matches = html.match(pattern) || [];
+  return matches.length === 0
+    || `parseInt in onclick gevonden (${matches.length}x): ${matches[0].slice(0,80)}`;
+});
 
 test('UUID IDs in onclick handlers tussen quotes', () => {
   // Patroon: onclick="editW('+w.id+')" → fout (geen quotes rond UUID)

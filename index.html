@@ -6511,7 +6511,7 @@ try {
                 <option value="naam">Alfabetisch</option>
               </select>
               <button class="btn btn-s btn-xs" onclick="autoFlights()">Auto-indeling</button>
-              <button class="btn btn-p btn-xs" onclick="slaFlightsOp(parseInt(document.getElementById('fl-w').value),FLIGHTS[parseInt(document.getElementById('fl-w').value)]||[])">Opslaan</button>
+              <button class="btn btn-p btn-xs" onclick="slaFlightsOp(document.getElementById('fl-w').value,FLIGHTS[document.getElementById('fl-w').value]||[])">Opslaan</button>
             </div>
           </div>
           <div id="fl-info" style="font-size:13px;color:var(--txm);margin-bottom:.75rem"></div>
