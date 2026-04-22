@@ -3237,7 +3237,6 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
   if (!container) return;
 
   var flights = FLIGHTS[wId] || [];
-  // Zoek flight van deze speler
   var mijnFlightIdx = -1;
   flights.forEach(function(f, idx) {
     if (f.indexOf(u.id) >= 0) mijnFlightIdx = idx;
@@ -3270,12 +3269,11 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
 
   var strokeplay = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
   var stableford = berekenStableford(scores, baan, teamSh);
-
   var teamNaam = spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', ');
 
   var html = '';
 
-  // Groot score blok bovenaan (zoals wedstrijdleider)
+  // Score blok
   html += '<div style="background:linear-gradient(135deg,#162f22,#2a6040);border-radius:var(--rl);padding:1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
   html += '<div>';
   html += '<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em">Flight ' + (mijnFlightIdx+1) + ' — Team score</div>';
@@ -3283,7 +3281,7 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     (strokeplay.gespeeld > 0 ? strokeplay.netto : '—') + '</div>';
   html += '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Netto · Bruto ' +
     (strokeplay.gespeeld > 0 ? strokeplay.bruto : '—') +
-    ' · Team SH ' + teamSh + ' · ' + strokeplay.gespeeld + '/' + baan.holes + ' holes</div>';
+    ' · Team SH ' + teamSh + ' · ' + strokeplay.gespeeld + '/' + baan.holes + '</div>';
   html += '</div>';
   html += '<div style="text-align:right">';
   html += '<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em">Stableford</div>';
@@ -3300,24 +3298,58 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     spelers.map(function(s) { return s.hcp; }).join(' / ') + '</div>';
   html += '</div>';
 
-  // Bepaal actieve hole: eerste lege hole
+  // Hole rijen via helper
+  html += bouwSpelerHoleRijen({
+    scores: scores,
+    baan: baan,
+    onchangeAttr: 'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);"'
+  });
+
+  // Info
+  html += '<div style="font-size:12px;color:var(--txm);margin-top:.75rem;padding:.6rem .75rem;background:var(--gl);border-radius:var(--r);border-left:3px solid var(--lime)">';
+  html += '💡 Texas Scramble: elk teamlid kan de scores invullen. Alle wijzigingen zijn direct zichtbaar voor teamgenoten en op het live leaderboard.';
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+// ═══════════════════════════════════════════════════════════
+// SPELER SCOREKAART UI v2 — uniforme layout voor alle spelvormen
+// Gebruikt door: individueel, team, matchplay
+// ═══════════════════════════════════════════════════════════
+
+// Helper: bouw de gedeelde layout (tabs + hole-rijen + highlight)
+// opts: {
+//   scores: [18 waardes],
+//   baan: {par, si, holes, ...},
+//   onchangeAttr: '...',       // attributen voor input onchange+data-*
+//   getHoleLabel: fn(i, v, par) → 'Birdie' | 'Par' etc. (default = auto)
+//   getHoleExtra: fn(i) → HTML rechts van hole-nummer (optioneel)
+//   getMatchplayStand: null | fn(i) → '1 UP' | 'AS' | '2 DN' (toont na score)
+// }
+function bouwSpelerHoleRijen(opts) {
+  var scores = opts.scores || [];
+  var baan = opts.baan;
+  var onchangeAttr = opts.onchangeAttr || '';
+  var getMatchplayStand = opts.getMatchplayStand || null;
+
+  // Actieve hole: eerste lege
   var actiefHole = -1;
   for (var i = 0; i < baan.holes; i++) {
     if (scores[i] === '' || scores[i] === null || scores[i] === undefined) { actiefHole = i; break; }
   }
 
-  // Tabs voor eerste 9 / tweede 9
+  var html = '';
+
+  // Tabs voor 1e/2e 9
   var halves = baan.holes === 18 ? [
     { lbl: 'Eerste 9', range: [0, 9] },
     { lbl: 'Tweede 9', range: [9, 18] }
   ] : [{ lbl: 'Alle holes', range: [0, baan.holes] }];
 
-  // Bepaal actieve tab: waar de actieve hole staat
   if (typeof window._spActieveTab === 'undefined') window._spActieveTab = 0;
   var actieveTab = window._spActieveTab;
   if (actiefHole >= 9 && actieveTab === 0 && halves.length > 1) actieveTab = 1;
 
-  // Tab knoppen
   if (halves.length > 1) {
     html += '<div style="display:flex;gap:0;background:var(--surf);border-radius:var(--r);padding:3px;margin-bottom:.75rem;border:1px solid var(--bd)">';
     halves.forEach(function(half, hi) {
@@ -3339,7 +3371,6 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     html += '</div>';
   }
 
-  // Score rijen per hole (grote, mobiel-vriendelijk)
   var actieveHalf = halves[actieveTab];
   html += '<div style="display:flex;flex-direction:column;gap:6px">';
 
@@ -3349,7 +3380,6 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     var par = baan.par[i];
     var si = baan.si[i];
     var scoreClass = '';
-    var scoreColor = 'var(--txm)';
     var scoreLabel = '';
     if (isVal) {
       var diff = Number(v) - par;
@@ -3361,6 +3391,16 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
       else if (diff >= 3) { scoreClass = 'sc-double'; scoreLabel = '+' + diff; }
     }
 
+    // Matchplay overschrijft de label met stand
+    var middenLabel = scoreLabel;
+    var middenKleur = scoreClass === 'sc-eagle' || scoreClass === 'sc-birdie' ? 'var(--gm)' :
+                      scoreClass === 'sc-bogey' ? 'var(--amb)' :
+                      scoreClass === 'sc-double' ? 'var(--red)' : 'var(--txm)';
+    if (getMatchplayStand && isVal) {
+      var mpInfo = getMatchplayStand(i);
+      if (mpInfo) { middenLabel = mpInfo.lbl; middenKleur = mpInfo.color; }
+    }
+
     var isActief = (i === actiefHole);
     var rowBorder = isActief ? '2px solid var(--gm)' : '1px solid var(--bd)';
     var rowBg = isActief ? 'var(--gl)' : 'var(--card)';
@@ -3369,16 +3409,14 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     html += '<div style="display:grid;grid-template-columns:60px 1fr 80px;align-items:center;gap:10px;padding:.75rem 1rem;' +
       'background:' + rowBg + ';border:' + rowBorder + ';border-radius:var(--r);box-shadow:' + rowShadow + ';transition:all .2s">';
 
-    // Hole nummer + par/si
     html += '<div>';
     html += '<div style="font-family:\'Playfair Display\',serif;font-size:22px;font-weight:700;color:var(--g);line-height:1">' + (i+1) + '</div>';
     html += '<div style="font-size:10px;color:var(--txh);margin-top:2px">Par ' + par + ' · SI ' + si + '</div>';
     html += '</div>';
 
-    // Score label midden
-    html += '<div style="text-align:center;font-size:12px;color:var(--txm);font-weight:500">';
+    html += '<div style="text-align:center;font-size:12px;font-weight:500">';
     if (isVal) {
-      html += '<span style="color:' + (scoreClass === 'sc-eagle' || scoreClass === 'sc-birdie' ? 'var(--gm)' : scoreClass === 'sc-bogey' ? 'var(--amb)' : scoreClass === 'sc-double' ? 'var(--red)' : 'var(--txm)') + '">' + scoreLabel + '</span>';
+      html += '<span style="color:' + middenKleur + '">' + middenLabel + '</span>';
     } else if (isActief) {
       html += '<span style="color:var(--gm);font-weight:600">👉 Vul in</span>';
     } else {
@@ -3386,24 +3424,202 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     }
     html += '</div>';
 
-    // Grote score input
     html += '<input type="number" class="sc-inp ' + scoreClass + '" min="1" max="15" ' +
       'style="width:100%;height:48px;font-size:22px;font-weight:700;text-align:center;padding:0;" ' +
       'value="' + (isVal ? v : '') + '" ' +
-      'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" data-hole="' + i + '" ' +
-      'onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);" onfocus="this.select()"/>';
+      'data-hole="' + i + '" ' + onchangeAttr + ' onfocus="this.select()"/>';
 
     html += '</div>';
   }
   html += '</div>';
 
-  // Info
-  html += '<div style="font-size:12px;color:var(--txm);margin-top:.75rem;padding:.6rem .75rem;background:var(--gl);border-radius:var(--r);border-left:3px solid var(--lime)">';
-  html += '💡 Texas Scramble: elk teamlid kan de scores invullen. Alle wijzigingen zijn direct zichtbaar voor teamgenoten en op het live leaderboard.';
+  return html;
+}
+
+// ── Speler Individueel (Stableford, Strokeplay, Skins, Bogey comp., Par comp.) ──
+function renderSpelerIndividueel(wId, w, baan, shv, u) {
+  var container = document.getElementById('sp-scorekaart-content');
+  if (!container) return;
+
+  if (!SCORES[wId]) SCORES[wId] = {};
+  if (!SCORES[wId][0]) SCORES[wId][0] = {};
+  if (!SCORES[wId][0][u.id]) SCORES[wId][0][u.id] = Array(baan.holes).fill('');
+  var scores = SCORES[wId][0][u.id];
+
+  var strokeplay = berekenStrokeplay(scores, baan, shv, w.esc || 'geen');
+  var stableford = berekenStableford(scores, baan, shv);
+
+  // Score blok bovenaan
+  var html = '';
+  html += '<div style="background:linear-gradient(135deg,#162f22,#2a6040);border-radius:var(--rl);padding:1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  html += '<div>';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em">' + escHtml(w.vorm) + '</div>';
+
+  // Hoofdscore: bij Stableford tonen we punten, anders netto
+  if (w.vorm === 'Stableford') {
+    html += '<div style="font-family:Playfair Display,serif;font-size:28px;font-weight:700;color:#fff;margin-top:2px">' +
+      (stableford.gespeeld > 0 ? stableford.punten : '—') + '</div>';
+    html += '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Stableford punten · ' +
+      strokeplay.gespeeld + '/' + baan.holes + ' holes · SH ' + shv + '</div>';
+  } else {
+    html += '<div style="font-family:Playfair Display,serif;font-size:28px;font-weight:700;color:#fff;margin-top:2px">' +
+      (strokeplay.gespeeld > 0 ? strokeplay.netto : '—') + '</div>';
+    html += '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Netto · Bruto ' +
+      (strokeplay.gespeeld > 0 ? strokeplay.bruto : '—') +
+      ' · SH ' + shv + ' · ' + strokeplay.gespeeld + '/' + baan.holes + '</div>';
+  }
   html += '</div>';
+  // Rechts: secundaire info
+  html += '<div style="text-align:right">';
+  if (w.vorm === 'Stableford') {
+    html += '<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em">Netto</div>';
+    html += '<div style="font-family:Playfair Display,serif;font-size:22px;font-weight:700;color:#fff">' +
+      (strokeplay.gespeeld > 0 ? strokeplay.netto : '—') + '</div>';
+  } else {
+    html += '<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em">SF punten</div>';
+    html += '<div style="font-family:Playfair Display,serif;font-size:22px;font-weight:700;color:#fff">' + stableford.punten + '</div>';
+  }
+  html += '</div>';
+  html += '</div>';
+
+  // Hole rijen via helper
+  html += bouwSpelerHoleRijen({
+    scores: scores,
+    baan: baan,
+    onchangeAttr: 'data-wid="' + wId + '" data-ronde="0" data-sid="' + u.id + '" onchange="updateIndividueleScore(this)"'
+  });
 
   container.innerHTML = html;
 }
+
+// Opslag handler voor individuele scores
+function updateIndividueleScore(inp) {
+  var wId = inp.dataset.wid;
+  var ronde = parseInt(inp.dataset.ronde);
+  var sid = inp.dataset.sid;
+  var hole = parseInt(inp.dataset.hole);
+  var val = inp.value === '' ? '' : parseInt(inp.value);
+
+  if (!SCORES[wId]) SCORES[wId] = {};
+  if (!SCORES[wId][ronde]) SCORES[wId][ronde] = {};
+  if (!SCORES[wId][ronde][sid]) SCORES[wId][ronde][sid] = Array(18).fill('');
+  SCORES[wId][ronde][sid][hole] = val;
+
+  // Herrender na opslag
+  setTimeout(function() { initScorekaart(); }, 100);
+
+  // Naar Supabase
+  dbSaveScore(wId, sid, ronde, hole, val).catch(function(e) {
+    console.warn('dbSaveScore:', e.message);
+  });
+}
+
+// ── Speler Matchplay ──
+function renderSpelerMatchplay(wId, w, baan, shv, u) {
+  var container = document.getElementById('sp-scorekaart-content');
+  if (!container) return;
+
+  // Zoek tegenstander: bij matchplay in een wedstrijd zijn er paren
+  // Simpele aanname: zoek andere speler in zelfde flight, anders eerste andere ingeschreven speler
+  var flights = FLIGHTS[wId] || [];
+  var tegenstander = null;
+  for (var fi = 0; fi < flights.length; fi++) {
+    if (flights[fi].indexOf(u.id) >= 0) {
+      for (var j = 0; j < flights[fi].length; j++) {
+        if (flights[fi][j] !== u.id) {
+          tegenstander = USERS.find(function(s) { return s.id === flights[fi][j]; });
+          if (tegenstander) break;
+        }
+      }
+      break;
+    }
+  }
+  // Fallback: eerste andere speler
+  if (!tegenstander) {
+    var ings = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven' && i.sid !== u.id; });
+    if (ings.length) tegenstander = USERS.find(function(s) { return s.id === ings[0].sid; });
+  }
+
+  if (!tegenstander) {
+    container.innerHTML = '<div style="padding:1.5rem;text-align:center;background:var(--surf);border-radius:var(--r);color:var(--txm);font-size:13px">' +
+      'Geen tegenstander gevonden. Zorg dat je bent ingedeeld in een flight met een tegenstander.</div>';
+    return;
+  }
+
+  if (!SCORES[wId]) SCORES[wId] = {};
+  if (!SCORES[wId][0]) SCORES[wId][0] = {};
+  if (!SCORES[wId][0][u.id]) SCORES[wId][0][u.id] = Array(baan.holes).fill('');
+  if (!SCORES[wId][0][tegenstander.id]) SCORES[wId][0][tegenstander.id] = Array(baan.holes).fill('');
+  var mijnScores = SCORES[wId][0][u.id];
+  var tegenScores = SCORES[wId][0][tegenstander.id];
+
+  // Gebruik bestaande matchplay berekening
+  var mp = berekenMatchplay(mijnScores, tegenScores, u, tegenstander, baan);
+  // perspectief: u is speler A, tegenstander is speler B
+  // mp.hA = onze wins, mp.hB = hun wins
+
+  // Huidige stand
+  var vr = mp.hA - mp.hB;  // positief = wij voor
+  var standLabel = '';
+  var standKleur = 'var(--txm)';
+  if (vr === 0) { standLabel = 'All square'; }
+  else if (vr > 0) { standLabel = vr + ' UP'; standKleur = '#4ade80'; }
+  else { standLabel = Math.abs(vr) + ' DN'; standKleur = '#f87171'; }
+
+  // Per-hole stand voor in de hole-rijen
+  function getStandBijHole(holeIdx) {
+    // Loop tot en met deze hole
+    var tempA = 0, tempB = 0;
+    var info = mp.perHole[holeIdx];
+    if (!info || info.res === null) return null;
+    for (var k = 0; k <= holeIdx; k++) {
+      var p = mp.perHole[k];
+      if (!p || p.res === null) continue;
+      if (p.res === 'A') tempA++;
+      else if (p.res === 'B') tempB++;
+    }
+    var diff = tempA - tempB;
+    if (diff === 0) return { lbl: 'AS', color: 'var(--txm)' };
+    if (diff > 0) return { lbl: diff + ' UP', color: '#22c55e' };
+    return { lbl: Math.abs(diff) + ' DN', color: '#ef4444' };
+  }
+
+  var html = '';
+  // Score blok met stand
+  html += '<div style="background:linear-gradient(135deg,#162f22,#2a6040);border-radius:var(--rl);padding:1rem;margin-bottom:1rem">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  html += '<div>';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em">Matchplay</div>';
+  html += '<div style="font-family:Playfair Display,serif;font-size:28px;font-weight:700;color:' + standKleur + ';margin-top:2px">' + standLabel + '</div>';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">' + mp.ges + '/' + baan.holes + ' holes gespeeld</div>';
+  html += '</div>';
+  html += '<div style="text-align:right">';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em">Tegen</div>';
+  html += '<div style="font-size:14px;font-weight:500;color:#fff;margin-top:2px">' + escHtml(tegenstander.voor + ' ' + tegenstander.ach) + '</div>';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.5)">HCP ' + tegenstander.hcp + ' · SH ' + mp.shB + '</div>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  // Jouw info
+  html += '<div style="background:var(--surf);border-radius:var(--r);padding:.6rem .75rem;margin-bottom:1rem;font-size:12px;color:var(--txm)">';
+  html += 'Jouw SH <strong style="color:var(--g)">' + mp.shA + '</strong>';
+  if (mp.versch > 0) {
+    html += ' · ' + (mp.hogere === 'A' ? 'jij krijgt' : 'jij geeft') + ' ' + mp.versch + ' slag' + (mp.versch === 1 ? '' : 'en');
+  }
+  html += '</div>';
+
+  // Hole rijen met matchplay stand
+  html += bouwSpelerHoleRijen({
+    scores: mijnScores,
+    baan: baan,
+    onchangeAttr: 'data-wid="' + wId + '" data-ronde="0" data-sid="' + u.id + '" onchange="updateIndividueleScore(this)"',
+    getMatchplayStand: getStandBijHole
+  });
+
+  container.innerHTML = html;
+}
+
 
 
 
@@ -3877,24 +4093,27 @@ function initScorekaart() {
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var shv = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
 
-  // Eclectic: toon speciale UI
+  // Eclectic: blijft aparte UI (multi-ronde logica)
   if (w.vorm === 'Eclectic') {
     spEclecticScorekaart(wId, w, baan, shv, u);
     return;
   }
 
-  // Texas Scramble: speler ziet team scorekaart van eigen flight
+  // Texas Scramble: team scorekaart
   if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
     renderSpelerTeamScorekaart(wId, w, baan, u);
     return;
   }
 
-  if (!SCORES[wId]) SCORES[wId] = {};
-  if (!SCORES[wId][0]) SCORES[wId][0] = {};
-  if (!SCORES[wId][0][u.id]) SCORES[wId][0][u.id] = Array(baan.holes).fill('');
-  _skWId = wId; _skScores = SCORES[wId][0][u.id]; _skActiefHole = 0;
-  for (var i = 0; i < baan.holes; i++) { if (!_skScores[i]) { _skActiefHole = i; break; } }
-  renderScorekaart(w, baan, shv, u);
+  // Matchplay: up/down/even met tegenstander
+  if (w.vorm === 'Matchplay') {
+    renderSpelerMatchplay(wId, w, baan, shv, u);
+    return;
+  }
+
+  // Alle andere individuele vormen: Stableford, Strokeplay, Skins,
+  // Bogey competition, Par competition, Modified Stableford, etc.
+  renderSpelerIndividueel(wId, w, baan, shv, u);
 }
 
 // Eclectic scorekaart voor speler portaal
