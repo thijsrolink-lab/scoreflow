@@ -3610,19 +3610,19 @@ function buildWedstrijdKaart(w,u){
   if(mijnIng){
     if(mijnIng.status==='ingeschreven'){
       statusHtml='<span class="badge bg">&#10003; Ingeschreven</span>';
-      btnHtml='<button class="inschrijf-btn ingeschreven" onclick="spelerAfmelden('+w.id+','+u.id+')">Afmelden</button>';
+      btnHtml='<button class="inschrijf-btn ingeschreven" onclick="spelerAfmelden(\''+w.id+'\',\''+u.id+'\')">Afmelden</button>';
     } else {
       statusHtml='<span class="badge ba">Wachtlijst</span>';
-      btnHtml='<button class="inschrijf-btn wachtlijst" onclick="spelerAfmelden('+w.id+','+u.id+')">Afmelden van wachtlijst</button>';
+      btnHtml='<button class="inschrijf-btn wachtlijst" onclick="spelerAfmelden(\''+w.id+'\',\''+u.id+'\')">Afmelden van wachtlijst</button>';
     }
   } else if(!isOpen){
     btnHtml='<button class="inschrijf-btn gesloten">Inschrijving gesloten</button>';
   } else if(ic>=w.max){
-    btnHtml='<button class="inschrijf-btn wachtlijst" onclick="spelerInschrijven('+w.id+','+u.id+')">Op wachtlijst</button>';
+    btnHtml='<button class="inschrijf-btn wachtlijst" onclick="spelerInschrijven(\''+w.id+'\',\''+u.id+'\')">Op wachtlijst</button>';
   } else if(u.hcp>w.hcpmax){
     btnHtml='<button class="inschrijf-btn vol" disabled>HCP te hoog (max '+w.hcpmax+')</button>';
   } else {
-    btnHtml='<button class="inschrijf-btn kan-inschrijven" onclick="spelerInschrijven('+w.id+','+u.id+')">Inschrijven</button>';
+    btnHtml='<button class="inschrijf-btn kan-inschrijven" onclick="spelerInschrijven(\''+w.id+'\',\''+u.id+'\')">Inschrijven</button>';
   }
 
   return '<div class="w-card">'+
