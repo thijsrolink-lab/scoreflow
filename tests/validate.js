@@ -247,19 +247,32 @@ test('Geen parseInt op dropdown values in onclick handlers (UUID bug)', () => {
 });
 
 test('UUID IDs in onclick handlers tussen quotes', () => {
-  // Patroon: onclick="editW('+w.id+')" → fout (geen quotes rond UUID)
-  //          onclick="editW(\''+w.id+'\')" → goed
+  // Patroon FOUT:  onclick="fn('+w.id+')"  of  onclick="fn('+w.id+','+u.id+')"
+  // Patroon GOED:  onclick="fn(\''+w.id+'\')"
+  //
+  // UUIDs bevatten streepjes (-) die zonder quotes als minus-operator
+  // worden geïnterpreteerd → SyntaxError in de browser.
   const mainScript = scripts[scripts.length - 1].content;
-  const badPatterns = [
-    /onclick=\\"(\w+)\('\+\w+\.id\+'\)\\"/g,
-    /onclick=\\"(\w+)\('\+comp\.id\+'\)\\"/g,
-  ];
+
+  // Zoek alle onclick handlers die een concat-variabele aan een ID
+  // bevatten: '+ xxx.id +' zonder directe single-quote ervoor en erna
+  //
+  // Match: onclick="fn(BLABLA+\w+\.id+BLABLA)"
+  // waar BLABLA geen \' bevat direct naast de +.id+
+  const pattern = /onclick=\\"[^\\"]*\b(\w+)\s*\([^)]*\)/g;
   const bad = [];
-  badPatterns.forEach(p => {
-    const m = mainScript.match(p) || [];
-    m.forEach(x => bad.push(x.slice(0, 50)));
-  });
-  return bad.length === 0 || `Onclick zonder quotes: ${bad.slice(0,2).join('; ')}`;
+  let m;
+  while ((m = pattern.exec(mainScript)) !== null) {
+    const full = m[0];
+    // Check: bevat het "+\w+.id+" zonder voorafgaand \' of trailing \'?
+    // Safe pattern: \'\'+var.id+\'\'   (quote, empty, +var.id+, empty, quote)
+    // Unsafe: ('+var.id+')   direct in de call
+    const unsafeIdPattern = /[^\\'](\+\s*\w+\.id\s*\+)[^\\']/;
+    if (unsafeIdPattern.test(full)) {
+      bad.push(full.slice(0, 80));
+    }
+  }
+  return bad.length === 0 || `Onclick met UUID zonder quotes: ${bad.slice(0,2).join('; ')}`;
 });
 
 test('escHtml functie bestaat', () => {
