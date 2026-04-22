@@ -3739,6 +3739,62 @@ function renderRanglijst(){
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});if(!w){return;}
   var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
   var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
+
+  // Texas Scramble: team leaderboard in plaats van per speler
+  if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
+    var flights = FLIGHTS[wId] || [];
+    var perc = (w.hcpperc || 100) / 100;
+    var u = _currentUser;
+    var mijnFlightIdx = -1;
+    flights.forEach(function(f, idx) { if (f.indexOf(u.id) >= 0) mijnFlightIdx = idx; });
+
+    var teamRows = flights.map(function(flightSids, fi) {
+      var spelers = flightSids.map(function(sid) {
+        return USERS.find(function(s) { return s.id === sid; });
+      }).filter(Boolean);
+      if (!spelers.length) return null;
+      var teamHcp = teamHandicapScramble(spelers, perc);
+      var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
+      var teamKey = 'team-' + fi;
+      var scores = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][teamKey]);
+      if (!scores && spelers.length > 0) {
+        scores = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][spelers[0].id]);
+      }
+      scores = scores || Array(baan.holes).fill('');
+      var sp = berekenStrokeplay(scores, baan, teamSh);
+      return {
+        flightIdx: fi,
+        teamNaam: spelers.map(function(s){return s.voor + ' ' + s.ach[0] + '.';}).join(', '),
+        teamSh: teamSh,
+        netto: sp.netto, bruto: sp.bruto,
+        gespeeld: sp.gespeeld,
+        has: sp.gespeeld > 0
+      };
+    }).filter(Boolean);
+    teamRows.sort(function(a,b){ return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+
+    var html = '';
+    teamRows.forEach(function(r, i) {
+      var p = i+1;
+      var pcls = p===1?'rp-1':p===2?'rp-2':p===3?'rp-3':'rp-n';
+      var isJouwTeam = r.flightIdx === mijnFlightIdx;
+      html += '<div class="rang-item' + (isJouwTeam?' rang-jij':'') + '">';
+      html += '<div class="rang-pos ' + pcls + '">' + p + '</div>';
+      html += '<div style="flex:1">';
+      html += '<div style="font-weight:' + (isJouwTeam?500:400) + ';color:' + (isJouwTeam?'var(--g)':'var(--tx)') + '">Flight ' + (r.flightIdx+1) +
+        (isJouwTeam ? ' <span style="font-size:11px;color:var(--gm)">(jouw team)</span>' : '') + '</div>';
+      html += '<div style="font-size:11px;color:var(--txm)">' + r.teamNaam + '</div>';
+      html += '<div style="font-size:11px;color:var(--txm)">Team SH ' + r.teamSh + ' · ' + r.gespeeld + '/' + baan.holes + ' holes</div>';
+      html += '</div>';
+      html += '<div style="font-weight:500;text-align:right">' + (r.has ? r.netto : '—') +
+        '<div style="font-size:11px;color:var(--txm);font-weight:400">bruto ' + (r.has ? r.bruto : '—') + '</div></div>';
+      html += '</div>';
+    });
+    document.getElementById('sp-rang-content').innerHTML = html ||
+      '<p style="font-size:13px;color:var(--txm)">Nog geen teams ingedeeld.</p>';
+    return;
+  }
+
   var rows=sps.map(function(s){
     var sh=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
     var sc=(SCORES[wId]&&SCORES[wId][0]&&SCORES[wId][0][s.id])||Array(baan.holes).fill('');
