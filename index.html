@@ -962,23 +962,30 @@ function heeftToegang(view){
   return rechten.indexOf(view)>=0;
 }
 
-function doLogin(){
+async function doLogin(){
   var email=document.getElementById('login-email').value.trim().toLowerCase();
   var pw=document.getElementById('login-pw').value;
-  // Check eerst lokale demo users (met wachtwoorden)
+  var errEl=document.getElementById('login-err');
+
+  // Check lokale demo users (wachtwoord check)
   var demoUser=DEMO_USERS.find(function(u){return u.email.toLowerCase()===email&&u.pw===pw;});
-  if(demoUser){
-    // Zoek de bijgewerkte user uit USERS (heeft Supabase ID etc.)
-    var liveUser=USERS.find(function(u){return u.email.toLowerCase()===email;});
-    document.getElementById('login-err').textContent='';
-    startSessie(liveUser||demoUser);
+  if(!demoUser){
+    // Fallback: check in USERS (voor het geval pw nog aanwezig is)
+    var fallback=USERS.find(function(u){return u.email.toLowerCase()===email&&u.pw===pw;});
+    if(!fallback){errEl.textContent='Onbekend e-mailadres of onjuist wachtwoord.';return;}
+    errEl.textContent='';
+    startSessie(fallback);
     return;
   }
-  // Fallback: check in USERS (voor het geval pw nog aanwezig is)
-  var user=USERS.find(function(u){return u.email.toLowerCase()===email&&u.pw===pw;});
-  if(!user){document.getElementById('login-err').textContent='Onbekend e-mailadres of onjuist wachtwoord.';return;}
-  document.getElementById('login-err').textContent='';
-  startSessie(user);
+
+  // Demo login geslaagd — laad altijd eerst alle data uit Supabase
+  // Zodat spelers de juiste UUID krijgen (niet de lokale hardcoded id)
+  errEl.textContent='';
+  await laadAlleData();
+
+  // Zoek live user uit USERS (nu met Supabase UUID)
+  var liveUser=USERS.find(function(u){return u.email.toLowerCase()===email;});
+  startSessie(liveUser||demoUser);
 }
 
 function loginAs(email,pw){
@@ -1068,8 +1075,9 @@ function initAdminInterface(){
   document.getElementById('admin-naam').textContent=u.voor+' '+u.ach;
   document.getElementById('admin-rol-label').textContent=u.rol;
   buildAdminNav();
-  // Laad wedstrijden en gebruikers uit Supabase
-  laadAlleData().then(function() {
+  // Laad wedstrijden en gebruikers uit Supabase (als nog niet geladen)
+  var loadPromise = USERS.length > 8 ? Promise.resolve() : laadAlleData();
+  loadPromise.then(function() {
     adminNav('dashboard');
   }).catch(function() {
     // Fallback: gebruik lokale data
