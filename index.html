@@ -2930,6 +2930,218 @@ function uiFourball(wId, ronde, baan, sps, w) {
   return html;
 }
 
+// ── Texas Scramble: 1 scorekaart per flight (team) ──────────
+function uiTexasScramble(wId, ronde, baan, sps, w) {
+  var flights = FLIGHTS[wId] || [];
+  if (!flights.length) {
+    return '<div style="padding:1.5rem;text-align:center;background:var(--surf);border-radius:var(--r);color:var(--txm);font-size:13px">' +
+      'Nog geen flights aangemaakt. Ga eerst naar <strong>Flight-indeling</strong> om de teams in te delen.</div>';
+  }
+
+  var perc = (w.hcpperc || 100) / 100;
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:1rem">' +
+    'Texas Scramble — elk team speelt één bal. Vul per flight de score per hole in. ' +
+    'Teamhandicap: gewogen gemiddelde (laagste 100%, daarna 60%/40%/20%) × ' + (w.hcpperc || 100) + '%</div>';
+
+  flights.forEach(function(flightSids, fi) {
+    var spelers = flightSids.map(function(sid) {
+      return sps.find(function(s) { return s.id === sid; });
+    }).filter(Boolean);
+    if (!spelers.length) return;
+
+    var teamHcp = teamHandicapScramble(spelers, perc);
+    var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
+    // Team score opslaan onder een vaste sleutel: 'team-' + fi
+    var teamKey = 'team-' + fi;
+    var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]) || Array(baan.holes).fill('');
+    var strokeplay = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
+    var stableford = berekenStableford(scores, baan, teamSh);
+
+    // Team naam = namen van alle spelers
+    var teamNaam = spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', ');
+
+    html += '<div class="blk" style="margin-bottom:1rem;padding:1rem">';
+
+    // Team header
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">';
+    html += '<div>';
+    html += '<div style="font-size:11px;font-weight:600;color:var(--gm);text-transform:uppercase;letter-spacing:.08em">Flight ' + (fi + 1) + '</div>';
+    html += '<div style="font-weight:500;font-size:14px">' + escHtml(teamNaam) + '</div>';
+    html += '<div style="font-size:11px;color:var(--txm);margin-top:2px">HCPs: ' +
+      spelers.map(function(s) { return s.hcp; }).join(' / ') +
+      ' → Team SH <strong style="color:var(--g)">' + teamSh + '</strong></div>';
+    html += '</div>';
+    html += '<div style="text-align:right">';
+    html += '<div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Netto</div>';
+    html += '<div style="font-size:22px;font-weight:700;color:var(--g);font-family:\'Playfair Display\',serif">' +
+      (strokeplay.gespeeld > 0 ? strokeplay.netto : '—') + '</div>';
+    html += '<div style="font-size:11px;color:var(--txm)">Bruto ' + (strokeplay.gespeeld > 0 ? strokeplay.bruto : '—') +
+      ' · SF ' + stableford.punten + 'p · ' + strokeplay.gespeeld + '/' + baan.holes + ' holes</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Compacte score invoer 2 x 9 holes
+    html += '<div class="tbl-wrap">';
+    var halves = baan.holes === 18 ? [[0,9],[9,18]] : [[0,baan.holes]];
+    halves.forEach(function(range, hi) {
+      html += '<table class="sc-tbl" style="margin-bottom:' + (hi === 0 && halves.length > 1 ? '.5rem' : '0') + '">';
+      html += '<thead><tr><th class="lft">Hole</th>';
+      for (var i = range[0]; i < range[1]; i++) html += '<th>' + (i+1) + '</th>';
+      html += '<th>Tot</th></tr></thead>';
+      html += '<tbody>';
+
+      // Par rij
+      html += '<tr class="par-row"><td class="lft">Par</td>';
+      var parSom = 0;
+      for (var i = range[0]; i < range[1]; i++) { html += '<td>' + baan.par[i] + '</td>'; parSom += baan.par[i]; }
+      html += '<td><strong>' + parSom + '</strong></td></tr>';
+
+      // SI rij
+      html += '<tr class="si-row"><td class="lft">SI</td>';
+      for (var i = range[0]; i < range[1]; i++) html += '<td>' + baan.si[i] + '</td>';
+      html += '<td>—</td></tr>';
+
+      // Score rij
+      html += '<tr><td class="lft"><strong>Team</strong></td>';
+      var totaal = 0, ingevuld = 0;
+      for (var i = range[0]; i < range[1]; i++) {
+        var v = scores[i];
+        var isVal = v !== '' && v !== null && v !== undefined;
+        if (isVal) { totaal += Number(v); ingevuld++; }
+        var par = baan.par[i];
+        var scoreClass = '';
+        if (isVal) {
+          var diff = Number(v) - par;
+          if (diff <= -2) scoreClass = 'sc-eagle';
+          else if (diff === -1) scoreClass = 'sc-birdie';
+          else if (diff === 1) scoreClass = 'sc-bogey';
+          else if (diff >= 2) scoreClass = 'sc-double';
+        }
+        html += '<td><input type="number" class="sc-inp ' + scoreClass + '" min="1" max="15" ' +
+          'value="' + (isVal ? v : '') + '" ' +
+          'data-wid="' + wId + '" data-ronde="' + ronde + '" data-team="' + teamKey + '" data-hole="' + i + '" ' +
+          'onchange="updateTeamScore(this)" onfocus="this.select()"/></td>';
+      }
+      html += '<td><strong>' + (ingevuld > 0 ? totaal : '—') + '</strong></td></tr>';
+
+      html += '</tbody></table>';
+    });
+    html += '</div>'; // tbl-wrap
+    html += '</div>'; // blk
+  });
+
+  return html;
+}
+
+// Team score opslaan bij input change
+function updateTeamScore(inp) {
+  var wId = inp.dataset.wid;
+  var ronde = parseInt(inp.dataset.ronde);
+  var teamKey = inp.dataset.team;
+  var hole = parseInt(inp.dataset.hole);
+  var val = inp.value === '' ? '' : parseInt(inp.value);
+
+  if (!SCORES[wId]) SCORES[wId] = {};
+  if (!SCORES[wId][ronde]) SCORES[wId][ronde] = {};
+  if (!SCORES[wId][ronde][teamKey]) SCORES[wId][ronde][teamKey] = Array(18).fill('');
+  SCORES[wId][ronde][teamKey][hole] = val;
+
+  // Live kleur update
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (w) {
+    var baan = getBaan(w.holes);
+    var par = baan.par[hole];
+    inp.classList.remove('sc-eagle','sc-birdie','sc-bogey','sc-double');
+    if (val !== '') {
+      var diff = val - par;
+      if (diff <= -2) inp.classList.add('sc-eagle');
+      else if (diff === -1) inp.classList.add('sc-birdie');
+      else if (diff === 1) inp.classList.add('sc-bogey');
+      else if (diff >= 2) inp.classList.add('sc-double');
+    }
+  }
+
+  // Herbereken team totaal + leaderboard
+  setTimeout(function() { renderScoreInvoer(); }, 100);
+
+  // Opslaan naar Supabase (async, niet-blocking)
+  dbSaveTeamScore(wId, ronde, teamKey, hole, val).catch(function(e){
+    console.warn('dbSaveTeamScore:', e.message);
+  });
+}
+
+async function dbSaveTeamScore(wId, ronde, teamKey, holeIdx, score) {
+  // Team scores opgeslagen in scores tabel met sid = teamKey (bijv 'team-0')
+  try {
+    await fetch(SUPA_URL + '/rest/v1/scores', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify({
+        wid: wId, sid: teamKey, ronde: ronde,
+        hole_idx: holeIdx, score: score === '' ? null : score
+      })
+    });
+  } catch(e) { /* ignore */ }
+}
+
+// Team leaderboard voor scramble
+function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
+  var flights = FLIGHTS[wId] || [];
+  if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
+
+  var perc = (w.hcpperc || 100) / 100;
+  var rows = flights.map(function(flightSids, fi) {
+    var spelers = flightSids.map(function(sid) {
+      return sps.find(function(s) { return s.id === sid; });
+    }).filter(Boolean);
+    if (!spelers.length) return null;
+
+    var teamHcp = teamHandicapScramble(spelers, perc);
+    var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
+    var teamKey = 'team-' + fi;
+    var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]) || Array(baan.holes).fill('');
+    var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
+
+    return {
+      flight: fi + 1,
+      teamNaam: spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', '),
+      teamSh: teamSh,
+      netto: sp.netto, bruto: sp.bruto,
+      nettoVsPar: sp.nettoVsPar,
+      gespeeld: sp.gespeeld,
+      has: sp.gespeeld > 0,
+    };
+  }).filter(Boolean);
+
+  rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Texas Scramble leaderboard — gesorteerd op netto score per team</div>';
+  html += '<table class="tbl"><thead><tr>' +
+    '<th style="width:32px">#</th><th>Team</th><th>SH</th><th>Netto</th><th>Bruto</th><th>+/- par</th><th>Gespeeld</th>' +
+    '</tr></thead><tbody>';
+  rows.forEach(function(r, i) {
+    var p = i+1; var pcls = p===1?'lb-1':p===2?'lb-2':p===3?'lb-3':'lb-n';
+    html += '<tr>';
+    html += '<td><div class="lb-pos ' + pcls + '">' + p + '</div></td>';
+    html += '<td><div style="font-size:11px;color:var(--gm);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Flight ' + r.flight + '</div><div style="font-weight:500">' + escHtml(r.teamNaam) + '</div></td>';
+    html += '<td style="color:var(--txm)">' + r.teamSh + '</td>';
+    html += '<td style="font-weight:600;color:var(--g);font-size:16px">' + (r.has ? r.netto : '—') + '</td>';
+    html += '<td style="color:var(--txm)">' + (r.has ? r.bruto : '—') + '</td>';
+    html += '<td class="' + (r.has && r.nettoVsPar < 0 ? 'under' : r.has && r.nettoVsPar > 0 ? 'over' : '') + '">' +
+      (r.has ? formatVsPar(r.nettoVsPar) : '—') + '</td>';
+    html += '<td style="color:var(--txm)">' + r.gespeeld + '/' + baan.holes + '</td>';
+    html += '</tr>';
+  });
+  return html + '</tbody></table>';
+}
+
+
+
 // ── Greensome UI ────────────────────────────────────────────
 function uiGreensome(wId, ronde, baan, sps, w) {
   if (sps.length < 2) return '<p style="color:var(--txm);font-size:13px">Greensome vereist minimaal 2 spelers (teams van 2).</p>';
@@ -3001,6 +3213,8 @@ function updateScore(inp){
 }
 
 function buildLeaderboard(wId,ronde,baan,sps,w){
+  // Texas Scramble heeft team leaderboard
+  if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') return buildTeamLeaderboard(wId, ronde, baan, sps, w);
   var rows=sps.map(function(s){
     var sh=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
     var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
@@ -4922,6 +5136,10 @@ function eclBesteKaart(wId, baan, sps, w) {
 // ============================================================
 // Wrapper die de compacte kaart teruggeeft
 function bouwScoreInvoerTabel(wId, ronde, baan, sps, w) {
+  // Texas Scramble: 1 scorekaart per flight
+  if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
+    return uiTexasScramble(wId, ronde, baan, sps, w);
+  }
   return bouwCompacteScorekaart({ wId: wId, ronde: ronde, baan: baan, sps: sps, w: w, bewerkbaar: true, toonTotaal: true });
 }
 
