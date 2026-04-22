@@ -505,17 +505,30 @@ function doLogin() {
   }
   document.getElementById('login-err').textContent = '';
   // Wacht op hoofdscript als startSessie nog niet bestaat
+  var pogingen = 0;
   function start() {
-    if (typeof window.startSessie === 'function') {
+    // Check of startSessie beschikbaar is (function declaration in hoofdscript)
+    var sessieFn = (typeof startSessie !== 'undefined') ? startSessie : window.startSessie;
+    if (typeof sessieFn === 'function') {
       // Gebruik eventueel de "live" user uit USERS (met Supabase ID)
       var liveUser = user;
-      if (typeof USERS !== 'undefined' && USERS.length) {
-        var found = USERS.find(function(u){ return u.email && u.email.toLowerCase() === email; });
-        if (found) liveUser = found;
-      }
-      window.startSessie(liveUser);
+      try {
+        if (typeof USERS !== 'undefined' && USERS.length) {
+          for (var j = 0; j < USERS.length; j++) {
+            if (USERS[j].email && USERS[j].email.toLowerCase() === email) {
+              liveUser = USERS[j]; break;
+            }
+          }
+        }
+      } catch(e) {}
+      sessieFn(liveUser);
     } else {
-      document.getElementById('login-err').textContent = 'App laden...';
+      pogingen++;
+      if (pogingen > 50) {
+        document.getElementById('login-err').textContent = 'App kon niet laden. Ververs de pagina (Ctrl+Shift+R).';
+        return;
+      }
+      document.getElementById('login-err').textContent = 'App laden... (' + pogingen + ')';
       setTimeout(start, 100);
     }
   }
@@ -1834,6 +1847,8 @@ function startSessie(user){
     initAdminInterface();
   }
 }
+window.startSessie = startSessie;  // expliciet voor bootstrap
+
 
 function logout(){
   supaLogout().catch(function(){});
