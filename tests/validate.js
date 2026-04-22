@@ -265,6 +265,31 @@ test('Kritieke DOM elementen aanwezig in HTML', () => {
   return missing.length === 0
     || `DOM elementen ontbreken: ${missing.join(', ')}`;
 });
+test('Unsafe getElementById (zonder null check) verwijst naar bestaand ID', () => {
+  // Detecteert patroon: getElementById('x').innerHTML = ...   (crasht als element ontbreekt)
+  // OF getElementById('x').textContent = ...
+  // OF .value = ...
+  // Veilig zijn: var el = getElementById(...); if(el) ...
+  const mainScript = scripts[scripts.length - 1].content;
+
+  // Detecteert getElementById('x').PROP waar PROP = innerHTML, textContent, value of classList
+  // Dit is de UNSAFE variant — zonder null check
+  const regex = /getElementById\s*\(\s*['"]([\w-]+)['"]\s*\)\s*\.\s*(innerHTML|textContent|value|classList)/g;
+
+  // Haal alle statisch gedefinieerde IDs
+  const htmlIds = new Set();
+  for (const m of html.matchAll(/\bid=["']([\w-]+)["']/g)) htmlIds.add(m[1]);
+  // Dynamisch via innerHTML ingevoegde IDs
+  for (const m of mainScript.matchAll(/id=["']([\w-]+)["']/g)) htmlIds.add(m[1]);
+
+  const missing = [];
+  for (const m of mainScript.matchAll(regex)) {
+    if (!htmlIds.has(m[1])) missing.push(m[1]);
+  }
+
+  return missing.length === 0
+    || `Unsafe getElementById op ontbrekend ID: ${[...new Set(missing)].join(', ')}`;
+});
 
 test('Script tag staat vóór body content (garanties voor inline onclicks)', () => {
   // Alle scripts moeten vóór de onclick handlers komen
