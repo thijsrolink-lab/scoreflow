@@ -536,9 +536,31 @@ async function laadAlleData() {
     var gbs = await supa('gebruikers', 'GET', null, { select: '*', order: 'ach.asc' });
     var ws  = await supa('wedstrijden', 'GET', null, { select: '*', order: 'datum.asc' });
     var ings= await supa('inschrijvingen', 'GET', null, { select: '*' });
+    var fls = await supa('flights', 'GET', null, { select: '*' });
+    var scs = await supa('scores', 'GET', null, { select: '*' });
     USERS        = (gbs  || []).map(dbGebruikerNaarApp);
     WEDSTRIJDEN  = (ws   || []).map(dbWedstrijdNaarApp);
     INSCHRIJVINGEN=(ings || []).map(dbIngNaarApp);
+
+    // Flights reconstrueren: { wid: [[sid1, sid2, ...], [sid3, sid4, ...]] }
+    FLIGHTS = {};
+    (fls || []).forEach(function(f) {
+      if (!FLIGHTS[f.wid]) FLIGHTS[f.wid] = [];
+      while (FLIGHTS[f.wid].length <= f.flight_nr) FLIGHTS[f.wid].push([]);
+      FLIGHTS[f.wid][f.flight_nr].push(f.sid);
+    });
+
+    // Scores reconstrueren: SCORES[wid][ronde][sid] = [h1, h2, ..., h18]
+    SCORES = {};
+    (scs || []).forEach(function(s) {
+      var wid = s.wid, ronde = s.ronde || 0, sid = s.sid;
+      var holeIdx = (s.hole || 1) - 1;  // opgeslagen als 1-18, intern 0-17
+      if (!SCORES[wid]) SCORES[wid] = {};
+      if (!SCORES[wid][ronde]) SCORES[wid][ronde] = {};
+      if (!SCORES[wid][ronde][sid]) SCORES[wid][ronde][sid] = Array(18).fill('');
+      SCORES[wid][ronde][sid][holeIdx] = s.score;
+    });
+
     hideLoader();
     return true;
   } catch(e) { hideLoader(); toast('Data laden mislukt: ' + e.message, 'err'); return false; }
@@ -2952,9 +2974,15 @@ function uiTexasScramble(wId, ronde, baan, sps, w) {
 
     var teamHcp = teamHandicapScramble(spelers, perc);
     var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
-    // Team score opslaan onder een vaste sleutel: 'team-' + fi
+    // Team score: probeer eerst onder 'team-' key, anders lees uit eerste teamlid
     var teamKey = 'team-' + fi;
-    var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]) || Array(baan.holes).fill('');
+    var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
+    if (!scores && spelers.length > 0) {
+      // Lees uit eerste teamlid (team scores worden gesynced over alle leden)
+      var eersteSid = spelers[0].id;
+      scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][eersteSid]);
+    }
+    scores = scores || Array(baan.holes).fill('');
     var strokeplay = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
     var stableford = berekenStableford(scores, baan, teamSh);
 
@@ -3072,22 +3100,40 @@ function updateTeamScore(inp) {
 }
 
 async function dbSaveTeamScore(wId, ronde, teamKey, holeIdx, score) {
-  // Team scores opgeslagen in scores tabel met sid = teamKey (bijv 'team-0')
+  // Team scores voor Texas Scramble: sla dezelfde score op voor elk teamlid in de flight
+  // Dit maakt persistentie mogelijk via de bestaande scores tabel (sid = UUID van speler)
   try {
-    await fetch(SUPA_URL + '/rest/v1/scores', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPA_KEY,
-        'Authorization': 'Bearer ' + SUPA_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates',
-      },
-      body: JSON.stringify({
-        wid: wId, sid: teamKey, ronde: ronde,
-        hole_idx: holeIdx, score: score === '' ? null : score
-      })
-    });
-  } catch(e) { /* ignore */ }
+    var flightIdx = parseInt(teamKey.replace('team-', ''));
+    var flight = (FLIGHTS[wId] || [])[flightIdx];
+    if (!flight || !flight.length) return;
+
+    // Sla dezelfde score op voor elk teamlid + lokaal bijhouden in SCORES
+    for (var i = 0; i < flight.length; i++) {
+      var sid = flight[i];
+      // Lokale state bijwerken zodat UI synchroniseert
+      if (!SCORES[wId]) SCORES[wId] = {};
+      if (!SCORES[wId][ronde]) SCORES[wId][ronde] = {};
+      if (!SCORES[wId][ronde][sid]) SCORES[wId][ronde][sid] = Array(18).fill('');
+      SCORES[wId][ronde][sid][holeIdx] = score === '' ? '' : score;
+
+      // Naar Supabase
+      await fetch(SUPA_URL + '/rest/v1/scores', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify({
+          wid: wId, sid: sid, ronde: ronde,
+          hole: holeIdx + 1,
+          score: score === '' ? null : score,
+          bijgewerkt: new Date().toISOString()
+        })
+      });
+    }
+  } catch(e) { console.warn('dbSaveTeamScore:', e.message); }
 }
 
 // Team leaderboard voor scramble
@@ -3105,7 +3151,11 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     var teamHcp = teamHandicapScramble(spelers, perc);
     var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
     var teamKey = 'team-' + fi;
-    var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]) || Array(baan.holes).fill('');
+    var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
+    if (!scores && spelers.length > 0) {
+      scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][spelers[0].id]);
+    }
+    scores = scores || Array(baan.holes).fill('');
     var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
 
     return {
@@ -3170,7 +3220,11 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
 
   if (!SCORES[wId]) SCORES[wId] = {};
   if (!SCORES[wId][0]) SCORES[wId][0] = {};
-  var scores = SCORES[wId][0][teamKey] || Array(baan.holes).fill('');
+  var scores = SCORES[wId][0][teamKey];
+  if (!scores && spelers.length > 0) {
+    scores = SCORES[wId][0][spelers[0].id];
+  }
+  scores = scores || Array(baan.holes).fill('');
   SCORES[wId][0][teamKey] = scores;
 
   var strokeplay = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
@@ -4183,7 +4237,11 @@ function renderLiveLeaderboard() {
       var teamHcp = teamHandicapScramble(spelers, perc);
       var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
       var teamKey = 'team-' + fi;
-      var scores = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][teamKey]) || Array(baan.holes).fill('');
+      var scores = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][teamKey]);
+      if (!scores && spelers.length > 0) {
+        scores = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][spelers[0].id]);
+      }
+      scores = scores || Array(baan.holes).fill('');
       var sp = berekenStrokeplay(scores, baan, teamSh);
       // Team naam: namen van spelers
       var naam = 'Flight ' + (fi+1) + ' — ' + spelers.map(function(s) {
