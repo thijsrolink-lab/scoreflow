@@ -6219,7 +6219,17 @@ function openCompWizard(id) {
   html += '<button class="btn btn-p" id="comp-save-btn" onclick="saveCompetitie()" style="display:none">&#10003; Opslaan</button>';
   html += '</div>';
 
-  document.getElementById('modal-comp-body').innerHTML = html;
+  var body = document.getElementById('modal-comp-body');
+  if (!body) {
+    // Modal container niet aanwezig — maak hem aan
+    var modalBg = document.createElement('div');
+    modalBg.className = 'modal-bg';
+    modalBg.id = 'modal-comp';
+    modalBg.innerHTML = '<div class="modal" style="max-width:560px;width:95%"><div id="modal-comp-body"></div></div>';
+    document.body.appendChild(modalBg);
+    body = document.getElementById('modal-comp-body');
+  }
+  body.innerHTML = html;
   openModal('modal-comp');
   compUpdateTypeInfo();
 }
