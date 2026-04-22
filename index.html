@@ -1775,7 +1775,7 @@ function uiParComp(wId, ronde, baan, sps, w) {
     var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     var scCls = r.has && r.totaal > 0 ? 'under' : r.has && r.totaal < 0 ? 'over' : '';
     html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td>';
-    html += '<td style="font-weight:500">' + esc(r.naam) + '</td>';
+    html += '<td style="font-weight:500">' + escHtml(r.naam) + '</td>';
     html += '<td><span class="badge bg">' + r.sh + '</span></td>';
     html += '<td style="color:var(--gm);font-weight:500">' + (r.has ? r.gewonnen : '—') + '</td>';
     html += '<td style="color:var(--txm)">' + (r.has ? r.gelijk : '—') + '</td>';
@@ -1822,7 +1822,7 @@ function uiFoursomes(wId, ronde, baan, sps, w) {
     var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     var vp = team.res.ges > 0 ? team.res.nvp : null;
     html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td>';
-    html += '<td><strong>' + esc(team.spA.voor + ' ' + team.spA.ach) + '</strong><br><span style="font-size:11px;color:var(--txm)">' + esc(team.spB.voor + ' ' + team.spB.ach) + '</span></td>';
+    html += '<td><strong>' + escHtml(team.spA.voor + ' ' + team.spA.ach) + '</strong><br><span style="font-size:11px;color:var(--txm)">' + escHtml(team.spB.voor + ' ' + team.spB.ach) + '</span></td>';
     html += '<td>' + team.gh.teamHcp + '</td>';
     html += '<td><span class="badge bg">' + team.gh.sh + '</span></td>';
     html += '<td>' + (team.res.ges > 0 ? team.res.bruto : '—') + '</td>';
@@ -1839,7 +1839,7 @@ function uiFoursomes(wId, ronde, baan, sps, w) {
     html += '<div class="csk-wrap" style="margin-bottom:.75rem">';
     // Team header
     html += '<div style="padding:.5rem .75rem;background:var(--g);color:#fff;font-size:12px;font-weight:500">' +
-      esc(team.spA.voor + ' ' + team.spA.ach + ' & ' + team.spB.voor + ' ' + team.spB.ach) +
+      escHtml(team.spA.voor + ' ' + team.spA.ach + ' & ' + team.spB.voor + ' ' + team.spB.ach) +
       ' <span style="opacity:.6">· SH ' + team.gh.sh + '</span></div>';
     // Hole nummers
     html += '<div style="display:grid;' + cols + ';background:var(--surf);font-size:10px;color:var(--txm);font-weight:500;border-bottom:1px solid var(--bd)">';
@@ -1981,7 +1981,7 @@ function renderBracketView(wId) {
       html += '<div class="card" style="margin-bottom:.5rem;padding:.75rem">';
       // Speler A
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--surf)">';
-      html += '<span style="font-size:13px;font-weight:' + (winA?'600':'400') + ';color:' + (winA?'var(--g)':'var(--tx)') + '">' + esc(spAnaam) + '</span>';
+      html += '<span style="font-size:13px;font-weight:' + (winA?'600':'400') + ';color:' + (winA?'var(--g)':'var(--tx)') + '">' + escHtml(spAnaam) + '</span>';
       if (match.spA && !match.bye && !match.winnaar) {
         html += '<button class="btn btn-p btn-xs" onclick="bracketWinnaar(' + wId + ',' + ri + ',' + mi + ',' + (match.spA?match.spA.id:'null') + ')">Wint</button>';
       } else if (winA) {
@@ -1990,7 +1990,7 @@ function renderBracketView(wId) {
       html += '</div>';
       // Speler B
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0">';
-      html += '<span style="font-size:13px;font-weight:' + (winB?'600':'400') + ';color:' + (winB?'var(--g)':match.bye?'var(--txh)':'var(--tx)') + '">' + esc(spBnaam) + '</span>';
+      html += '<span style="font-size:13px;font-weight:' + (winB?'600':'400') + ';color:' + (winB?'var(--g)':match.bye?'var(--txh)':'var(--tx)') + '">' + escHtml(spBnaam) + '</span>';
       if (match.spB && !match.bye && !match.winnaar) {
         html += '<button class="btn btn-p btn-xs" onclick="bracketWinnaar(' + wId + ',' + ri + ',' + mi + ',' + (match.spB?match.spB.id:'null') + ')">Wint</button>';
       } else if (winB) {
@@ -2015,7 +2015,7 @@ function renderBracketView(wId) {
     var kampioen = USERS.find(function(x){return x.id === finale.winnaar;});
     html += '<div style="display:flex;align-items:center;justify-content:center;flex-direction:column;min-width:120px">';
     html += '<div style="font-size:40px">🏆</div>';
-    html += '<div style="font-size:16px;font-weight:700;color:var(--g);text-align:center;margin-top:.5rem">' + (kampioen?esc(kampioen.voor+' '+kampioen.ach):'Winnaar') + '</div>';
+    html += '<div style="font-size:16px;font-weight:700;color:var(--g);text-align:center;margin-top:.5rem">' + (kampioen?escHtml(kampioen.voor+' '+kampioen.ach):'Winnaar') + '</div>';
     html += '<div style="font-size:11px;color:var(--txm)">Kampioen</div></div>';
   }
 
@@ -2093,7 +2093,7 @@ function uiModifiedStableford(wId, ronde, baan, sps, w) {
   rows.forEach(function(r, i) {
     var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     var cls = r.has&&r.punten>0?'under':r.has&&r.punten<0?'over':'';
-    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td>';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+escHtml(r.naam)+'</td>';
     html+='<td><span class="badge bg">'+r.sh+'</span></td>';
     html+='<td class="'+cls+'" style="font-weight:600;font-size:15px">'+(r.has?(r.punten>0?'+':'')+r.punten:'—')+'</td>';
     html+='<td style="color:var(--txm)">'+r.ges+'/'+baan.holes+'</td></tr>';
@@ -2142,7 +2142,7 @@ function uiTeamStableford(wId, ronde, baan, sps, w) {
   teamResults.forEach(function(t, i) {
     var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
-    html+='<td>'+t.teamSps.map(function(s){return esc(s.voor+' '+s.ach);}).join(' / ')+'</td>';
+    html+='<td>'+t.teamSps.map(function(s){return escHtml(s.voor+' '+s.ach);}).join(' / ')+'</td>';
     html+='<td style="font-weight:600;color:var(--gm);font-size:15px">'+t.res.totaal+'</td></tr>';
   });
   return html+'</tbody></table>';
@@ -2185,7 +2185,7 @@ function uiAlliance(wId, ronde, baan, sps, w) {
   teamResults.forEach(function(t, i) {
     var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
-    html+='<td>'+t.teamSps.map(function(s){return esc(s.voor+' '+s.ach);}).join(' / ')+'</td>';
+    html+='<td>'+t.teamSps.map(function(s){return escHtml(s.voor+' '+s.ach);}).join(' / ')+'</td>';
     html+='<td style="font-weight:600;color:var(--gm)">'+t.res.totaalNetto+'</td>';
     html+='<td style="color:var(--txm)">'+t.res.ges+'/'+baan.holes+'</td></tr>';
   });
@@ -2239,7 +2239,7 @@ function uiVlaggenwedstrijd(wId, ronde, baan, sps, w) {
   rows.forEach(function(r, i) {
     var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
-    html+='<td style="font-weight:500">'+esc(r.naam)+'</td>';
+    html+='<td style="font-weight:500">'+escHtml(r.naam)+'</td>';
     html+='<td><span class="badge bg">'+r.vl.shv+'</span></td>';
     html+='<td>Hole <strong>'+r.vl.eindHole+'</strong></td>';
     html+='<td style="color:'+(r.vl.eindAfstand<0?'var(--red)':'var(--gm)')+';font-weight:500">'+(r.vl.eindAfstand<=0?r.vl.eindAfstand:'+'+r.vl.eindAfstand)+'</td></tr>';
@@ -2285,7 +2285,7 @@ function uiShootout(wId, ronde, baan, sps, w) {
 
   if (so.actief.length > 0) {
     html += '<div class="blk" style="margin-bottom:.75rem"><div class="blk-t">Nog actief (' + so.actief.length + ')</div>';
-    html += so.actief.map(function(sp){return '<div style="padding:5px 0;font-weight:500;color:var(--gm)">🏌 '+esc(sp.naam)+'</div>';}).join('');
+    html += so.actief.map(function(sp){return '<div style="padding:5px 0;font-weight:500;color:var(--gm)">🏌 '+escHtml(sp.naam)+'</div>';}).join('');
     html += '</div>';
   }
 
@@ -2296,7 +2296,7 @@ function uiShootout(wId, ronde, baan, sps, w) {
     if (h.gelijkspel) {
       html += '<td colspan="3" style="color:var(--amb)">Gelijkspel — niemand afgevallen</td>';
     } else {
-      html += '<td style="color:var(--red)">'+h.uitgevallen.map(function(s){return esc(s.naam);}).join(', ')+'</td>';
+      html += '<td style="color:var(--red)">'+h.uitgevallen.map(function(s){return escHtml(s.naam);}).join(', ')+'</td>';
       html += '<td>'+h.uitgevallen[0].netto+'</td>';
       html += '<td style="color:var(--txm)">'+(spScores.length - so.uitgevallen.filter(function(u){return u.uitgevallen_hole<=h.hole;}).length)+' spelers</td>';
     }
@@ -2353,7 +2353,7 @@ function uiAmerikaans(wId, ronde, baan, sps, w) {
   html+='<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>SH</th><th>Punten</th></tr></thead><tbody>';
   rows.forEach(function(r,i){
     var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td><span class="badge bg">'+r.shv+'</span></td><td style="font-weight:600;color:var(--gm)">'+r.punten+'</td></tr>';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+escHtml(r.naam)+'</td><td><span class="badge bg">'+r.shv+'</span></td><td style="font-weight:600;color:var(--gm)">'+r.punten+'</td></tr>';
   });
   return html+'</tbody></table>';
 }
@@ -2383,7 +2383,7 @@ function uiBingoBangoBongo(wId, ronde, baan, sps, w) {
       html += '<div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--txm);margin-bottom:2px">'+type.charAt(0).toUpperCase()+type.slice(1)+'</div>';
       html += '<select class="fi" style="padding:5px;font-size:12px" onchange="bbbSet('+wId+','+hole+',\''+type+'\',this.value)">';
       html += '<option value="">—</option>';
-      sps.forEach(function(s){html+='<option value="'+s.id+'"'+(bbb[type]==s.id?' selected':'')+'>'+esc(s.voor+' '+s.ach)+'</option>';});
+      sps.forEach(function(s){html+='<option value="'+s.id+'"'+(bbb[type]==s.id?' selected':'')+'>'+escHtml(s.voor+' '+s.ach)+'</option>';});
       html += '</select></div>';
     });
     html += '</div></div>';
@@ -2406,7 +2406,7 @@ function uiBingoBangoBongo(wId, ronde, baan, sps, w) {
   html += '<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>Bingo</th><th>Bango</th><th>Bongo</th><th>Totaal</th></tr></thead><tbody>';
   rows.forEach(function(r,i){
     var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td>'+r.t.bingo+'</td><td>'+r.t.bango+'</td><td>'+r.t.bongo+'</td><td style="font-weight:600;color:var(--gm)">'+r.t.totaal+'</td></tr>';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+escHtml(r.naam)+'</td><td>'+r.t.bingo+'</td><td>'+r.t.bango+'</td><td>'+r.t.bongo+'</td><td style="font-weight:600;color:var(--gm)">'+r.t.totaal+'</td></tr>';
   });
   return html+'</tbody></table>';
 }
@@ -2439,15 +2439,15 @@ function berekenRabbit(spScores, baan, pot) {
       var winner = winners[0];
       if (haas && haas === bezitter) {
         // Haas verloren
-        actie = esc(bezitter.naam) + ' verliest de haas aan ' + esc(winner.naam);
+        actie = escHtml(bezitter.naam) + ' verliest de haas aan ' + escHtml(winner.naam);
         verdiensten[winner.id] += pot;
         haas = winner; bezitter = winner;
       } else {
-        actie = esc(winner.naam) + ' pakt de haas';
+        actie = escHtml(winner.naam) + ' pakt de haas';
         haas = winner; bezitter = winner;
       }
     } else {
-      actie = 'Gelijkspel — haas blijft bij ' + (bezitter ? esc(bezitter.naam) : 'niemand');
+      actie = 'Gelijkspel — haas blijft bij ' + (bezitter ? escHtml(bezitter.naam) : 'niemand');
     }
     perHole.push({hole:i+1,haas:haas?haas.naam:null,actie:actie});
   });
@@ -2464,11 +2464,11 @@ function uiRabbit(wId, ronde, baan, sps, w) {
 
   var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Rabbit (Haas) · wie een hole wint "heeft de haas". Verdedigen tot de volgende verliest. Pot per haas: €'+pot+'</div>';
   html+='<table class="tbl"><thead><tr><th>Hole</th><th>Haas</th><th>Actie</th></tr></thead><tbody>';
-  r.perHole.forEach(function(h){html+='<tr><td style="font-weight:500">H'+h.hole+'</td><td>'+(h.haas?'🐇 '+esc(h.haas):'—')+'</td><td style="font-size:12px;color:var(--txm)">'+h.actie+'</td></tr>';});
+  r.perHole.forEach(function(h){html+='<tr><td style="font-weight:500">H'+h.hole+'</td><td>'+(h.haas?'🐇 '+escHtml(h.haas):'—')+'</td><td style="font-size:12px;color:var(--txm)">'+h.actie+'</td></tr>';});
   html+='</tbody></table>';
 
   html+='<div class="blk" style="margin-top:.75rem"><div class="blk-t">Verdiensten</div>';
-  sps.forEach(function(s){var v=r.verdiensten[s.id]||0;if(v>0)html+='<div style="padding:5px 0">'+esc(s.voor+' '+s.ach)+': <strong style="color:var(--gold)">€'+v+'</strong></div>';});
+  sps.forEach(function(s){var v=r.verdiensten[s.id]||0;if(v>0)html+='<div style="padding:5px 0">'+escHtml(s.voor+' '+s.ach)+': <strong style="color:var(--gold)">€'+v+'</strong></div>';});
   html+='</div>';
   return html;
 }
@@ -2501,9 +2501,9 @@ function uiShamble(wId, ronde, baan, sps, w) {
   teamResults.forEach(function(t,i){
     var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
-    html+='<td>'+t.teamSps.map(function(s){return esc(s.voor+' '+s.ach);}).join(' / ')+'</td>';
+    html+='<td>'+t.teamSps.map(function(s){return escHtml(s.voor+' '+s.ach);}).join(' / ')+'</td>';
     html+='<td style="font-weight:600;color:var(--gm)">'+t.teamPunten+'</td></tr>';
-    t.teamScores.forEach(function(sc){html+='<tr style="background:var(--surf)"><td></td><td style="font-size:12px;color:var(--txm);padding-left:1.5rem">'+esc(sc.naam)+' (SH '+sc.shv+')</td><td style="font-size:12px;color:var(--txm)">'+sc.punten+' ptn · '+sc.ges+'/'+baan.holes+' h</td></tr>';});
+    t.teamScores.forEach(function(sc){html+='<tr style="background:var(--surf)"><td></td><td style="font-size:12px;color:var(--txm);padding-left:1.5rem">'+escHtml(sc.naam)+' (SH '+sc.shv+')</td><td style="font-size:12px;color:var(--txm)">'+sc.punten+' ptn · '+sc.ges+'/'+baan.holes+' h</td></tr>';});
   });
   return html+'</tbody></table>';
 }
@@ -2539,7 +2539,7 @@ function uiChapman(wId, ronde, baan, sps, w) {
     var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     var vp=team.res.ges>0?team.res.nvp:null;
     html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
-    html+='<td><strong>'+esc(team.spA.voor+' '+team.spA.ach)+'</strong><br><span style="font-size:11px;color:var(--txm)">'+esc(team.spB.voor+' '+team.spB.ach)+'</span></td>';
+    html+='<td><strong>'+escHtml(team.spA.voor+' '+team.spA.ach)+'</strong><br><span style="font-size:11px;color:var(--txm)">'+escHtml(team.spB.voor+' '+team.spB.ach)+'</span></td>';
     html+='<td>'+team.gh.teamHcp+'</td><td><span class="badge bg">'+team.gh.sh+'</span></td>';
     html+='<td>'+(team.res.ges>0?team.res.bruto:'—')+'</td>';
     html+='<td style="font-weight:600;color:var(--gm)">'+(team.res.ges>0?team.res.netto:'—')+'</td>';
@@ -2552,7 +2552,7 @@ function uiChapman(wId, ronde, baan, sps, w) {
     var ex=extraSlagenPerHole(team.gh.sh,baan.si);
     var cols='grid-template-columns:120px repeat('+baan.holes+',1fr) 40px 40px';
     html+='<div class="csk-wrap" style="margin-top:.75rem">';
-    html+='<div style="padding:.5rem .75rem;background:var(--g);color:#fff;font-size:12px;font-weight:500">'+esc(team.spA.voor+' '+team.spA.ach+' & '+team.spB.voor+' '+team.spB.ach)+' · SH '+team.gh.sh+'</div>';
+    html+='<div style="padding:.5rem .75rem;background:var(--g);color:#fff;font-size:12px;font-weight:500">'+escHtml(team.spA.voor+' '+team.spA.ach+' & '+team.spB.voor+' '+team.spB.ach)+' · SH '+team.gh.sh+'</div>';
     html+='<div style="display:grid;'+cols+';background:var(--surf);font-size:10px;color:var(--txm);border-bottom:1px solid var(--bd)">';
     html+='<div style="padding:5px 8px;border-right:1px solid var(--bd)">Hole</div>';
     for(var hi=1;hi<=baan.holes;hi++)html+='<div style="padding:5px 2px;text-align:center;border-right:1px solid var(--bd)">'+hi+'</div>';
@@ -2641,7 +2641,7 @@ function uiOrderOfMerit() {
   html+='<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>W.</th><th>OoM punten</th></tr></thead><tbody>';
   rows.forEach(function(r,i){
     var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td style="color:var(--txm)">'+r.wedstrijden+'</td><td style="font-weight:700;color:var(--gold);font-size:16px">'+r.punten+'</td></tr>';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+escHtml(r.naam)+'</td><td style="color:var(--txm)">'+r.wedstrijden+'</td><td style="font-weight:700;color:var(--gold);font-size:16px">'+r.punten+'</td></tr>';
   });
   return html+'</tbody></table>';
 }
@@ -2659,7 +2659,7 @@ function uiVossenjacht(wId, baan, sps, w) {
   sps.forEach(function(s){
     var start=SCORES[wId]['vos'][s.id]||1;
     html+='<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--surf)">';
-    html+='<div style="flex:1;font-size:13px">'+esc(s.voor+' '+s.ach)+'</div>';
+    html+='<div style="flex:1;font-size:13px">'+escHtml(s.voor+' '+s.ach)+'</div>';
     html+='<div style="display:flex;align-items:center;gap:6px"><label style="font-size:12px;color:var(--txm)">Start hole:</label>';
     html+='<select class="fi" style="width:70px;padding:5px" onchange="vosSetStart('+wId+','+s.id+',this.value)">';
     for(var hi=1;hi<=baan.holes;hi++)html+='<option value="'+hi+'"'+(start==hi?' selected':'')+'>'+hi+'</option>';
@@ -2706,7 +2706,7 @@ function uiHiddenHoles(wId, ronde, baan, sps, w) {
   html+='<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>SH</th><th>Punten</th></tr></thead><tbody>';
   rows.forEach(function(r,i){
     var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+esc(r.naam)+'</td><td><span class="badge bg">'+r.shv+'</span></td><td style="font-weight:600;color:var(--gm)">'+r.punten+'</td></tr>';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+escHtml(r.naam)+'</td><td><span class="badge bg">'+r.shv+'</span></td><td style="font-weight:600;color:var(--gm)">'+r.punten+'</td></tr>';
   });
   return html+'</tbody></table>';
 }
@@ -2735,7 +2735,7 @@ function uiStokkenroof(wId, ronde, baan, sps, w) {
     var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
     var verloren=0;
     sc.forEach(function(v,i){if(v&&v!==''&&Number(v)>baan.par[i])verloren++;});
-    html+='<tr><td style="font-weight:500">'+esc(s.voor+' '+s.ach)+'</td>';
+    html+='<tr><td style="font-weight:500">'+escHtml(s.voor+' '+s.ach)+'</td>';
     html+='<td style="font-weight:600">'+(14-verloren)+'</td>';
     html+='<td style="color:var(--red)">'+verloren+'</td>';
     html+='<td><span style="font-size:20px">'+'🏌'.repeat(Math.max(0,Math.min(5,14-verloren)))+'</span></td></tr>';
@@ -2757,7 +2757,7 @@ function uiBogeyComp(wId, ronde, baan, sps, w) {
     var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
     var scCls = r.has && r.totaal > 0 ? 'under' : r.has && r.totaal < 0 ? 'over' : '';
     html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td>';
-    html += '<td style="font-weight:500">' + esc(r.naam) + '</td>';
+    html += '<td style="font-weight:500">' + escHtml(r.naam) + '</td>';
     html += '<td style="color:var(--txm)">' + r.sh + '</td>';
     html += '<td style="color:var(--gm);font-weight:500">' + (r.has ? r.gewonnen : '—') + '</td>';
     html += '<td style="color:var(--txm)">' + (r.has ? r.gelijkspel : '—') + '</td>';
@@ -2782,9 +2782,9 @@ function uiMatchplay(wId, ronde, baan, sps, w) {
 
       html += '<div class="blk" style="margin-bottom:.75rem">';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">';
-      html += '<div style="font-weight:500">' + esc(spA.voor + ' ' + spA.ach) + ' <span class="badge bx">SH ' + mp.shA + '</span></div>';
+      html += '<div style="font-weight:500">' + escHtml(spA.voor + ' ' + spA.ach) + ' <span class="badge bx">SH ' + mp.shA + '</span></div>';
       html += '<div style="font-size:16px;font-weight:700;color:' + (mp.win === 'A' ? 'var(--gm)' : mp.win === 'B' ? 'var(--red)' : 'var(--txm)') + '">' + mp.eind + '</div>';
-      html += '<div style="font-weight:500"><span class="badge bx">SH ' + mp.shB + '</span> ' + esc(spB.voor + ' ' + spB.ach) + '</div>';
+      html += '<div style="font-weight:500"><span class="badge bx">SH ' + mp.shB + '</span> ' + escHtml(spB.voor + ' ' + spB.ach) + '</div>';
       html += '</div>';
       // Hole-voor-hole visualisatie
       html += '<div style="display:flex;flex-wrap:wrap;gap:3px">';
@@ -2794,7 +2794,7 @@ function uiMatchplay(wId, ronde, baan, sps, w) {
         html += '<div style="width:26px;height:26px;border-radius:5px;background:' + bg + ';color:' + fg + ';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500">' + h.hole + '</div>';
       });
       html += '</div>';
-      html += '<div style="font-size:11px;color:var(--txm);margin-top:.5rem">HCP verschil: ' + mp.versch + ' slagen · hogere HCP: speler ' + mp.hogere + ' (' + (mp.hogere === 'A' ? esc(spA.voor) : esc(spB.voor)) + ')</div>';
+      html += '<div style="font-size:11px;color:var(--txm);margin-top:.5rem">HCP verschil: ' + mp.versch + ' slagen · hogere HCP: speler ' + mp.hogere + ' (' + (mp.hogere === 'A' ? escHtml(spA.voor) : escHtml(spB.voor)) + ')</div>';
       html += '</div>';
     }
   }
@@ -2816,14 +2816,14 @@ function uiSkins(wId, ronde, baan, sps, w) {
   html += '<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>SH</th><th>Skins</th><th>Waarde</th></tr></thead><tbody>';
   sk.eindstand.forEach(function(e, i) {
     var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td><td style="font-weight:500">' + esc(e.naam) + '</td><td style="color:var(--txm)">' + e.shv + '</td><td style="font-weight:500;color:var(--gm)">' + e.skins + '</td><td style="color:var(--gold);font-weight:500">€' + e.waarde + '</td></tr>';
+    html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td><td style="font-weight:500">' + escHtml(e.naam) + '</td><td style="color:var(--txm)">' + e.shv + '</td><td style="font-weight:500;color:var(--gm)">' + e.skins + '</td><td style="color:var(--gold);font-weight:500">€' + e.waarde + '</td></tr>';
   });
   if (sk.openCarry > 0) html += '<tr><td colspan="5" style="color:var(--amb);font-size:12px">Open carry: ' + sk.openCarry + ' skin(s) · €' + sk.openPot + ' onverdeeld</td></tr>';
   html += '</tbody></table></div>';
 
   // Per hole
   html += '<div class="blk-t" style="margin-bottom:.5rem">Per hole</div>';
-  html += '<table class="tbl"><thead><tr><th>Hole</th><th>Par</th>' + sps.map(function(s) { return '<th>' + esc(s.voor) + '</th>'; }).join('') + '<th>Winnaar</th><th>Pot</th></tr></thead><tbody>';
+  html += '<table class="tbl"><thead><tr><th>Hole</th><th>Par</th>' + sps.map(function(s) { return '<th>' + escHtml(s.voor) + '</th>'; }).join('') + '<th>Winnaar</th><th>Pot</th></tr></thead><tbody>';
   sk.perHole.forEach(function(h) {
     var par = baan.par[h.hole - 1];
     var bg = h.win ? 'background:var(--gl)' : h.carry > 1 ? 'background:var(--redb)' : '';
@@ -2861,13 +2861,13 @@ function uiEclectic(wId, baan, sps, w) {
     geldig.forEach(function(r, i) {
       var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
       var vp = r.ecl.vsParNetto; var vpCls = vp < 0 ? 'under' : vp > 0 ? 'over' : '';
-      html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td><td style="font-weight:500">' + esc(r.naam) + '</td><td>' + r.ecl.aantalRondes + '</td><td>' + r.ecl.bruto + '</td><td><span class="badge bx">' + r.ecl.eclSH + '</span></td><td style="font-weight:500;color:var(--gm)">' + r.ecl.netto + '</td><td class="' + vpCls + '">' + fvp(vp) + '</td></tr>';
+      html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td><td style="font-weight:500">' + escHtml(r.naam) + '</td><td>' + r.ecl.aantalRondes + '</td><td>' + r.ecl.bruto + '</td><td><span class="badge bx">' + r.ecl.eclSH + '</span></td><td style="font-weight:500;color:var(--gm)">' + r.ecl.netto + '</td><td class="' + vpCls + '">' + fvp(vp) + '</td></tr>';
     });
     html += '</tbody></table>';
   }
   if (ongeldig.length) {
     html += '<div style="margin-top:.75rem;font-size:12px;color:var(--txm)">';
-    html += ongeldig.map(function(r) { return esc(r.naam) + ' — ' + r.ecl.reden; }).join(' · ');
+    html += ongeldig.map(function(r) { return escHtml(r.naam) + ' — ' + r.ecl.reden; }).join(' · ');
     html += '</div>';
   }
   return html;
@@ -2893,7 +2893,7 @@ function uiMultiRonde(wId, baan, sps, w) {
 
   rows.forEach(function(r, i) {
     var p = i+1; var pcls = p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td><td style="font-weight:500">' + esc(r.naam) + '</td><td style="color:var(--txm)">' + r.sh + '</td>';
+    html += '<tr><td><div class="lb-pos ' + pcls + '">' + p + '</div></td><td style="font-weight:500">' + escHtml(r.naam) + '</td><td style="color:var(--txm)">' + r.sh + '</td>';
     r.rondeRes.forEach(function(rr) {
       html += '<td style="' + (rr.ges > 0 ? 'font-weight:500' : 'color:var(--txh)') + '">' + (rr.ges > 0 ? rr.netto : '—') + '</td>';
     });
@@ -2914,9 +2914,9 @@ function uiFourball(wId, ronde, baan, sps, w) {
 
   var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Fourball (Better Ball) — per hole beste netto van elk team. Handicap t.o.v. laagste speler × 90%.</div>';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--surf);border-radius:var(--r);margin-bottom:1rem;flex-wrap:wrap;gap:8px">';
-  html += '<div><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Team A</div><div style="font-weight:500">' + esc(teamA.map(function(s){return s.voor+' '+s.ach;}).join(' & ')) + '</div></div>';
+  html += '<div><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Team A</div><div style="font-weight:500">' + escHtml(teamA.map(function(s){return s.voor+' '+s.ach;}).join(' & ')) + '</div></div>';
   html += '<div style="font-size:18px;font-weight:700;color:' + (fb.win === 'A' ? 'var(--gm)' : fb.win === 'B' ? 'var(--red)' : 'var(--txm)') + '">' + fb.eind + '</div>';
-  html += '<div style="text-align:right"><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Team B</div><div style="font-weight:500">' + esc(teamB.map(function(s){return s.voor+' '+s.ach;}).join(' & ')) + '</div></div>';
+  html += '<div style="text-align:right"><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Team B</div><div style="font-weight:500">' + escHtml(teamB.map(function(s){return s.voor+' '+s.ach;}).join(' & ')) + '</div></div>';
   html += '</div>';
   // Per hole
   html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:.75rem">';
@@ -2940,7 +2940,7 @@ function uiGreensome(wId, ronde, baan, sps, w) {
     var gh = greensomeTeamHcp(spA, spB, baan);
     var teamSc = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde]['gs-' + spA.id + '-' + spB.id]) || Array(baan.holes).fill('');
     var res = berekenTeamStroke(teamSc, baan, gh.sh, w.esc);
-    html += '<div class="blk"><div class="blk-t">' + esc(spA.voor + ' ' + spA.ach + ' & ' + spB.voor + ' ' + spB.ach) + '</div>';
+    html += '<div class="blk"><div class="blk-t">' + escHtml(spA.voor + ' ' + spA.ach + ' & ' + spB.voor + ' ' + spB.ach) + '</div>';
     html += '<div style="display:flex;gap:12px;margin-bottom:.75rem"><div><span style="font-size:12px;color:var(--txm)">Team HCP</span> <span class="badge bg">' + gh.teamHcp + '</span></div><div><span style="font-size:12px;color:var(--txm)">Speelhandicap</span> <span class="badge bg">' + gh.sh + '</span></div></div>';
     // Score invoer team
     html += '<div class="tbl-wrap"><table class="sc-tbl"><thead><tr><th>Hole</th>';
@@ -4653,7 +4653,7 @@ function bouwCompacteScorekaart(opts) {
     var sc = SCORES[wId][ronde][sp.id];
 
     html += '<div class="csk-row ' + gridCls + '">';
-    html += '<div class="csk-cell l" title="' + esc(sp.voor + ' ' + sp.ach) + '">' + esc(sp.voor[0] + '. ' + sp.ach) + ' <span class="badge bg" style="font-size:9px">' + shv + '</span></div>';
+    html += '<div class="csk-cell l" title="' + escHtml(sp.voor + ' ' + sp.ach) + '">' + escHtml(sp.voor[0] + '. ' + sp.ach) + ' <span class="badge bg" style="font-size:9px">' + shv + '</span></div>';
 
     sc.forEach(function(v, i) {
       var kls = v !== '' ? sklas(v, baan.par[i], ex[i]) : '';
@@ -4882,7 +4882,7 @@ function eclBesteKaart(wId, baan, sps, w) {
   leaderboard.forEach(function(row, pos) {
     var pcls = pos===0?'lp1':pos===1?'lp2':pos===2?'lp3':'lpn';
     html += '<div class="csk-row ' + gridCls + '">';
-    html += '<div class="csk-cell l"><div style="display:flex;align-items:center;gap:6px"><div class="lb-pos ' + pcls + '" style="width:20px;height:20px;font-size:9px">' + (pos+1) + '</div>' + esc(row.sp.voor[0] + '. ' + row.sp.ach) + ' <span class="badge bx" style="font-size:9px">SH ' + row.shv + '</span></div></div>';
+    html += '<div class="csk-cell l"><div style="display:flex;align-items:center;gap:6px"><div class="lb-pos ' + pcls + '" style="width:20px;height:20px;font-size:9px">' + (pos+1) + '</div>' + escHtml(row.sp.voor[0] + '. ' + row.sp.ach) + ' <span class="badge bx" style="font-size:9px">SH ' + row.shv + '</span></div></div>';
 
     row.beste.forEach(function(v, i) {
       var kls = v !== null ? sklas(v, baan.par[i], row.ex[i]) : '';
