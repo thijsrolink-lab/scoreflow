@@ -464,11 +464,217 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .stp.active{color:var(--g);border-bottom-color:var(--g);font-weight:600}
 .stp.done{color:var(--gm);border-bottom-color:var(--lime2)}
 
+
+/* ═══════════════════════════════════════════════
+   DASHBOARD v2 — GolfGameBook-geïnspireerd
+═══════════════════════════════════════════════ */
+.dash-welcome {
+  display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:1rem;
+  margin-bottom:.25rem;
+}
+.dash-welcome h2 {
+  font-family:'Playfair Display', Georgia, serif;
+  font-weight:700; font-size:28px; color:var(--g); margin:0;
+}
+.dash-welcome .sub {
+  font-size:13px; color:var(--txm); margin-top:4px;
+}
+.dash-welcome-actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+/* Hero wedstrijd card */
+.hero-match {
+  position:relative; overflow:hidden;
+  border-radius:var(--rl); min-height:180px;
+  background:linear-gradient(135deg, var(--gd) 0%, var(--g) 50%, var(--gm) 100%);
+  color:#fff; display:flex; align-items:flex-end; padding:1.5rem;
+}
+.hero-match::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 85% 30%, rgba(61,184,82,0.3), transparent 50%),
+             radial-gradient(circle at 10% 100%, rgba(42,96,64,0.4), transparent 60%);
+  pointer-events:none;
+}
+.hero-match-content { position:relative; z-index:2; flex:1; }
+.hero-match-date {
+  font-family:'JetBrains Mono', ui-monospace, monospace;
+  font-size:11px; font-weight:500; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--lime2); margin-bottom:.5rem;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.hero-match-date::before {
+  content:''; width:8px; height:8px; background:var(--lime);
+  border-radius:50%; animation:heroPulse 2s infinite;
+}
+@keyframes heroPulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:.5; transform:scale(1.3); }
+}
+.hero-match h3 {
+  font-family:'Playfair Display', Georgia, serif; font-style:italic;
+  font-size:32px; font-weight:700; margin:0 0 .5rem 0; line-height:1.1;
+}
+.hero-match-meta {
+  display:flex; gap:1.5rem; flex-wrap:wrap; font-size:13px; color:rgba(255,255,255,.85);
+}
+.hero-match-meta span { display:inline-flex; align-items:center; gap:6px; }
+.hero-match .btn-hero {
+  position:relative; z-index:2;
+  background:rgba(255,255,255,.12); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.25); color:#fff;
+  padding:.75rem 1.25rem; border-radius:var(--r);
+  font-family:inherit; font-size:13px; font-weight:500; cursor:pointer;
+  transition:all .2s ease;
+}
+.hero-match .btn-hero:hover {
+  background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.4);
+  transform:translateY(-1px);
+}
+
+/* Wedstrijd cards strip */
+.dash-cards-head {
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin-bottom:.75rem;
+}
+.dash-cards-head h3 {
+  font-family:'Playfair Display', Georgia, serif;
+  font-size:18px; font-weight:700; color:var(--tx); margin:0;
+}
+.dash-cards-head .show-all {
+  font-size:12px; color:var(--gm); text-decoration:none; font-weight:500;
+}
+.dash-cards-head .show-all:hover { text-decoration:underline; }
+
+.dash-cards {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(265px, 1fr));
+  gap:12px;
+}
+.wed-card {
+  background:var(--card); border:1px solid var(--bd); border-radius:var(--r);
+  padding:1rem; transition:all .2s ease; cursor:pointer;
+  display:flex; flex-direction:column; gap:.75rem;
+}
+.wed-card:hover {
+  border-color:var(--gm); box-shadow:0 4px 16px rgba(26,61,43,0.08);
+  transform:translateY(-2px);
+}
+.wed-card-top { display:flex; align-items:flex-start; gap:.75rem; }
+.wed-card-date {
+  background:var(--bg); border:1px solid var(--bd); border-radius:var(--r);
+  padding:.5rem .6rem; text-align:center; flex-shrink:0; min-width:52px;
+}
+.wed-card-date .m {
+  font-size:10px; font-weight:600; color:var(--gm);
+  letter-spacing:.08em; text-transform:uppercase;
+}
+.wed-card-date .d {
+  font-family:'Playfair Display', Georgia, serif;
+  font-size:24px; font-weight:700; color:var(--tx); line-height:1;
+}
+.wed-card-date .dow {
+  font-size:10px; color:var(--txm); text-transform:uppercase;
+  letter-spacing:.08em; margin-top:2px;
+}
+.wed-card-info { flex:1; min-width:0; }
+.wed-card-info .naam {
+  font-weight:500; font-size:14px; color:var(--tx);
+  margin-bottom:2px; line-height:1.3;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.wed-card-info .meta {
+  font-size:11px; color:var(--txm);
+  display:flex; align-items:center; gap:4px;
+}
+.wed-card-badge {
+  display:inline-block; padding:3px 8px; border-radius:4px;
+  font-size:10px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+  background:var(--gl); color:var(--g);
+}
+.wed-card-badge.next { background:var(--lime); color:var(--gd); }
+.wed-card-stats {
+  display:flex; flex-direction:column; gap:6px;
+  padding:.6rem .75rem; background:var(--bg); border-radius:var(--r);
+  font-size:12px;
+}
+.wed-card-stats-row {
+  display:flex; justify-content:space-between; align-items:center;
+}
+.wed-card-stats-row .lbl {
+  display:inline-flex; align-items:center; gap:6px; color:var(--txm);
+}
+.wed-card-stats-row .val { font-weight:500; color:var(--tx); }
+.wed-card-tasks {
+  font-size:12px; padding:.5rem .75rem; border-top:1px solid var(--bd);
+}
+.wed-card-tasks-head {
+  display:flex; align-items:center; gap:8px; margin-bottom:.4rem;
+  font-weight:500;
+}
+.wed-card-tasks-count {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:20px; height:20px; padding:0 6px;
+  background:var(--g); color:#fff; border-radius:10px;
+  font-size:10px; font-weight:600;
+}
+.wed-card-tasks-count.done { background:var(--surf2); color:var(--txm); }
+.wed-card-tasks ul {
+  list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:2px;
+}
+.wed-card-tasks li {
+  display:flex; align-items:center; gap:6px;
+  font-size:11px; color:var(--txm);
+}
+.wed-card-tasks li::before {
+  content:'•'; color:var(--gm); font-weight:700;
+}
+.wed-card-cta {
+  margin-top:auto;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding:.55rem; border:1px solid var(--bd); border-radius:var(--r);
+  background:var(--card); color:var(--g); font-size:12px; font-weight:500;
+  text-decoration:none; cursor:pointer; transition:all .2s;
+  font-family:inherit;
+}
+.wed-card-cta:hover { background:var(--g); color:#fff; border-color:var(--g); }
+.wed-card-cta.primary { background:var(--g); color:#fff; border-color:var(--g); }
+.wed-card-cta.primary:hover { background:var(--gm); border-color:var(--gm); }
+
+/* Snel acties grid */
+.quick-grid {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));
+  gap:8px; padding:.25rem;
+}
+.quick-tile {
+  background:var(--card); border:1px solid var(--bd); border-radius:var(--r);
+  padding:1rem .5rem; text-align:center; cursor:pointer; transition:all .2s;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  font-family:inherit; font-size:11px; font-weight:500; color:var(--tx);
+  line-height:1.2;
+}
+.quick-tile:hover {
+  border-color:var(--gm); background:var(--gl);
+  transform:translateY(-1px);
+}
+.quick-tile .qt-icon {
+  width:32px; height:32px; border-radius:8px; background:var(--bg);
+  display:flex; align-items:center; justify-content:center; color:var(--g);
+}
+
+/* Responsive */
+@media (max-width:900px) {
+  .dash-welcome { flex-direction:column; align-items:flex-start; }
+  .dash-welcome h2 { font-size:22px; }
+  #dash-bottom { grid-template-columns:1fr !important; }
+  .hero-match { min-height:150px; padding:1rem; }
+  .hero-match h3 { font-size:22px; }
+  .dash-cards { grid-template-columns:1fr; }
+}
+
 </style>
 
 <script>
 // ═══════════════ GLOBAL STATE (vooraan gedefinieerd) ═══════════════
 var COMPETITIES = [];
+var BERICHTEN = [];  // systeem notificaties
 
 // Competitie types
 var COMP_TYPES = [
@@ -1171,55 +1377,197 @@ function updateAdminBadges(){
 function mc(label,val,sub,valStyle){return '<div class="mc"><div class="ml">'+label+'</div><div class="mv"'+(valStyle?' style="'+valStyle+'"':'')+'>'+val+'</div><div class="md">'+sub+'</div></div>';}
 
 function renderAdminDashboard(){
-  var now=new Date();
-  var wl=INSCHRIJVINGEN.filter(function(i){return i.status==='wachtlijst';}).length;
-  var tot=INSCHRIJVINGEN.filter(function(i){return i.status==='ingeschreven';}).length;
-  var actief=WEDSTRIJDEN.filter(function(w){return w.status==='gepubliceerd';}).length;
-  var next=WEDSTRIJDEN.filter(function(w){return new Date(w.datum)>=now&&w.status==='gepubliceerd';}).sort(function(a,b){return new Date(a.datum)-new Date(b.datum);})[0];
+  var now = new Date();
   updateAdminBadges();
 
-  var pills=[
-    {id:'wedstrijden',icon:'<path d="M2 4h12M2 8h12M2 12h8"/>',label:'Wedstrijden'},
-    {id:'inschrijvingen',icon:'<path d="M3 4h10v9H3z"/>',label:'Inschrijvingen'},
-    {id:'flights',icon:'<circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/>',label:'Flights'},
-    {id:'scores',icon:'<path d="M2 12L6 7l3 4 2-3 3 4"/>',label:'Scores'},
-    {id:'spelers',icon:'<circle cx="6" cy="5" r="3"/>',label:'Leden'},
-  ].filter(function(p){return heeftToegang(p.id);});
-  document.getElementById('quick-pills').innerHTML=pills.map(function(p){
-    return '<span class="quick-pill" onclick="adminNav(\''+p.id+'\')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">'+p.icon+'</svg>'+p.label+'</span>';
-  }).join('');
+  // ── Welkom header ───────────────────────────────────────
+  var u = _currentUser || { voor: 'Admin', ach: '' };
+  var naam = u.voor || 'Admin';
+  var dag = new Date();
+  var dagNaam = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][dag.getDay()];
+  var datumStr = dagNaam + ' ' + dag.getDate() + ' ' + MN[dag.getMonth()];
+  var welkomHtml = '' +
+    '<div class="dash-welcome">' +
+      '<div>' +
+        '<h2>Welkom terug, ' + escHtml(naam) + '!</h2>' +
+        '<div class="sub">' + datumStr + ' &middot; Dit zijn jouw aankomende wedstrijden en taken.</div>' +
+      '</div>' +
+      '<div class="dash-welcome-actions">' +
+        (heeftToegang('kalender') ? '<button class="btn btn-s btn-sm" onclick="adminNav(\'kalender\')">&#128197; Naar kalender</button>' : '') +
+        (heeftToegang('nieuw') ? '<button class="btn btn-p btn-sm" onclick="adminNav(\'nieuw\')">+ Nieuwe wedstrijd</button>' : '') +
+      '</div>' +
+    '</div>';
+  var welEl = document.getElementById('dash-welcome');
+  if (welEl) welEl.innerHTML = welkomHtml;
 
-  document.getElementById('dash-stats').innerHTML=
-    mc('Actieve wedstrijden',actief,'dit seizoen')+
-    mc('Ingeschreven',tot,'over alle wedstrijden')+
-    mc('Leden',USERS.filter(function(u){return u.rol==='Speler';}).length,'in database')+
-    mc('Wachtlijst',wl,'openstaand','color:var(--amb)')+
-    (next?mc('Volgende',new Date(next.datum).getDate()+' '+MN[new Date(next.datum).getMonth()],next.naam,'font-size:14px'):'');
+  // ── Volgende wedstrijd (hero) ───────────────────────────
+  var alle = (WEDSTRIJDEN || []).filter(function(w) {
+    return w && w.datum && new Date(w.datum) >= now && w.status === 'gepubliceerd';
+  }).sort(function(a, b) { return new Date(a.datum) - new Date(b.datum); });
 
-  var up=WEDSTRIJDEN.filter(function(w){return new Date(w.datum)>=now;}).sort(function(a,b){return new Date(a.datum)-new Date(b.datum);}).slice(0,5);
-  document.getElementById('dash-upcoming').innerHTML=up.map(function(w){
-    var d=new Date(w.datum);var ic=INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';}).length;var pct=Math.round((ic/w.max)*100);
-    return '<div class="lr"><div class="lr-l"><div class="lr-n">'+w.naam+'</div><div class="lr-m">'+d.getDate()+' '+MN[d.getMonth()]+' &middot; '+w.vorm+'</div><div style="display:flex;align-items:center;gap:6px;margin-top:3px"><div class="pb" style="width:80px"><div class="pf" style="width:'+pct+'%"></div></div><span style="font-size:11px;color:var(--txm)">'+ic+'/'+w.max+'</span></div></div><div class="lr-r"><span class="badge '+(w.status==='gepubliceerd'?'bg':'bx')+'">'+w.status+'</span></div></div>';
-  }).join('')||'<p style="font-size:13px;color:var(--txm)">Geen aankomende wedstrijden.</p>';
+  var next = alle[0];
+  var heroHtml = '';
+  if (next) {
+    var d = new Date(next.datum);
+    var heroDatum = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()] +
+      ' ' + d.getDate() + ' ' + MN[d.getMonth()];
+    heroHtml = '' +
+      '<div class="hero-match">' +
+        '<div class="hero-match-content">' +
+          '<div class="hero-match-date">Eerstvolgende &middot; ' + heroDatum + '</div>' +
+          '<h3>' + escHtml(next.naam) + '</h3>' +
+          '<div class="hero-match-meta">' +
+            '<span>&#128205; ' + escHtml(next.baan || 'Onbekend') + '</span>' +
+            (next.tijd ? '<span>&#128337; Start ' + escHtml(next.tijd) + '</span>' : '') +
+            '<span>&#127919; ' + escHtml(next.vorm || '') + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<button class="btn-hero" onclick="adminNavToW(\'' + next.id + '\')">Naar deze wedstrijd &#8594;</button>' +
+      '</div>';
+  } else {
+    heroHtml = '<div class="hero-match"><div class="hero-match-content">' +
+      '<div class="hero-match-date">Geen geplande wedstrijd</div>' +
+      '<h3>Tijd om een nieuwe wedstrijd te plannen</h3>' +
+      '<div class="hero-match-meta"><span>Maak een wedstrijd aan om te beginnen</span></div>' +
+      '</div>' +
+      (heeftToegang('nieuw') ? '<button class="btn-hero" onclick="adminNav(\'nieuw\')">+ Nieuwe wedstrijd</button>' : '') +
+      '</div>';
+  }
+  var heroEl = document.getElementById('dash-hero');
+  if (heroEl) heroEl.innerHTML = heroHtml;
 
-  var mxI=Math.max.apply(null,WEDSTRIJDEN.map(function(w){return w.max;}));mxI=mxI||1;
-  document.getElementById('dash-chart').innerHTML=WEDSTRIJDEN.slice(0,6).map(function(w){
-    var ic=INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';}).length;
-    var h=Math.max(4,Math.round((ic/mxI)*70));
-    return '<div class="bar-wrap"><div class="bar" style="height:'+h+'px;background:'+(w.status==='gepubliceerd'?'var(--gl2)':'var(--bd)')+'"></div><div class="bar-lbl">'+ic+'</div></div>';
-  }).join('');
+  // ── Wedstrijd cards (eerstvolgende 4) ───────────────────
+  var cardsLijst = alle.slice(0, 4);
+  var cardsHtml = '' +
+    '<div class="dash-cards-head">' +
+      '<h3>Jouw aankomende wedstrijden</h3>' +
+      (alle.length > 4 ? '<a class="show-all" onclick="adminNav(\'wedstrijden\')" style="cursor:pointer">Toon alle (' + alle.length + ') &#8594;</a>' : '') +
+    '</div>' +
+    '<div class="dash-cards">';
 
-  var rec=INSCHRIJVINGEN.slice(-4).reverse();
-  document.getElementById('dash-recent').innerHTML=rec.map(function(i){
-    var s=USERS.find(function(x){return x.id===i.sid;}),w=WEDSTRIJDEN.find(function(x){return x.id===i.wid;});
-    if(!s||!w)return '';
-    return '<div class="lr"><div class="lr-l"><div class="lr-n">'+s.voor+' '+s.ach+'</div><div class="lr-m">'+w.naam+' &middot; '+i.datum+'</div></div><div class="lr-r"><span class="badge '+(i.status==='ingeschreven'?'bg':'ba')+'">'+i.status+'</span></div></div>';
-  }).join('')||'<p style="font-size:13px;color:var(--txm)">Geen recente inschrijvingen.</p>';
+  if (cardsLijst.length === 0) {
+    cardsHtml += '<div style="grid-column:1/-1;padding:1.5rem;text-align:center;color:var(--txm);background:var(--bg);border-radius:var(--r);font-size:13px">Nog geen gepubliceerde wedstrijden.</div>';
+  } else {
+    cardsLijst.forEach(function(w, idx) {
+      var d = new Date(w.datum);
+      var ic = (INSCHRIJVINGEN || []).filter(function(i) {
+        return i.wid === w.id && i.status === 'ingeschreven';
+      }).length;
+      var wl = (INSCHRIJVINGEN || []).filter(function(i) {
+        return i.wid === w.id && i.status === 'wachtlijst';
+      }).length;
+      var pct = w.max ? Math.round((ic / w.max) * 100) : 0;
+      var isFirst = idx === 0;
 
-  var unread=NOTIFICATIES.filter(function(n){return !n.gelezen;}).slice(0,3);
-  document.getElementById('dash-notifs').innerHTML=unread.map(function(n){
-    return '<div class="notif-item"><div class="ndot ndot-new"></div><div><div style="font-size:13px;font-weight:500">'+n.onderwerp+'</div><div style="font-size:12px;color:var(--txm)">'+n.datum+' &middot; '+n.ontvangers+' ontvangers</div></div></div>';
-  }).join('')||'<p style="font-size:13px;color:var(--txm)">Geen ongelezen berichten.</p>';
+      // Bepaal taken voor deze wedstrijd
+      var taken = [];
+      var flights = FLIGHTS[w.id] || [];
+      var scores = SCORES[w.id] || {};
+      var sluitDatum = w.inschrijfSluit ? new Date(w.inschrijfSluit) : null;
+      var inschrijfOpen = !sluitDatum || now <= sluitDatum;
+      var daysTill = Math.floor((d - now) / 86400000);
+
+      // Controleer inschrijvingen (als er wachtlijst is)
+      if (wl > 0) taken.push('Controleer ' + wl + ' wachtlijst' + (wl !== 1 ? 'en' : ''));
+      // Flights maken (als er nog geen zijn en dichtbij)
+      if (flights.length === 0 && ic > 0 && daysTill <= 7) taken.push('Maak flights samen');
+      else if (flights.length === 0 && ic > 0 && daysTill <= 14) taken.push('Voorbereidingen flights');
+      // Startlijst definitief maken
+      if (flights.length > 0 && daysTill <= 3) taken.push('Maak/startlijst definitief');
+      // Scores verwerken (als wedstrijd bezig of voorbij)
+      if (d <= now && Object.keys(scores).length === 0) taken.push('Uitslag verwerken');
+
+      var takenHtml = taken.length > 0 ?
+        '<div class="wed-card-tasks">' +
+          '<div class="wed-card-tasks-head">Jouw taken <span class="wed-card-tasks-count">' + taken.length + '</span></div>' +
+          '<ul>' + taken.map(function(t){return '<li>'+escHtml(t)+'</li>';}).join('') + '</ul>' +
+        '</div>' :
+        '<div class="wed-card-tasks">' +
+          '<div class="wed-card-tasks-head">Jouw taken <span class="wed-card-tasks-count done">0</span></div>' +
+          '<div style="font-size:11px;color:var(--txm)">Geen openstaande taken</div>' +
+        '</div>';
+
+      cardsHtml += '' +
+        '<div class="wed-card">' +
+          '<div class="wed-card-top">' +
+            '<div class="wed-card-date">' +
+              '<div class="m">' + MN[d.getMonth()].slice(0,3) + '</div>' +
+              '<div class="d">' + d.getDate() + '</div>' +
+              '<div class="dow">' + ['Zo','Ma','Di','Wo','Do','Vr','Za'][d.getDay()] + '</div>' +
+            '</div>' +
+            '<div class="wed-card-info">' +
+              (isFirst ? '<span class="wed-card-badge next">Eerstvolgende</span><br style="line-height:4px">' : '') +
+              '<div class="naam" title="'+escHtml(w.naam)+'">' + escHtml(w.naam) + '</div>' +
+              '<div class="meta">&#127919; ' + escHtml(w.vorm || '') +
+                (w.tijd ? ' &middot; ' + escHtml(w.tijd) : '') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="wed-card-stats">' +
+            '<div class="wed-card-stats-row">' +
+              '<span class="lbl">&#128101; Inschrijvingen</span>' +
+              '<span class="val">' + ic + '/' + (w.max || '?') + '</span>' +
+            '</div>' +
+            (sluitDatum ?
+              '<div class="wed-card-stats-row">' +
+                '<span class="lbl">&#128337; Sluit op</span>' +
+                '<span class="val" style="font-size:11px">' + sluitDatum.getDate() + ' ' + MN[sluitDatum.getMonth()].slice(0,3) + '</span>' +
+              '</div>' : '') +
+          '</div>' +
+          takenHtml +
+          '<button class="wed-card-cta' + (isFirst ? ' primary' : '') + '" onclick="adminNavToW(\'' + w.id + '\')">Naar deze wedstrijd &#8594;</button>' +
+        '</div>';
+    });
+  }
+  cardsHtml += '</div>';
+
+  var cardsEl = document.getElementById('dash-cards-section');
+  if (cardsEl) cardsEl.innerHTML = cardsHtml;
+
+  // ── Snel acties tiles ───────────────────────────────────
+  var tiles = [
+    { id: 'inschrijvingen', label: 'Inschrijvingen', icon: '&#128101;' },
+    { id: 'flights',        label: 'Startlijst',     icon: '&#128197;' },
+    { id: 'scores',         label: 'Scores invoeren', icon: '&#128200;' },
+    { id: 'spelers',        label: 'Leden',          icon: '&#128100;' },
+    { id: 'competities',    label: 'Competities',    icon: '&#127942;' },
+  ].filter(function(t) { return heeftToegang(t.id); });
+
+  var tilesHtml = '<div class="quick-grid">' +
+    tiles.map(function(t) {
+      return '<div class="quick-tile" onclick="adminNav(\'' + t.id + '\')">' +
+        '<div class="qt-icon" style="font-size:18px">' + t.icon + '</div>' +
+        '<div>' + t.label + '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+
+  var qaEl = document.getElementById('dash-quick-actions');
+  if (qaEl) qaEl.innerHTML = tilesHtml;
+
+  // ── Berichten widget ────────────────────────────────────
+  var berichten = (BERICHTEN || []).slice().sort(function(a, b) {
+    return new Date(b.datum || 0) - new Date(a.datum || 0);
+  }).slice(0, 4);
+
+  var notEl = document.getElementById('dash-notifs');
+  if (notEl) {
+    if (berichten.length === 0) {
+      notEl.innerHTML = '<p style="font-size:13px;color:var(--txm);padding:.5rem">Geen nieuwe berichten.</p>';
+    } else {
+      notEl.innerHTML = berichten.map(function(b) {
+        var bd = b.datum ? new Date(b.datum) : null;
+        var dt = bd ? (bd.getDate() + ' ' + MN[bd.getMonth()].slice(0,3) + ' ' + (bd.getHours()<10?'0':'') + bd.getHours() + ':' + (bd.getMinutes()<10?'0':'') + bd.getMinutes()) : '';
+        return '<div style="padding:.6rem .75rem;border-bottom:1px solid var(--bd);display:flex;gap:10px;align-items:flex-start">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:var(--lime);flex-shrink:0;margin-top:6px"></div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:13px;font-weight:500">' + escHtml(b.titel || b.onderwerp || 'Bericht') + '</div>' +
+            (b.tekst ? '<div style="font-size:11px;color:var(--txm);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(b.tekst).slice(0,80) + '</div>' : '') +
+          '</div>' +
+          (dt ? '<div style="font-size:10px;color:var(--txh);flex-shrink:0">' + dt + '</div>' : '') +
+        '</div>';
+      }).join('') +
+      (heeftToegang('notificaties') ? '<div style="padding:.75rem"><a onclick="adminNav(\'notificaties\')" style="font-size:12px;color:var(--gm);cursor:pointer;font-weight:500">Alle berichten bekijken &#8594;</a></div>' : '');
+    }
+  }
 }
 
 // ============================================================
@@ -7112,15 +7460,12 @@ try {
     <div class="admin-content">
       <!-- DASHBOARD -->
       <div id="v-dashboard" class="view on">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem" id="quick-pills"></div>
-        <div class="g4" style="margin-bottom:1rem" id="dash-stats"></div>
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1rem">
-          <div class="card" style="margin-bottom:0"><div class="card-hd">Aankomende wedstrijden<div class="card-hd-r"><button class="help-knop" onclick="openHelp('dashboard')">&#63; Help</button></div></div><div id="dash-upcoming"></div></div>
-          <div class="card" style="margin-bottom:0"><div class="card-hd">Bezetting</div><div class="bar-chart" id="dash-chart"></div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-          <div class="card" style="margin-bottom:0"><div class="card-hd">Recente inschrijvingen</div><div id="dash-recent"></div></div>
-          <div class="card" style="margin-bottom:0"><div class="card-hd">Ongelezen berichten</div><div id="dash-notifs"></div></div>
+        <div id="dash-welcome" style="margin-bottom:1.25rem"></div>
+        <div id="dash-hero" style="margin-bottom:1.25rem"></div>
+        <div id="dash-cards-section" style="margin-bottom:1.25rem"></div>
+        <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:1rem" id="dash-bottom">
+          <div class="card" style="margin-bottom:0"><div class="card-hd">Snel acties</div><div id="dash-quick-actions"></div></div>
+          <div class="card" style="margin-bottom:0"><div class="card-hd">Berichten</div><div id="dash-notifs"></div></div>
         </div>
       </div>
 
