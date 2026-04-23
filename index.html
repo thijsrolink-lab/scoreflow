@@ -2305,11 +2305,11 @@ function dbGebruikerNaarApp(g) {
     hcp: g.hcp, lid: g.lid, ltype: g.ltype, gs: g.gs, jaar: g.jaar, tel: g.tel, pw: '(supabase)' };
 }
 function dbWedstrijdNaarApp(w) {
-  return { id: w.id, naam: w.naam, datum: w.datum, baan: w.baan, cr: w.cr, slope: w.slope,
+  return { id: w.id, naam: w.naam, datum: w.datum, tijd: w.tijd || null, baan: w.baan, cr: w.cr, slope: w.slope,
     holes: w.holes, vorm: w.vorm, rondes: w.rondes, status: w.status, max: w.max_deelnemers,
     hcpmax: w.hcp_max, hcpmin: w.hcp_min, hcpperc: w.hcp_perc, esc: w.esc,
     startgeld: w.startgeld, skinsPot: w.skins_pot, inschrijfOpen: w.inschrijf_open,
-    inschrijfSluit: w.inschrijf_sluit, omschrijving: w.omschrijving, kleur: w.kleur || 'ceg' };
+    inschrijfSluit: w.inschrijf_sluit, omschrijving: w.omschrijving, kleur: w.kleur || 'ceg', afgelast_reden: w.afgelast_reden || '' };
 }
 function dbIngNaarApp(i) {
   return { id: i.id, wid: i.wid, sid: i.sid,
@@ -2397,12 +2397,12 @@ async function dbSaveInschrijving(ing) {
 
 async function dbSaveWedstrijd(w) {
   try {
-    var data = { naam: w.naam, datum: w.datum, baan: w.baan, cr: w.cr, slope: w.slope,
+    var data = { naam: w.naam, datum: w.datum, tijd: w.tijd || null, baan: w.baan, cr: w.cr, slope: w.slope,
       holes: w.holes, vorm: w.vorm, rondes: w.rondes, status: w.status,
       max_deelnemers: w.max, hcp_max: w.hcpmax, hcp_min: w.hcpmin || 0,
       hcp_perc: w.hcpperc, esc: w.esc, startgeld: w.startgeld,
       skins_pot: w.skinsPot || 0, inschrijf_open: w.inschrijfOpen,
-      inschrijf_sluit: w.inschrijfSluit, omschrijving: w.omschrijving, kleur: w.kleur };
+      inschrijf_sluit: w.inschrijfSluit, omschrijving: w.omschrijving, kleur: w.kleur, afgelast_reden: w.afgelast_reden || null };
     if (w.id && String(w.id).includes('-')) {
       await supa('wedstrijden', 'PATCH', data, { id: 'eq.' + w.id });
     } else {
