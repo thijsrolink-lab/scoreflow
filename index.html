@@ -949,6 +949,280 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
   .dash-cards { grid-template-columns: 1fr; }
 }
 
+
+/* ═══════════════════════════════════════════════
+   LOGIN SPLIT-SCREEN — Soft Modern met baanfoto
+═══════════════════════════════════════════════ */
+#screen-login {
+  background: #f8faf8;
+}
+#screen-login.active {
+  display: flex;
+  min-height: 100vh;
+}
+.login-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Linker helft: foto met overlay */
+.login-hero {
+  position: relative;
+  background-image: url('assets/baan-hooge-rotterdamsche.jpg');
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3rem 3.5rem;
+  color: #fff;
+  overflow: hidden;
+}
+.login-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(12, 27, 42, 0.15) 0%,
+    rgba(12, 27, 42, 0.25) 50%,
+    rgba(12, 27, 42, 0.65) 100%
+  );
+  pointer-events: none;
+}
+.login-hero-overlay {
+  position: relative; z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  min-height: calc(100vh - 6rem);
+}
+.login-hero-content {
+  margin-top: auto;
+  max-width: 520px;
+}
+.login-hero-eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #86efac;
+  margin-bottom: 0.75rem;
+}
+.login-hero-club {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 54px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.3);
+}
+.login-hero-tagline {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 420px;
+}
+.login-hero-footer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 400;
+  align-self: flex-start;
+}
+.login-hero-footer strong {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* Rechter helft: login form */
+.login-form-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  background: #ffffff;
+}
+.login-box {
+  width: 100%;
+  max-width: 400px;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.login-logo-mark {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #86efac, #16a34a);
+  display: flex; align-items: center; justify-content: center;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.2);
+}
+.login-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0c1b2a;
+  margin: 0 0 0.4rem 0;
+}
+.login-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #8b94a3;
+  margin-bottom: 2rem;
+  font-weight: 400;
+}
+.login-field {
+  margin-bottom: 1.25rem;
+}
+.login-field label {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0c1b2a;
+  margin-bottom: 0.5rem;
+}
+.login-field input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e6eaf0;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #0c1b2a;
+  background: #ffffff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.login-field input:focus {
+  outline: none;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+.login-field input::placeholder { color: #a1a1aa; }
+
+.login-btn {
+  width: 100%;
+  padding: 0.9rem;
+  background: #0c1b2a;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 0.5rem;
+}
+.login-btn:hover {
+  background: #1a2a3a;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(12, 27, 42, 0.2);
+}
+.login-err {
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 0.75rem;
+  min-height: 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.login-demo-details {
+  margin-top: 2rem;
+  border-top: 1px solid #e6eaf0;
+  padding-top: 1.5rem;
+}
+.login-demo-details summary {
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8b94a3;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  list-style: none;
+  padding: 0.25rem 0;
+  user-select: none;
+}
+.login-demo-details summary::-webkit-details-marker { display: none; }
+.login-demo-details summary::after {
+  content: ' ▸';
+  color: #a1a1aa;
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+.login-demo-details[open] summary::after {
+  content: ' ▾';
+}
+.login-demo-details summary:hover { color: #0c1b2a; }
+.demo-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 1rem;
+}
+.demo-btn {
+  padding: 0.65rem 0.85rem;
+  background: #f8faf8;
+  border: 1px solid #e6eaf0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #425466;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.demo-btn strong {
+  color: #0c1b2a;
+  font-size: 13px;
+  font-weight: 600;
+}
+.demo-btn:hover {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.demo-btn:hover strong { color: #16a34a; }
+
+/* Responsive: stapel op mobiel */
+@media (max-width: 900px) {
+  .login-split { grid-template-columns: 1fr; }
+  .login-hero {
+    min-height: 260px;
+    padding: 2rem;
+  }
+  .login-hero-overlay { min-height: 200px; }
+  .login-hero-club { font-size: 36px; }
+  .login-hero-tagline { font-size: 14px; }
+  .login-hero-footer { display: none; }
+  .login-form-side { padding: 2rem 1.5rem; }
+  .login-title { font-size: 26px; }
+}
+
 </style>
 
 <script>
@@ -7662,29 +7936,47 @@ try {
      LOGIN SCHERM
 ══════════════════════════════════════ -->
 <div id="screen-login" class="screen active">
-  <div class="login-box">
-    <div class="login-logo">De Hooge Rotterdamsche</div>
-    <div class="login-sub">ez pz golf tournament software</div>
-    <div class="login-field">
-      <label>E-mailadres</label>
-      <input type="email" id="login-email" placeholder="naam@gcc.nl" autocomplete="email"/>
+  <div class="login-split">
+    <div class="login-hero">
+      <div class="login-hero-overlay">
+        <div class="login-hero-content">
+          <div class="login-hero-eyebrow">Welkom bij</div>
+          <h1 class="login-hero-club">De Hooge Rotterdamsche</h1>
+          <div class="login-hero-tagline">Clubwedstrijden, scorekaarten en leaderboards op één plek.</div>
+        </div>
+        <div class="login-hero-footer">
+          <span>powered by</span>
+          <strong>Golfspot</strong>
+        </div>
+      </div>
     </div>
-    <div class="login-field">
-      <label>Wachtwoord</label>
-      <input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
-    </div>
-    <button class="login-btn" onclick="doLogin()">Inloggen</button>
-    <div class="login-err" id="login-err"></div>
-    <div class="login-demo">
-      <div class="login-demo-title">Demo accounts — klik om in te loggen</div>
-      <div class="demo-accounts">
-        <div class="demo-btn" onclick="loginAs('erik@gcc.nl','admin123')"><strong>Erik Janssen</strong>Superadmin</div>
-        <div class="demo-btn" onclick="loginAs('sandra@gcc.nl','wedstrijd1')"><strong>Sandra Boer</strong>Wedstrijdleider</div>
-        <div class="demo-btn" onclick="loginAs('marc@gcc.nl','secretar1')"><strong>Marc Visser</strong>Secretaris</div>
-        <div class="demo-btn" onclick="loginAs('jan@example.nl','speler123')"><strong>Jan de Vries</strong>Speler · HCP 12.4</div>
-        <div class="demo-btn" onclick="loginAs('maria@example.nl','speler123')"><strong>Maria Bakker</strong>Speler · HCP 18.2</div>
-        <div class="demo-btn" onclick="loginAs('tom@example.nl','speler123')"><strong>Tom Jansen</strong>Speler · HCP 3.5</div>
-        <div class="demo-btn" onclick="loginAs('thijs.rolink@gcc.nl','thijs123')"><strong>Thijs Rolink</strong>Speler · HCP 5.4</div>
+    <div class="login-form-side">
+      <div class="login-box">
+        <div class="login-logo-mark">H</div>
+        <h2 class="login-title">Inloggen</h2>
+        <p class="login-sub">Welkom terug. Log in om te beginnen.</p>
+        <div class="login-field">
+          <label>E-mailadres</label>
+          <input type="email" id="login-email" placeholder="naam@hoogerotterdamsche.nl" autocomplete="email"/>
+        </div>
+        <div class="login-field">
+          <label>Wachtwoord</label>
+          <input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key===&apos;Enter&apos;)doLogin()"/>
+        </div>
+        <button class="login-btn" onclick="doLogin()">Inloggen</button>
+        <div class="login-err" id="login-err"></div>
+        <details class="login-demo-details">
+          <summary>Demo accounts</summary>
+          <div class="demo-accounts">
+            <div class="demo-btn" onclick="loginAs(&apos;erik@gcc.nl&apos;,&apos;admin123&apos;)"><strong>Erik Janssen</strong>Superadmin</div>
+            <div class="demo-btn" onclick="loginAs(&apos;sandra@gcc.nl&apos;,&apos;wedstrijd1&apos;)"><strong>Sandra Boer</strong>Wedstrijdleider</div>
+            <div class="demo-btn" onclick="loginAs(&apos;marc@gcc.nl&apos;,&apos;secretar1&apos;)"><strong>Marc Visser</strong>Secretaris</div>
+            <div class="demo-btn" onclick="loginAs(&apos;jan@example.nl&apos;,&apos;speler123&apos;)"><strong>Jan de Vries</strong>Speler · HCP 12.4</div>
+            <div class="demo-btn" onclick="loginAs(&apos;maria@example.nl&apos;,&apos;speler123&apos;)"><strong>Maria Bakker</strong>Speler · HCP 18.2</div>
+            <div class="demo-btn" onclick="loginAs(&apos;tom@example.nl&apos;,&apos;speler123&apos;)"><strong>Tom Jansen</strong>Speler · HCP 3.5</div>
+            <div class="demo-btn" onclick="loginAs(&apos;thijs.rolink@gcc.nl&apos;,&apos;thijs123&apos;)"><strong>Thijs Rolink</strong>Speler · HCP 5.4</div>
+          </div>
+        </details>
       </div>
     </div>
   </div>
