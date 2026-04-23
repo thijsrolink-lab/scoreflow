@@ -2774,19 +2774,50 @@ function adminNavToW(view,wId){
 }
 
 function editW(id){
-  _editId=id;
-  var w=WEDSTRIJDEN.find(function(x){return x.id===id;});if(!w)return;
+  console.log('[editW] Aangeroepen met id:', id);
+  var w = WEDSTRIJDEN.find(function(x){ return x.id === id; });
+  if(!w){
+    console.error('[editW] Wedstrijd niet gevonden in WEDSTRIJDEN array. Totaal wedstrijden:', WEDSTRIJDEN.length);
+    console.error('[editW] Beschikbare IDs:', WEDSTRIJDEN.map(function(x){return x.id;}));
+    toast('Wedstrijd niet gevonden — herlaad de pagina.', 'err');
+    return;
+  }
+  console.log('[editW] Wedstrijd gevonden:', w.naam);
+  _editId = id;
   adminNav('nieuw');
-  function sv(elId,val){var el=document.getElementById(elId);if(el)el.value=val;}
-  sv('fn',w.naam);sv('fd',w.datum);sv('fb',w.baan);sv('fcr',w.cr);sv('fsl',w.slope);
-  sv('fhmax',w.hcpmax);sv('fhmin',w.hcpmin||0);sv('fsg',w.startgeld||0);
-  var fh=document.getElementById('fh');if(fh)fh.value=w.holes;
-  var fhp=document.getElementById('fhp');if(fhp)fhp.value=w.hcpperc;
-  var fesc=document.getElementById('fesc');if(fesc)fesc.value=w.esc||'geen';
-  document.querySelectorAll('#vorm-tg .tgb').forEach(function(b){b.classList.toggle('on',b.dataset.vorm===w.vorm);});
-  updateVormInfo();
-  document.getElementById('page-title').textContent='Wedstrijd bewerken';
-  toast('Wedstrijd geladen — pas aan en publiceer opnieuw.');
+  // Defensief: wacht tot de view daadwerkelijk actief is voor we gaan invullen
+  setTimeout(function(){
+    function sv(elId, val){
+      var el = document.getElementById(elId);
+      if(el){ el.value = (val === undefined || val === null) ? '' : val; }
+      else { console.warn('[editW] Element niet gevonden:', elId); }
+    }
+    sv('fn', w.naam);
+    sv('fd', w.datum);
+    sv('fb', w.baan);
+    sv('fcr', w.cr);
+    sv('fsl', w.slope);
+    sv('fhmax', w.hcpmax);
+    sv('fhmin', w.hcpmin || 0);
+    sv('fsg', w.startgeld || 0);
+    var fh = document.getElementById('fh'); if(fh) fh.value = w.holes;
+    var fhp = document.getElementById('fhp'); if(fhp) fhp.value = w.hcpperc;
+    var fesc = document.getElementById('fesc'); if(fesc) fesc.value = w.esc || 'geen';
+    // Omschrijving als die bestaat
+    var fom = document.getElementById('fomschr'); if(fom) fom.value = w.omschrijving || '';
+    // Inschrijf datums
+    var fop = document.getElementById('fop'); if(fop && w.inschrijfOpen) fop.value = w.inschrijfOpen;
+    var fsluit = document.getElementById('fsluit'); if(fsluit && w.inschrijfSluit) fsluit.value = w.inschrijfSluit;
+    // Wedstrijdvorm toggle-buttons
+    document.querySelectorAll('#vorm-tg .tgb').forEach(function(b){
+      b.classList.toggle('on', b.dataset.vorm === w.vorm);
+    });
+    if(typeof updateVormInfo === 'function') updateVormInfo();
+    var pt = document.getElementById('page-title');
+    if(pt) pt.textContent = 'Wedstrijd bewerken';
+    toast('Wedstrijd geladen — pas aan en publiceer opnieuw.');
+    console.log('[editW] Form gevuld met:', w.naam);
+  }, 20);
 }
 
 function delW(id){
