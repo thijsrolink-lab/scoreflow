@@ -4,24 +4,38 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>ScoreFlow</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,500;0,700;1,500;1,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --g:#1a3d2b;--gm:#2a6040;--gd:#0f2619;
-  --gl:#e4f5e9;--gl2:#a8dbb8;
-  --lime:#3db852;--limeb:#edfbf1;--lime2:#7dd89a;
-  --gold:#c09020;--goldb:#fffbef;--goldbd:#f0d878;
-  --bg:#f7f7f5;--card:#ffffff;--surf:#f2f2f0;--surf2:#e8e8e5;
-  --tx:#1a1a18;--txm:#5c5c58;--txh:#a0a09a;
-  --bd:#e0e0da;--bds:#c8c8c0;
-  --red:#d03030;--redb:#fff0f0;--redbd:#f8c0c0;
-  --blue:#1a52b0;--blueb:#edf4ff;--bluebd:#b0ccf5;
-  --amb:#9a5a00;--ambb:#fffbf0;--ambbd:#f5d898;
-  --purple:#6040c0;--purpleb:#f2eeff;
-  --r:8px;--rl:14px;--rxl:20px;
+  /* Brand kleuren — sage/mint groen ipv bosgroen */
+  --g:#16a34a;--gm:#15803d;--gd:#14532d;
+  --gl:#f0fdf4;--gl2:#bbf7d0;
+  --lime:#86efac;--limeb:#dcfce7;--lime2:#4ade80;
+
+  /* Navy voor tekst */
+  --navy:#0c1b2a;--navy-soft:#425466;
+
+  /* Surfaces */
+  --bg:#f8faf8;--card:#ffffff;--surf:#f1f4f8;--surf2:#e6eaf0;
+
+  /* Tekst */
+  --tx:#0c1b2a;--txm:#425466;--txh:#8b94a3;
+
+  /* Borders */
+  --bd:#e6eaf0;--bds:#cbd4de;
+
+  /* Support kleuren */
+  --red:#dc2626;--redb:#fef2f2;--redbd:#fecaca;
+  --blue:#2563eb;--blueb:#dbeafe;--bluebd:#bfdbfe;
+  --amb:#d97706;--ambb:#fef3c7;--ambbd:#fcd34d;
+  --purple:#7c3aed;--purpleb:#ede9fe;
+  --gold:#d97706;--goldb:#fef3c7;--goldbd:#fcd34d;
+
+  /* Ronding */
+  --r:10px;--rl:16px;--rxl:24px;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.6;min-height:100vh}
+body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.6;min-height:100vh}
 
 /* ── SCHERMEN ── */
 .screen{display:none;min-height:100vh}
@@ -34,7 +48,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .login-feat-text strong{color:#fff;display:block;font-size:13px;margin-bottom:1px}
 
 .login-box{width:100%;max-width:380px}
-.login-logo{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--g);margin-bottom:.25rem}
+.login-logo{font-family:'Fraunces', Georgia, serif;font-size:24px;font-weight:700;color:var(--g);margin-bottom:.25rem}
 .login-sub{font-size:13px;color:var(--txm);margin-bottom:2rem}
 
 .login-box{background:#fff;border-radius:var(--rxl);padding:2.5rem 2rem;width:100%;max-width:390px;box-shadow:0 24px 80px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.05)}
@@ -42,21 +56,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .login-sub{font-size:13px;color:var(--txm);text-align:center;margin-bottom:2rem}
 .login-field{margin-bottom:1rem}
 .login-field label{display:block;font-size:12px;color:var(--txm);margin-bottom:4px;font-weight:500}
-.login-field input{width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif;transition:border .15s;background:var(--card);color:var(--tx)}
+.login-field input{width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--bd);border-radius:var(--r);font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;transition:border .15s;background:var(--card);color:var(--tx)}
 .login-field input:focus{outline:none;border-color:var(--gm);box-shadow:0 0 0 3px rgba(45,106,69,.1)}
-.login-btn{width:100%;padding:11px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:.5rem;transition:background .15s}
+.login-btn{width:100%;padding:11px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:500;font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;cursor:pointer;margin-top:.5rem;transition:background .15s}
 .login-btn:hover{background:var(--gm)}
 .login-err{font-size:12px;color:var(--red);text-align:center;margin-top:.75rem;min-height:18px}
 .login-demo{margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--bd)}
 .login-demo-title{font-size:11px;color:var(--txh);text-align:center;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.05em}
 .demo-accounts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.demo-btn{padding:7px 8px;font-size:11px;border:1px solid var(--bd);border-radius:var(--r);background:var(--surf);cursor:pointer;text-align:center;color:var(--txm);font-family:'DM Sans',sans-serif;transition:all .15s;line-height:1.3}
+.demo-btn{padding:7px 8px;font-size:11px;border:1px solid var(--bd);border-radius:var(--r);background:var(--surf);cursor:pointer;text-align:center;color:var(--txm);font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;transition:all .15s;line-height:1.3}
 .demo-btn:hover{background:var(--gl);border-color:var(--gl2);color:var(--g)}
 .demo-btn strong{display:block;color:var(--tx);font-size:12px}
 
 /* ── GEDEELDE STIJLEN ── */
-.btn{padding:7px 14px;font-size:13px;border-radius:var(--r);cursor:pointer;border:none;font-weight:500;font-family:'DM Sans',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:5px;line-height:1}
-.btn-p{background:var(--g);color:#fff;box-shadow:0 1px 3px rgba(26,61,43,.25)}.btn-p:hover{background:var(--gm);box-shadow:0 2px 6px rgba(26,61,43,.3);transform:translateY(-1px)}.btn-p:active{transform:translateY(0)}
+.btn{padding:7px 14px;font-size:13px;border-radius:var(--r);cursor:pointer;border:none;font-weight:500;font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:5px;line-height:1}
+.btn-p{background:var(--g);color:#fff;box-shadow:0 1px 3px rgba(22,163,74,.2)}.btn-p:hover{background:var(--gm);box-shadow:0 2px 6px rgba(26,61,43,.3);transform:translateY(-1px)}.btn-p:active{transform:translateY(0)}
 .btn-s{background:#fff;border:1px solid var(--bd);color:var(--txm)}.btn-s:hover{background:var(--surf);border-color:var(--bds)}
 .btn-xs{padding:4px 9px;font-size:12px}.btn-sm{padding:6px 12px}
 .btn-d{background:var(--redb);border:1px solid var(--redbd);color:var(--red)}.btn-d:hover{background:#fce4e4}
@@ -68,15 +82,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .bgold{background:var(--goldb);color:var(--gold)}
 .field{margin-bottom:.85rem}
 .field label{display:block;font-size:12px;color:var(--txm);margin-bottom:3px;font-weight:500}
-.field input,.field select,.field textarea{width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r);background:var(--card);color:var(--tx);font-family:'DM Sans',sans-serif;transition:border .15s}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r);background:var(--card);color:var(--tx);font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;transition:border .15s}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--gm);box-shadow:0 0 0 3px rgba(45,106,69,.1)}
 .field textarea{resize:vertical;min-height:56px}
 .field-hint{font-size:11px;color:var(--txh);margin-top:2px}
 .tg{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
-.tgb{padding:5px 11px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);cursor:pointer;background:var(--card);color:var(--txm);font-family:'DM Sans',sans-serif;transition:all .15s}
+.tgb{padding:5px 11px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);cursor:pointer;background:var(--card);color:var(--txm);font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;transition:all .15s}
 .tgb:hover{border-color:var(--bds);color:var(--tx)}
 .tgb.on{background:var(--g);color:#fff;border-color:var(--g);font-weight:500;box-shadow:0 1px 4px rgba(26,61,43,.2)}
-.card{background:#fff;border:1px solid #e8e8e2;border-radius:var(--rl);padding:1.25rem;margin-bottom:1rem;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--rl);padding:1.25rem;margin-bottom:1rem;box-shadow:0 1px 4px rgba(0,0,0,.04)}
 .card-hd{font-size:11px;font-weight:500;color:var(--gm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
 .card-hd-r{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
@@ -107,7 +121,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .stp.done{background:var(--gl);color:#085041}
 .stp.active{background:var(--g);color:#fff;font-weight:500}
 .pr{display:flex;gap:6px;align-items:center;margin-bottom:5px}
-.pr input{padding:6px 8px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);font-family:'DM Sans',sans-serif}
+.pr input{padding:6px 8px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif}
 .pr .fi{flex:1}.pr .fw{width:160px;flex-shrink:0}.pr .fw60{width:58px;flex-shrink:0}
 .pr .del{width:22px;height:22px;border-radius:50%;background:var(--surf);border:1px solid var(--bd);cursor:pointer;font-size:13px;color:var(--txm);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .pr .del:hover{background:var(--redb);border-color:var(--redbd);color:var(--red)}
@@ -139,7 +153,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .sb-user-info{flex:1;min-width:0}
 .sb-user-name{font-size:12px;color:#fff;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-user-role{font-size:10px;color:rgba(255,255,255,.45)}
-.sb-logout{background:transparent;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:11px;padding:2px 0;font-family:'DM Sans',sans-serif}
+.sb-logout{background:transparent;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:11px;padding:2px 0;font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif}
 .sb-logout:hover{color:#fff}
 .admin-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{background:#fff;border-bottom:1px solid #e8e8e2;padding:.7rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
@@ -183,7 +197,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .sc-tbl td{padding:4px;border-bottom:1px solid var(--surf);text-align:center;vertical-align:middle}
 .sc-tbl td.lft{text-align:left;padding-left:8px}
 .sc-tbl .par-row td,.sc-tbl .si-row td{color:var(--txh);font-size:11px;background:var(--surf)}
-.sc-inp{width:36px;text-align:center;padding:4px 2px;font-size:12px;font-weight:500;border:1px solid var(--bd);border-radius:4px;background:var(--card);color:var(--tx);font-family:'DM Sans',sans-serif}
+.sc-inp{width:36px;text-align:center;padding:4px 2px;font-size:12px;font-weight:500;border:1px solid var(--bd);border-radius:4px;background:var(--card);color:var(--tx);font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif}
 .sc-inp:focus{outline:none;border-color:var(--gm)}
 .sc-eagle{background:#c8f0d8;border-color:#2d8a55;color:#0a3a1e}
 .sc-birdie{background:#e0f5e8;border-color:#5daa78;color:#0a4020}
@@ -211,7 +225,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .sp-logo{font-family:Playfair Display,serif;font-size:16px;color:#fff;font-weight:700}
 .sp-user{display:flex;align-items:center;gap:8px}
 .sp-user-name{font-size:12px;color:rgba(255,255,255,.8)}
-.sp-logout-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:4px 10px;border-radius:var(--r);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.sp-logout-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:4px 10px;border-radius:var(--r);font-size:12px;cursor:pointer;font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif}
 .sp-nav{display:flex;border-top:1px solid rgba(255,255,255,.1);overflow-x:auto;scrollbar-width:none}
 .sp-nav::-webkit-scrollbar{display:none}
 .sp-nav-item{padding:.65rem 1.25rem;font-size:13px;color:rgba(255,255,255,.6);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s}
@@ -229,7 +243,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .w-card-meta{font-size:12px;color:var(--txm);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
 .w-card-meta span{display:flex;align-items:center;gap:4px}
 .w-card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--surf)}
-.inschrijf-btn{padding:9px 20px;font-size:13px;font-weight:500;border-radius:var(--r);cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .15s}
+.inschrijf-btn{padding:9px 20px;font-size:13px;font-weight:500;border-radius:var(--r);cursor:pointer;border:none;font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;transition:all .15s}
 .inschrijf-btn.kan-inschrijven{background:var(--g);color:#fff}
 .inschrijf-btn.kan-inschrijven:hover{background:var(--gm)}
 .inschrijf-btn.ingeschreven{background:var(--gl);color:#085041;border:1px solid var(--gl2)}
@@ -280,7 +294,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .hole-par{font-size:12px;color:var(--txm);background:var(--surf);padding:2px 8px;border-radius:4px}
 .hole-si{font-size:11px;color:var(--txh)}
 .score-controls{display:flex;align-items:center;gap:0;justify-content:center}
-.score-btn{width:52px;height:52px;border:1px solid var(--bd);background:var(--card);font-size:24px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;user-select:none;display:flex;align-items:center;justify-content:center;color:var(--txm)}
+.score-btn{width:52px;height:52px;border:1px solid var(--bd);background:var(--card);font-size:24px;cursor:pointer;font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;transition:all .15s;user-select:none;display:flex;align-items:center;justify-content:center;color:var(--txm)}
 .score-btn:hover{background:var(--surf);color:var(--tx)}
 .score-btn:active{transform:scale(.95)}
 .score-btn.minus{border-radius:var(--r) 0 0 var(--r)}
@@ -344,7 +358,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 
 /* ── SNEL AANMAKEN ── */
 .quick-vorm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
-.quick-vorm-btn{padding:8px 4px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);cursor:pointer;background:var(--card);color:var(--txm);font-family:'DM Sans',sans-serif;text-align:center;transition:all .15s}
+.quick-vorm-btn{padding:8px 4px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);cursor:pointer;background:var(--card);color:var(--txm);font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;text-align:center;transition:all .15s}
 .quick-vorm-btn:hover{border-color:var(--bds);color:var(--tx)}
 .quick-vorm-btn.on{background:var(--g);color:#fff;border-color:var(--g);font-weight:500}
 
@@ -369,7 +383,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .gw-card{background:var(--card);border:1px solid var(--bd);border-radius:var(--rl);padding:1.25rem;margin-bottom:.75rem;transition:box-shadow .15s}
 .gw-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.07)}
 .gw-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.gw-card-naam{font-family:'Playfair Display',serif;font-size:16px;color:var(--g);font-weight:500}
+.gw-card-naam{font-family:'Fraunces', Georgia, serif;font-size:16px;color:var(--g);font-weight:500}
 .gw-card-meta{font-size:12px;color:var(--txm);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
 .gw-code-badge{font-family:monospace;font-size:18px;font-weight:700;color:var(--g);background:var(--gl);border:2px solid var(--gl2);border-radius:var(--r);padding:6px 16px;letter-spacing:.15em;cursor:pointer;transition:all .15s;display:inline-block}
 .gw-code-badge:hover{background:var(--gl2)}
@@ -433,7 +447,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .help-paneel{position:fixed;top:0;right:-440px;width:420px;max-width:95vw;height:100vh;background:var(--card);z-index:1201;box-shadow:-4px 0 32px rgba(0,0,0,.18);transition:right .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
 .help-paneel.on{right:0}
 .help-header{padding:1.25rem 1.5rem;background:var(--g);color:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.help-titel{font-size:17px;font-weight:600;font-family:'Playfair Display',serif}
+.help-titel{font-size:17px;font-weight:600;font-family:'Fraunces', Georgia, serif}
 .help-sluit{background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .help-sluit:hover{background:rgba(255,255,255,.3)}
 .help-body{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
@@ -441,7 +455,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .help-sectie{border-left:3px solid var(--lime);padding:.5rem 0 .5rem .75rem}
 .help-kop{font-size:11px;font-weight:600;color:var(--g);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
 .help-tekst{font-size:13px;color:var(--txm);line-height:1.6;margin:0}
-.help-knop{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;font-size:11px;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--txm);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;font-weight:500}
+.help-knop{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;font-size:11px;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--txm);cursor:pointer;transition:all .15s;font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;font-weight:500}
 .help-knop:hover{border-color:var(--gm);color:var(--g);background:var(--gl)}
 
 /* ── Modal form verbeteringen ───────────────────────────────── */
@@ -451,7 +465,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
   width:100%;padding:8px 10px;font-size:13px;
   border:1px solid var(--bd);border-radius:var(--r);
   background:var(--card);color:var(--tx);
-  font-family:'DM Sans',sans-serif;
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   transition:border-color .15s,box-shadow .15s}
 .modal .field input:focus,.modal .field select:focus,.modal .field textarea:focus{
   outline:none;border-color:var(--gm);box-shadow:0 0 0 3px rgba(42,96,64,.1)}
@@ -466,80 +480,90 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 
 
 /* ═══════════════════════════════════════════════
-   DASHBOARD v3 — rustig, clean, minder info
+   DASHBOARD v4 — Soft Modern (mint + navy, fris)
 ═══════════════════════════════════════════════ */
 #v-dashboard { padding-top: .5rem; }
 #v-dashboard > div { margin-bottom: 2rem !important; }
 
-/* Welkom */
 .dash-welcome {
   display: flex; align-items: baseline; justify-content: space-between;
   flex-wrap: wrap; gap: 1rem;
 }
 .dash-welcome h2 {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 700; font-size: 30px; color: var(--tx); margin: 0;
-  letter-spacing: -0.01em;
+  font-size: 38px; font-weight: 700; color: var(--tx); margin: 0;
+  letter-spacing: -0.025em; line-height: 1.1;
+  font-family: 'Inter', sans-serif;
 }
-.dash-welcome .sub {
-  font-size: 13px; color: var(--txm); margin-top: 6px;
-  font-weight: 400;
+.dash-welcome h2 .accent {
+  font-family: 'Fraunces', Georgia, serif; font-style: italic;
+  font-weight: 500; color: var(--g);
 }
+.dash-welcome .sub { font-size: 13px; color: var(--txm); margin-top: 6px; }
 .dash-welcome-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* Hero wedstrijd — egaal, kalm */
 .hero-match {
-  position: relative;
-  border-radius: var(--rl);
-  padding: 2rem 2rem 1.75rem;
-  background: var(--g);
-  color: #fff;
-  display: flex; align-items: flex-end; justify-content: space-between;
-  gap: 1.5rem; flex-wrap: wrap;
-  min-height: 0;
+  position: relative; overflow: hidden;
+  border-radius: var(--rxl); padding: 2rem 2.25rem;
+  background: linear-gradient(135deg, #d7f2e3 0%, #b0e5c9 100%);
+  color: var(--tx);
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: end; gap: 2rem;
 }
-.hero-match-content { flex: 1; min-width: 0; }
+.hero-match::before {
+  content: ''; position: absolute;
+  bottom: -50px; right: -30px; width: 280px; height: 280px;
+  border: 2px solid rgba(22, 163, 74, 0.15); border-radius: 50%;
+  pointer-events: none;
+}
+.hero-match::after {
+  content: ''; position: absolute;
+  bottom: 20px; right: 80px; width: 180px; height: 180px;
+  border: 2px solid rgba(22, 163, 74, 0.12); border-radius: 50%;
+  pointer-events: none;
+}
+.hero-match-content { position: relative; z-index: 2; min-width: 0; }
 .hero-match-date {
-  font-size: 12px; font-weight: 500; letter-spacing: .02em;
-  color: rgba(255,255,255,.65); margin-bottom: .75rem;
-  display: inline-block;
+  font-size: 12px; font-weight: 600; color: var(--gd);
+  margin-bottom: 12px; display: inline-flex; align-items: center; gap: 8px;
+}
+.hero-match-date::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--g);
 }
 .hero-match h3 {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-style: italic;
-  font-size: 38px; font-weight: 700; margin: 0 0 .5rem 0;
-  line-height: 1.05; letter-spacing: -0.01em;
+  font-family: 'Fraunces', Georgia, serif; font-style: italic;
+  font-size: 40px; font-weight: 700; margin: 0 0 12px 0;
+  line-height: 1.05; letter-spacing: -0.02em; color: var(--tx);
 }
 .hero-match-meta {
-  font-size: 14px; color: rgba(255,255,255,.75);
-  font-weight: 400;
+  font-size: 14px; color: var(--navy-soft); font-weight: 500;
+  display: flex; gap: 1.25rem; flex-wrap: wrap;
 }
-.hero-match-meta .sep {
-  margin: 0 .75rem; opacity: .4;
-}
+.hero-match-meta .sep { opacity: .4; }
 .hero-match .btn-hero {
-  background: transparent; color: #fff;
-  border: 1px solid rgba(255,255,255,.3);
-  padding: .7rem 1.25rem; border-radius: var(--r);
-  font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
-  transition: all .2s ease; flex-shrink: 0;
+  background: var(--tx); color: #fff;
+  padding: .9rem 1.5rem; border-radius: var(--r);
+  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  border: none; transition: all .2s ease; flex-shrink: 0;
+  position: relative; z-index: 2;
 }
 .hero-match .btn-hero:hover {
-  background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.5);
+  transform: translateY(-2px); box-shadow: 0 8px 20px rgba(12,27,42,.25);
 }
 
-/* Cards sectie — rustig, geen borders waar niet nodig */
 .dash-cards-head {
   display: flex; align-items: baseline; justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 .dash-cards-head h3 {
-  font-family: 'Playfair Display', Georgia, serif; font-style: italic;
   font-size: 22px; font-weight: 700; color: var(--tx); margin: 0;
+  letter-spacing: -0.01em;
+}
+.dash-cards-head h3 .sub-count {
+  color: var(--txm); font-weight: 400; font-size: 14px; margin-left: 8px;
 }
 .dash-cards-head .show-all {
-  font-size: 12px; color: var(--gm); text-decoration: none; font-weight: 500;
-  cursor: pointer;
+  font-size: 13px; color: var(--g); font-weight: 600; cursor: pointer;
+  text-decoration: none;
 }
 .dash-cards-head .show-all:hover { text-decoration: underline; }
 
@@ -548,153 +572,131 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
   gap: 1rem;
 }
 .wed-card {
-  background: var(--card);
-  border: 1px solid var(--bd);
-  border-radius: var(--rl);
-  padding: 1.25rem;
+  background: var(--card); border: 1px solid var(--bd);
+  border-radius: var(--rl); padding: 1.5rem;
   transition: all .2s ease; cursor: pointer;
   display: flex; flex-direction: column; gap: 1rem;
 }
 .wed-card:hover {
-  border-color: var(--gm);
-  box-shadow: 0 2px 12px rgba(26,61,43,.06);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(12,27,42,.06);
+  border-color: var(--gl2);
+}
+.wed-card.first {
+  border-color: var(--gl2);
+  background: linear-gradient(to bottom, var(--gl) 0%, var(--card) 40%);
 }
 
-/* Bovenkant card: datum als tekst + naam */
-.wed-card-head {
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: .75rem;
-}
+.wed-card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .wed-card-date-text {
-  font-size: 11px; font-weight: 600; color: var(--gm);
-  letter-spacing: .08em; text-transform: uppercase;
-  flex-shrink: 0;
+  font-size: 12px; font-weight: 600; color: var(--navy-soft); flex-shrink: 0;
 }
 .wed-card-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 3px;
-  font-size: 10px; font-weight: 600; letter-spacing: .06em;
-  text-transform: uppercase;
-  background: var(--gl); color: var(--g);
-  flex-shrink: 0;
+  display: inline-block; padding: 3px 10px; border-radius: 100px;
+  font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  background: var(--lime); color: var(--tx);
 }
 .wed-card-naam {
-  font-family: 'Playfair Display', Georgia, serif; font-style: italic;
-  font-weight: 700; font-size: 18px; color: var(--tx);
-  line-height: 1.25; margin: .25rem 0 .25rem 0;
+  font-family: 'Fraunces', Georgia, serif; font-style: italic;
+  font-weight: 700; font-size: 20px; color: var(--tx);
+  line-height: 1.2; margin: .25rem 0;
+  letter-spacing: -0.01em;
 }
-.wed-card-sub {
-  font-size: 12px; color: var(--txm);
-}
+.wed-card-sub { font-size: 13px; color: var(--txm); }
 
-/* Stats compact — één regel */
 .wed-card-stats {
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 12px;
-  padding: .75rem 0;
-  border-top: 1px solid var(--surf2);
-  border-bottom: 1px solid var(--surf2);
-}
-.wed-card-stats .stat-primary {
-  color: var(--tx); font-weight: 500;
-}
-.wed-card-stats .stat-primary strong {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 15px; color: var(--g);
-}
-.wed-card-stats .stat-secondary {
-  color: var(--txh); font-size: 11px;
-}
-
-/* Taken compact — enkel getal + label */
-.wed-card-taken {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--surf);
+  border-bottom: 1px solid var(--surf);
   font-size: 12px;
 }
-.wed-card-taken .lbl { color: var(--txm); }
-.wed-card-taken .cnt {
-  display: inline-flex; align-items: center; gap: 6px;
-  color: var(--tx); font-weight: 500;
+.wed-card-stats-row {
+  display: flex; justify-content: space-between; align-items: center;
 }
-.wed-card-taken .cnt-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--gm);
+.wed-card-stats-row .lbl { color: var(--txm); }
+.wed-card-stats-row .val { font-weight: 600; color: var(--tx); }
+.wed-card-stats-row .val strong {
+  font-family: 'Fraunces', Georgia, serif; font-style: italic;
+  font-size: 15px; color: var(--g); margin-right: 2px;
 }
-.wed-card-taken .cnt-dot.zero { background: var(--surf2); }
-.wed-card-taken.zero .cnt { color: var(--txh); }
+.wed-card-progress-bar {
+  height: 4px; background: var(--surf); border-radius: 100px; overflow: hidden;
+}
+.wed-card-progress-fill {
+  height: 100%; background: var(--tx); border-radius: 100px; transition: width .4s;
+}
+.wed-card.first .wed-card-progress-fill { background: var(--g); }
 
-/* Footer link */
-.wed-card-cta {
-  display: inline-flex; align-items: center; gap: 4px;
-  color: var(--g); font-size: 12px; font-weight: 500;
-  text-decoration: none; cursor: pointer;
-  transition: gap .2s;
+.wed-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
 }
-.wed-card-cta:hover { gap: 8px; }
+.wed-card-taken-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; color: var(--navy-soft);
+}
+.wed-card-taken-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 8px; border-radius: 100px;
+  background: var(--redb); color: var(--red);
+  font-size: 11px; font-weight: 700; min-width: 22px;
+}
+.wed-card-taken-num.zero { background: var(--surf); color: var(--txh); }
+.wed-card-arrow {
+  color: var(--tx); font-size: 16px; font-weight: 600; transition: transform .2s;
+}
+.wed-card:hover .wed-card-arrow { transform: translateX(4px); }
 
-/* Snel acties — compact, tekst-gebaseerd, geen tiles */
+.dash-bottom-section h4 {
+  font-size: 20px; font-weight: 700; color: var(--tx);
+  margin: 0 0 1rem 0; letter-spacing: -0.01em;
+  font-family: 'Inter', sans-serif;
+}
+
 .quick-links {
-  display: flex; flex-wrap: wrap; gap: .5rem 2rem;
-  padding: .25rem 0;
+  display: flex; flex-wrap: wrap; gap: 6px;
 }
 .quick-link {
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 13px; color: var(--g); cursor: pointer;
-  text-decoration: none; font-weight: 500;
-  padding: .25rem 0;
-  border-bottom: 1px solid transparent;
-  transition: border-color .2s;
+  padding: .5rem 1rem; background: var(--card);
+  border: 1px solid var(--bd); border-radius: 10px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all .15s; color: var(--tx); text-decoration: none;
 }
-.quick-link:hover { border-bottom-color: var(--gm); }
-.quick-link::after {
-  content: '→'; color: var(--txh); font-weight: 400;
-  transition: transform .2s;
-}
-.quick-link:hover::after { transform: translateX(2px); color: var(--gm); }
-
-/* Bottom grid rustiger */
-.dash-bottom-section h4 {
-  font-family: 'Playfair Display', Georgia, serif; font-style: italic;
-  font-size: 18px; font-weight: 700; color: var(--tx); margin: 0 0 .75rem 0;
-}
-.dash-bottom-section {
-  padding-top: .5rem;
+.quick-link:hover {
+  background: var(--gl); color: var(--g); border-color: var(--gl2);
 }
 
-/* Berichten — minimaal */
 .bericht-item {
-  padding: .75rem 0;
-  border-bottom: 1px solid var(--surf2);
-  display: flex; gap: .75rem; align-items: flex-start;
+  padding: 1rem 0; border-bottom: 1px solid var(--bd);
+  display: flex; gap: 12px; align-items: flex-start;
 }
 .bericht-item:last-child { border-bottom: none; }
 .bericht-item-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--gm); flex-shrink: 0; margin-top: 7px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--g); flex-shrink: 0; margin-top: 6px;
 }
 .bericht-item-content { flex: 1; min-width: 0; }
 .bericht-item-titel {
-  font-size: 13px; font-weight: 500; color: var(--tx);
+  font-size: 14px; font-weight: 600; color: var(--tx);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .bericht-item-tekst {
-  font-size: 11px; color: var(--txm); margin-top: 2px;
+  font-size: 12px; color: var(--txm); margin-top: 2px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .bericht-item-datum {
-  font-size: 10px; color: var(--txh);
-  flex-shrink: 0; margin-top: 3px;
+  font-size: 11px; color: var(--txm); flex-shrink: 0; margin-top: 4px;
 }
 
-/* Responsive */
 @media (max-width: 900px) {
   #v-dashboard > div { margin-bottom: 1.5rem !important; }
   .dash-welcome { flex-direction: column; align-items: flex-start; }
-  .dash-welcome h2 { font-size: 24px; }
-  .hero-match { padding: 1.5rem; flex-direction: column; align-items: flex-start; }
-  .hero-match h3 { font-size: 26px; }
-  #dash-bottom { grid-template-columns: 1fr !important; }
+  .dash-welcome h2 { font-size: 28px; }
+  .hero-match { padding: 1.5rem; grid-template-columns: 1fr; }
+  .hero-match h3 { font-size: 28px; }
+  #dash-bottom { grid-template-columns: 1fr !important; gap: 2rem !important; }
   .dash-cards { grid-template-columns: 1fr; }
-  .quick-links { gap: .5rem 1rem; }
 }
 
 </style>
@@ -1408,7 +1410,6 @@ function renderAdminDashboard(){
   var now = new Date();
   updateAdminBadges();
 
-  // ── Welkom header ───────────────────────────────────────
   var u = _currentUser || { voor: 'Admin', ach: '' };
   var naam = u.voor || 'Admin';
   var dag = new Date();
@@ -1417,8 +1418,8 @@ function renderAdminDashboard(){
   var welkomHtml = '' +
     '<div class="dash-welcome">' +
       '<div>' +
-        '<h2>Welkom terug, ' + escHtml(naam) + '!</h2>' +
-        '<div class="sub">' + datumStr + '</div>' +
+        '<h2>Welkom terug, <span class="accent">' + escHtml(naam) + '</span>.</h2>' +
+        '<div class="sub">' + datumStr + ' · Dit is wat er speelt op de club.</div>' +
       '</div>' +
       '<div class="dash-welcome-actions">' +
         (heeftToegang('kalender') ? '<button class="btn btn-s btn-sm" onclick="adminNav(\'kalender\')">Kalender</button>' : '') +
@@ -1428,7 +1429,6 @@ function renderAdminDashboard(){
   var welEl = document.getElementById('dash-welcome');
   if (welEl) welEl.innerHTML = welkomHtml;
 
-  // ── Volgende wedstrijd (hero) ───────────────────────────
   var alle = (WEDSTRIJDEN || []).filter(function(w) {
     return w && w.datum && new Date(w.datum) >= now && w.status === 'gepubliceerd';
   }).sort(function(a, b) { return new Date(a.datum) - new Date(b.datum); });
@@ -1445,32 +1445,29 @@ function renderAdminDashboard(){
           '<div class="hero-match-date">Eerstvolgende · ' + heroDatum + '</div>' +
           '<h3>' + escHtml(next.naam) + '</h3>' +
           '<div class="hero-match-meta">' +
-            escHtml(next.baan || '') +
-            (next.tijd ? '<span class="sep">·</span>' + escHtml(next.tijd) : '') +
+            '<span>' + escHtml(next.baan || '') + '</span>' +
+            (next.tijd ? '<span class="sep">·</span><span>Start ' + escHtml(next.tijd) + '</span>' : '') +
           '</div>' +
         '</div>' +
-        '<button class="btn-hero" onclick="adminNavToW(\'' + next.id + '\')">Naar wedstrijd</button>' +
+        '<button class="btn-hero" onclick="adminNavToW(\'' + next.id + '\')">Naar wedstrijd →</button>' +
       '</div>';
   } else {
-    heroHtml = '' +
-      '<div class="hero-match">' +
-        '<div class="hero-match-content">' +
-          '<div class="hero-match-date">Geen geplande wedstrijd</div>' +
-          '<h3>Tijd voor een nieuwe wedstrijd</h3>' +
-          '<div class="hero-match-meta">Maak een wedstrijd aan om te beginnen</div>' +
-        '</div>' +
-        (heeftToegang('nieuw') ? '<button class="btn-hero" onclick="adminNav(\'nieuw\')">+ Nieuwe wedstrijd</button>' : '') +
+    heroHtml = '<div class="hero-match"><div class="hero-match-content">' +
+      '<div class="hero-match-date">Geen geplande wedstrijd</div>' +
+      '<h3>Tijd voor een nieuwe wedstrijd</h3>' +
+      '<div class="hero-match-meta"><span>Maak een wedstrijd aan om te beginnen</span></div>' +
+      '</div>' +
+      (heeftToegang('nieuw') ? '<button class="btn-hero" onclick="adminNav(\'nieuw\')">+ Nieuwe wedstrijd</button>' : '') +
       '</div>';
   }
   var heroEl = document.getElementById('dash-hero');
   if (heroEl) heroEl.innerHTML = heroHtml;
 
-  // ── Wedstrijd cards (3 stuks, rustiger) ─────────────────
   var cardsLijst = alle.slice(0, 3);
   var cardsHtml = '' +
     '<div class="dash-cards-head">' +
-      '<h3>Aankomende wedstrijden</h3>' +
-      (alle.length > 3 ? '<a class="show-all" onclick="adminNav(\'wedstrijden\')">Toon alle (' + alle.length + ')</a>' : '') +
+      '<h3>Aankomende wedstrijden' + (alle.length > 0 ? '<span class="sub-count">' + alle.length + ' gepland</span>' : '') + '</h3>' +
+      (alle.length > 3 ? '<a class="show-all" onclick="adminNav(\'wedstrijden\')">Toon alle →</a>' : '') +
     '</div>' +
     '<div class="dash-cards">';
 
@@ -1486,8 +1483,8 @@ function renderAdminDashboard(){
         return i.wid === w.id && i.status === 'wachtlijst';
       }).length;
       var isFirst = idx === 0;
+      var pct = w.max ? Math.round((ic / w.max) * 100) : 0;
 
-      // Taken tellen
       var taken = 0;
       var flights = FLIGHTS[w.id] || [];
       var scores = SCORES[w.id] || {};
@@ -1497,17 +1494,11 @@ function renderAdminDashboard(){
       if (flights.length > 0 && daysTill <= 3) taken++;
       if (d <= now && Object.keys(scores).length === 0) taken++;
 
-      // Datum als kort label
-      var datumLabel = d.getDate() + ' ' + MN[d.getMonth()].slice(0,3).toUpperCase() +
-        ' · ' + ['ZO','MA','DI','WO','DO','VR','ZA'][d.getDay()];
-
-      // Stats compact in één regel
-      var sluitDatum = w.inschrijfSluit ? new Date(w.inschrijfSluit) : null;
-      var sluitLabel = sluitDatum ?
-        'sluit ' + sluitDatum.getDate() + ' ' + MN[sluitDatum.getMonth()].slice(0,3).toLowerCase() : '';
+      var datumLabel = d.getDate() + ' ' + MN[d.getMonth()].slice(0,3) +
+        ' · ' + ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()];
 
       cardsHtml += '' +
-        '<div class="wed-card" onclick="adminNavToW(\'' + w.id + '\')">' +
+        '<div class="wed-card' + (isFirst ? ' first' : '') + '" onclick="adminNavToW(\'' + w.id + '\')">' +
           '<div>' +
             '<div class="wed-card-head">' +
               '<span class="wed-card-date-text">' + datumLabel + '</span>' +
@@ -1518,15 +1509,21 @@ function renderAdminDashboard(){
               (w.tijd ? ' · ' + escHtml(w.tijd) : '') + '</div>' +
           '</div>' +
           '<div class="wed-card-stats">' +
-            '<span class="stat-primary"><strong>' + ic + '</strong>/' + (w.max || '?') + ' ingeschreven</span>' +
-            (sluitLabel ? '<span class="stat-secondary">' + sluitLabel + '</span>' : '') +
+            '<div class="wed-card-stats-row">' +
+              '<span class="lbl">Inschrijvingen</span>' +
+              '<span class="val"><strong>' + ic + '</strong>/ ' + (w.max || '?') + '</span>' +
+            '</div>' +
+            '<div class="wed-card-progress-bar">' +
+              '<div class="wed-card-progress-fill" style="width:' + pct + '%"></div>' +
+            '</div>' +
           '</div>' +
-          '<div class="wed-card-taken' + (taken === 0 ? ' zero' : '') + '">' +
-            '<span class="lbl">Jouw taken</span>' +
-            '<span class="cnt"><span class="cnt-dot' + (taken === 0 ? ' zero' : '') + '"></span>' +
-              (taken === 0 ? 'geen' : taken + ' open') + '</span>' +
+          '<div class="wed-card-footer">' +
+            '<div class="wed-card-taken-chip">' +
+              '<span class="wed-card-taken-num' + (taken === 0 ? ' zero' : '') + '">' + taken + '</span>' +
+              (taken === 1 ? 'Open taak' : taken === 0 ? 'Geen taken' : 'Open taken') +
+            '</div>' +
+            '<span class="wed-card-arrow">→</span>' +
           '</div>' +
-          '<a class="wed-card-cta">Naar wedstrijd →</a>' +
         '</div>';
     });
   }
@@ -1535,7 +1532,6 @@ function renderAdminDashboard(){
   var cardsEl = document.getElementById('dash-cards-section');
   if (cardsEl) cardsEl.innerHTML = cardsHtml;
 
-  // ── Snel acties: tekst-links, geen tiles ────────────────
   var tiles = [
     { id: 'inschrijvingen', label: 'Inschrijvingen' },
     { id: 'flights',        label: 'Startlijsten' },
@@ -1553,7 +1549,6 @@ function renderAdminDashboard(){
   var qaEl = document.getElementById('dash-quick-actions');
   if (qaEl) qaEl.innerHTML = tilesHtml;
 
-  // ── Berichten widget ────────────────────────────────────
   var berichten = (BERICHTEN || []).slice().sort(function(a, b) {
     return new Date(b.datum || 0) - new Date(a.datum || 0);
   }).slice(0, 3);
