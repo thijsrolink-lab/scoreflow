@@ -8649,8 +8649,15 @@ var _helpActief = null;
 
 function openHelp(pagina) {
   _helpActief = pagina;
+  if (typeof HELP === 'undefined' || !HELP) {
+    console.warn('[openHelp] HELP object nog niet geladen');
+    return;
+  }
   var content = HELP[pagina];
-  if (!content) return;
+  if (!content) {
+    console.warn('[openHelp] Geen help-content voor pagina:', pagina);
+    return;
+  }
 
   var html = '<div class="help-header">' +
     '<div class="help-titel">' + content.titel + '</div>' +
