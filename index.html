@@ -1709,13 +1709,13 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
   text-align: center;
 }
 
-/* Alleen op mobiel helemaal weg de oude sp-topbar vereenvoudigen */
+/* Op mobiel: hele sp-topbar verbergen — welkom-header in content dekt het af */
 @media (max-width: 900px) {
   .sp-topbar {
-    padding-bottom: 0 !important;
+    display: none !important;
   }
-  .sp-topbar-inner {
-    padding: .65rem 1rem !important;
+  .sp-content {
+    padding-top: 1rem !important;
   }
 }
 
