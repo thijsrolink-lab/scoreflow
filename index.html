@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>ScoreFlow</title>
+<title>De Hooge Rotterdamsche — Wedstrijden</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,500;0,700;1,500;1,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -956,6 +956,30 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 var COMPETITIES = [];
 var BERICHTEN = [];  // systeem notificaties
 
+// ═══════════════════════════════════════════════════════════
+// CLUB BRANDING — white-label, één plek voor clubnaam
+// ═══════════════════════════════════════════════════════════
+var CLUB_NAAM = 'De Hooge Rotterdamsche';  // Aanpasbaar per installatie
+var CLUB_NAAM_KORT = 'De Hooge';           // Voor kleine plekken
+
+
+// Past clubnaam toe op alle UI-elementen (sidebar, login, speler, etc.)
+function applyClubBranding() {
+  var el;
+  // Sidebar
+  el = document.getElementById('admin-club-name');
+  if (el) el.textContent = CLUB_NAAM;
+  el = document.getElementById('admin-logo-mark');
+  if (el) el.textContent = (CLUB_NAAM || 'C').trim().charAt(0).toUpperCase();
+  // Login
+  document.querySelectorAll('.login-logo').forEach(function(n){ n.textContent = CLUB_NAAM; });
+  // Speler portaal
+  document.querySelectorAll('.sp-logo').forEach(function(n){ n.textContent = CLUB_NAAM; });
+  // Browser tab
+  document.title = CLUB_NAAM + ' — Wedstrijden';
+}
+
+
 // Competitie types
 var COMP_TYPES = [
   { id: 'eclectic',   label: 'Eclectic',           omschrijving: 'Beste score per hole over alle rondes' },
@@ -1419,12 +1443,12 @@ var DEMO_USERS = USERS.slice(); // bewaar lokale demo users
 DEMO_USERS.push({voor:'Thijs',ach:'Rolink',email:'thijs.rolink@gcc.nl',pw:'thijs123',rol:'Speler'});
 
 var WEDSTRIJDEN=[
-  {id:1,naam:'Clubkampioenschap 2025',datum:'2025-06-14',baan:'GCC Zeewolde',vorm:'Strokeplay',status:'gepubliceerd',max:72,ing:5,kleur:'ceg',cr:72.1,slope:131,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:15,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Het jaarlijkse clubkampioenschap. Iedereen welkom, beste netto score wint.',inschrijfOpen:'2025-05-01',inschrijfSluit:'2025-06-10'},
-  {id:2,naam:'Damesdag juni',datum:'2025-06-21',baan:'GCC Zeewolde',vorm:'Stableford',status:'gepubliceerd',max:36,ing:2,kleur:'cep',cr:70.4,slope:124,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Gezellige damesdag met Stableford. Inclusief lunch na afloop.',inschrijfOpen:'2025-05-15',inschrijfSluit:'2025-06-18'},
-  {id:3,naam:'Juniorenkampioenschap',datum:'2025-07-05',baan:'GCC Zeewolde',vorm:'Strokeplay',status:'gepubliceerd',max:24,ing:0,kleur:'ceb',cr:72.1,slope:131,holes:18,flt:3,hcpmax:18,hcpmin:0,hcpperc:100,esc:'nettodouble',rondes:2,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Twee-ronde strokeplay voor junioren tot en met handicap 18.',inschrijfOpen:'2025-06-01',inschrijfSluit:'2025-07-01'},
-  {id:4,naam:'Senioren open',datum:'2025-07-19',baan:'GCC Zeewolde',vorm:'Stableford',status:'gepubliceerd',max:60,ing:3,kleur:'cea',cr:72.1,slope:131,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:10,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Open stableford voor senioren 55+.',inschrijfOpen:'2025-06-15',inschrijfSluit:'2025-07-15'},
-  {id:5,naam:'Skins middag',datum:'2025-08-02',baan:'GCC Zeewolde',vorm:'Skins',status:'gepubliceerd',max:24,ing:3,kleur:'ceg',cr:72.1,slope:131,holes:9,flt:4,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:5,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'9-holes skins met €5 pot per hole. Spannend carry-over systeem.',inschrijfOpen:'2025-07-01',inschrijfSluit:'2025-07-30'},
-  {id:6,naam:'Najaarswedstrijd',datum:'2025-09-13',baan:'GCC Zeewolde',vorm:'Stableford',status:'concept',max:80,ing:0,kleur:'ceg',cr:72.1,slope:131,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Stableford najaarswedstrijd. Inschrijving opent 1 augustus.',inschrijfOpen:'2025-08-01',inschrijfSluit:'2025-09-10'},
+  {id:1,naam:'Clubkampioenschap 2025',datum:'2025-06-14',baan:'De Hooge Rotterdamsche',vorm:'Strokeplay',status:'gepubliceerd',max:72,ing:5,kleur:'ceg',cr:72.1,slope:131,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:15,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Het jaarlijkse clubkampioenschap. Iedereen welkom, beste netto score wint.',inschrijfOpen:'2025-05-01',inschrijfSluit:'2025-06-10'},
+  {id:2,naam:'Damesdag juni',datum:'2025-06-21',baan:'De Hooge Rotterdamsche',vorm:'Stableford',status:'gepubliceerd',max:36,ing:2,kleur:'cep',cr:70.4,slope:124,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Gezellige damesdag met Stableford. Inclusief lunch na afloop.',inschrijfOpen:'2025-05-15',inschrijfSluit:'2025-06-18'},
+  {id:3,naam:'Juniorenkampioenschap',datum:'2025-07-05',baan:'De Hooge Rotterdamsche',vorm:'Strokeplay',status:'gepubliceerd',max:24,ing:0,kleur:'ceb',cr:72.1,slope:131,holes:18,flt:3,hcpmax:18,hcpmin:0,hcpperc:100,esc:'nettodouble',rondes:2,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Twee-ronde strokeplay voor junioren tot en met handicap 18.',inschrijfOpen:'2025-06-01',inschrijfSluit:'2025-07-01'},
+  {id:4,naam:'Senioren open',datum:'2025-07-19',baan:'De Hooge Rotterdamsche',vorm:'Stableford',status:'gepubliceerd',max:60,ing:3,kleur:'cea',cr:72.1,slope:131,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:10,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Open stableford voor senioren 55+.',inschrijfOpen:'2025-06-15',inschrijfSluit:'2025-07-15'},
+  {id:5,naam:'Skins middag',datum:'2025-08-02',baan:'De Hooge Rotterdamsche',vorm:'Skins',status:'gepubliceerd',max:24,ing:3,kleur:'ceg',cr:72.1,slope:131,holes:9,flt:4,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:5,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'9-holes skins met €5 pot per hole. Spannend carry-over systeem.',inschrijfOpen:'2025-07-01',inschrijfSluit:'2025-07-30'},
+  {id:6,naam:'Najaarswedstrijd',datum:'2025-09-13',baan:'De Hooge Rotterdamsche',vorm:'Stableford',status:'concept',max:80,ing:0,kleur:'ceg',cr:72.1,slope:131,holes:18,flt:3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:'Stableford najaarswedstrijd. Inschrijving opent 1 augustus.',inschrijfOpen:'2025-08-01',inschrijfSluit:'2025-09-10'},
 ];
 
 var INSCHRIJVINGEN=[
@@ -1983,7 +2007,7 @@ function buildOv(){
 function saveConcept(){
   var naam=document.getElementById('fn').value||'Nieuwe wedstrijd';
   var btn=document.querySelector('#vorm-tg .tgb.on');
-  WEDSTRIJDEN.push({id:Date.now(),naam:naam,datum:document.getElementById('fd').value||'2025-12-01',baan:document.getElementById('fb').value||'GCC Zeewolde',vorm:btn?btn.dataset.vorm:'Strokeplay',status:'concept',max:parseInt(document.getElementById('fmax').value)||72,ing:0,kleur:'ceb',cr:parseFloat(document.getElementById('fcr').value)||72.1,slope:parseInt(document.getElementById('fsl').value)||131,holes:parseInt(document.getElementById('fh').value)||18,flt:parseInt(document.getElementById('fflt').value)||3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:document.getElementById('fomschr').value||'',inschrijfOpen:document.getElementById('fop').value||'',inschrijfSluit:document.getElementById('fsluit').value||''});
+  WEDSTRIJDEN.push({id:Date.now(),naam:naam,datum:document.getElementById('fd').value||'2025-12-01',baan:document.getElementById('fb').value||'De Hooge Rotterdamsche',vorm:btn?btn.dataset.vorm:'Strokeplay',status:'concept',max:parseInt(document.getElementById('fmax').value)||72,ing:0,kleur:'ceb',cr:parseFloat(document.getElementById('fcr').value)||72.1,slope:parseInt(document.getElementById('fsl').value)||131,holes:parseInt(document.getElementById('fh').value)||18,flt:parseInt(document.getElementById('fflt').value)||3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:document.getElementById('fomschr').value||'',inschrijfOpen:document.getElementById('fop').value||'',inschrijfSluit:document.getElementById('fsluit').value||''});
   _editId=null;toast('Opgeslagen als concept.');adminNav('wedstrijden');
 }
 
@@ -1996,7 +2020,7 @@ function bouwWedstrijdUitFormulier(status) {
   return {
     naam: naam,
     datum: document.getElementById('fd').value || '2025-12-01',
-    baan: document.getElementById('fb').value || 'GCC Zeewolde',
+    baan: document.getElementById('fb').value || 'De Hooge Rotterdamsche',
     cr: parseFloat(document.getElementById('fcr').value) || 72.1,
     slope: parseInt(document.getElementById('fsl').value) || 131,
     holes: parseInt(document.getElementById('fh').value) || 18,
@@ -5156,7 +5180,7 @@ function snelBouwWedstrijd(status) {
   return {
     id: Date.now(), naam: naam,
     datum: document.getElementById('sn-datum').value || new Date().toISOString().split('T')[0],
-    baan: 'GCC Zeewolde', vorm: vorm, status: status,
+    baan: 'De Hooge Rotterdamsche', vorm: vorm, status: status,
     max: parseInt(document.getElementById('sn-max').value) || 60,
     ing: 0, kleur: status === 'gepubliceerd' ? 'ceg' : 'ceb',
     cr: 72.1, slope: 131, holes: 18, flt: 3,
@@ -5360,7 +5384,7 @@ function renderBerichten() {
     return '<div class="bericht-item ' + (gelezen ? 'gelezen' : 'ongelezen') + '" onclick="leesBerichtSpeler(' + b.id + ')">' +
       '<div class="bericht-badge ' + (gelezen ? 'gelezen' : '') + '"></div>' +
       '<div style="flex:1"><div class="bericht-onderwerp">' + b.onderwerp + '</div>' +
-      '<div class="bericht-meta">' + b.datum + ' &middot; GCC Zeewolde</div></div>' +
+      '<div class="bericht-meta">' + b.datum + ' &middot; De Hooge Rotterdamsche</div></div>' +
       '</div>';
   }).join('') : '<p style="font-size:13px;color:var(--txm)">Geen berichten.</p>';
   document.getElementById('sp-berichten-content').innerHTML = html;
@@ -5618,7 +5642,7 @@ function gwStap0() {
     '<div class="field"><label>Naam</label><input id="gw-naam" type="text" placeholder="bv. Vrijdaggroep ronde 4" value="' + escHtml(w.naam) + '"/></div>' +
     '<div class="g2">' +
     '<div class="field"><label>Datum</label><input id="gw-datum" type="date" value="' + w.datum + '"/></div>' +
-    '<div class="field"><label>Baan</label><input id="gw-baan" type="text" placeholder="GCC Zeewolde" value="' + escHtml(w.baan) + '"/></div>' +
+    '<div class="field"><label>Baan</label><input id="gw-baan" type="text" placeholder="De Hooge Rotterdamsche" value="' + escHtml(w.baan) + '"/></div>' +
     '</div>' +
     '<div class="field"><label>Spelervorm</label><div class="tg" id="gw-vorm-tg">' +
     ['Stableford','Strokeplay','Bogey competition','Matchplay','Skins','Texas Scramble'].map(function(v) {
@@ -5983,7 +6007,7 @@ function gwDeelneemViaCode() {
 GROEPSWEDSTRIJDEN.push({
   id: 9001, code: 'VRG-482',
   naam: 'Vrijdaggroep — Wekelijkse ronde',
-  datum: '2025-06-20', baan: 'GCC Zeewolde', vorm: 'Stableford', holes: 18,
+  datum: '2025-06-20', baan: 'De Hooge Rotterdamsche', vorm: 'Stableford', holes: 18,
   startgeld: 0, omschrijving: 'Onze vaste vrijdaggroep, elke week stableford.',
   deelnemers: [
     { uid: 4, naam: 'Jan de Vries', hcp: 12.4, isGast: false, isOrganisator: true },
@@ -6003,7 +6027,7 @@ GROEPSWEDSTRIJDEN.push({
 GROEPSWEDSTRIJDEN.push({
   id: 9002, code: 'ZAT-219',
   naam: 'Zaterdagskins Groep B',
-  datum: '2025-07-12', baan: 'GCC Zeewolde', vorm: 'Skins', holes: 9,
+  datum: '2025-07-12', baan: 'De Hooge Rotterdamsche', vorm: 'Skins', holes: 9,
   startgeld: 5, omschrijving: '9-holes skins elke zaterdag. €5 pot per hole.',
   deelnemers: [
     { uid: 8, naam: 'Tom Jansen', hcp: 3.5, isGast: false, isOrganisator: true },
@@ -7114,7 +7138,7 @@ function openCompWizard(id) {
   html += '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Instellingen gelden als standaard voor alle wedstrijden in deze competitie.</div>';
 
   html += '<div class="field"><label>Baan</label>';
-  html += '<input id="comp-baan" placeholder="GCC Zeewolde" value="'+(comp?comp.baan||'GCC Zeewolde':'GCC Zeewolde')+'"/></div>';
+  html += '<input id="comp-baan" placeholder="De Hooge Rotterdamsche" value="'+(comp?comp.baan||'De Hooge Rotterdamsche':'De Hooge Rotterdamsche')+'"/></div>';
 
   html += '<div class="g2">';
   html += '<div class="field"><label>CR</label><input type="number" step="0.1" id="comp-cr" value="'+(comp?comp.cr||72.1:72.1)+'"/></div>';
@@ -7299,7 +7323,7 @@ function saveCompetitie() {
 
   // Maak gegenereerde rondes aan als wedstrijden
   var wids = [];
-  var baan = document.getElementById('comp-baan').value || 'GCC Zeewolde';
+  var baan = document.getElementById('comp-baan').value || 'De Hooge Rotterdamsche';
   var cr = parseFloat(document.getElementById('comp-cr').value) || 72.1;
   var slope = parseInt(document.getElementById('comp-slope').value) || 131;
   var holes = parseInt(document.getElementById('comp-holes').value) || 18;
@@ -7334,7 +7358,7 @@ function saveCompetitie() {
     start: document.getElementById('comp-start').value,
     eind: document.getElementById('comp-eind').value,
     omschrijving: document.getElementById('comp-omschr').value,
-    baan: document.getElementById('comp-baan').value || 'GCC Zeewolde',
+    baan: document.getElementById('comp-baan').value || 'De Hooge Rotterdamsche',
     cr: parseFloat(document.getElementById('comp-cr').value) || 72.1,
     slope: parseInt(document.getElementById('comp-slope').value) || 131,
     holes: parseInt(document.getElementById('comp-holes').value) || 18,
@@ -7639,7 +7663,7 @@ try {
 ══════════════════════════════════════ -->
 <div id="screen-login" class="screen active">
   <div class="login-box">
-    <div class="login-logo">ScoreFlow</div>
+    <div class="login-logo">De Hooge Rotterdamsche</div>
     <div class="login-sub">ez pz golf tournament software</div>
     <div class="login-field">
       <label>E-mailadres</label>
@@ -7695,7 +7719,7 @@ try {
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sb-logo" onclick="adminNav('dashboard')">
-      <h1>ScoreFlow Manager</h1>
+      <h1 id="admin-club-name">De Hooge Rotterdamsche</h1>
       <small id="admin-club-name">GCC Zeewolde</small>
     </div>
     <nav class="sb-nav" id="admin-nav"></nav>
@@ -8082,7 +8106,7 @@ try {
 <div id="screen-speler" class="screen">
   <div class="sp-topbar">
     <div class="sp-topbar-inner">
-      <div class="sp-logo">ScoreFlow</div>
+      <div class="sp-logo">De Hooge Rotterdamsche</div>
       <div class="sp-user">
         <span class="sp-user-name" id="sp-naam-display">Jan de Vries</span>
         <button class="sp-logout-btn" onclick="logout()">Uitloggen</button>
