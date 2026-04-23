@@ -2987,7 +2987,7 @@ function renderAdminDashboard(){
             (next.tijd ? '<span class="sep">·</span><span>Start ' + escHtml(next.tijd) + '</span>' : '') +
           '</div>' +
         '</div>' +
-        '<button class="btn-hero" onclick="adminNavToW(\'' + next.id + '\')">Naar wedstrijd →</button>' +
+        '<button class="btn-hero" onclick="adminNavToW(\'inschrijvingen\',\'' + next.id + '\')">Naar wedstrijd →</button>' +
       '</div>';
   } else {
     heroHtml = '' +
@@ -3046,7 +3046,7 @@ function renderAdminDashboard(){
         'sluit ' + sluitDatum.getDate() + ' ' + MN[sluitDatum.getMonth()].slice(0,3).toLowerCase() : '';
 
       cardsHtml += '' +
-        '<div class="wed-card' + (isFirst ? ' first' : '') + '" onclick="adminNavToW(\'' + w.id + '\')">' +
+        '<div class="wed-card' + (isFirst ? ' first' : '') + '" onclick="adminNavToW(\'inschrijvingen\',\'' + w.id + '\')">' +
           '<div class="wed-card-head">' +
             '<span class="wed-card-date-text">' + datumLabel + '</span>' +
             (isFirst ? '<span class="wed-card-badge">Eerstvolgende</span>' : '') +
