@@ -5856,7 +5856,12 @@ function renderSpelerKalender(){
   var u = _currentUser;
   var now = new Date();
   var ws = (WEDSTRIJDEN || []).filter(function(w) {
-    return w && w.datum && w.status === 'gepubliceerd' && new Date(w.datum) >= now;
+    if (!w || !w.datum) return false;
+    if (w.status === 'concept') return false;
+    // Toon wedstrijden van vandaag of later (niet gepasseerde dagen)
+    // 'Vandaag' = datum is wedstrijddag en middernacht nog niet bereikt
+    var eindTs = wedstrijdEindeTs(w);
+    return eindTs && eindTs > Date.now();
   }).sort(function(a, b) { return new Date(a.datum) - new Date(b.datum); });
 
   // ── 1. Welkom header ─────────────────────────────────────
