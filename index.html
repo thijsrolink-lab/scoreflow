@@ -2306,7 +2306,7 @@ function dbGebruikerNaarApp(g) {
 }
 function dbWedstrijdNaarApp(w) {
   return { id: w.id, naam: w.naam, datum: w.datum, tijd: w.tijd || null, baan: w.baan, cr: w.cr, slope: w.slope,
-    holes: w.holes, vorm: w.vorm, rondes: w.rondes, status: w.status, max: w.max_deelnemers,
+    holes: w.holes, vorm: w.vorm, rondes: w.rondes, flt: w.flt || 3, status: w.status, max: w.max_deelnemers,
     hcpmax: w.hcp_max, hcpmin: w.hcp_min, hcpperc: w.hcp_perc, esc: w.esc,
     startgeld: w.startgeld, skinsPot: w.skins_pot, inschrijfOpen: w.inschrijf_open,
     inschrijfSluit: w.inschrijf_sluit, omschrijving: w.omschrijving, kleur: w.kleur || 'ceg', afgelast_reden: w.afgelast_reden || '' };
@@ -3273,6 +3273,7 @@ function editW(id){
     sv('fcr', w.cr);
     sv('fsl', w.slope);
     sv('fhmax', w.hcpmax);
+    sv('ft', w.tijd || '08:00');
     sv('fhmin', w.hcpmin || 0);
     sv('fsg', w.startgeld || 0);
     var fh = document.getElementById('fh'); if(fh) fh.value = w.holes;
@@ -3402,6 +3403,8 @@ function bouwWedstrijdUitFormulier(status) {
     startgeld: parseFloat(document.getElementById('fsg').value) || 0,
     skinsPot: 0,
     rondes: 1,
+    flt: parseInt(document.getElementById('fflt').value) || 3,
+    tijd: document.getElementById('ft').value || '08:00',
     kleur: status === 'gepubliceerd' ? 'ceg' : 'ceb',
     omschrijving: document.getElementById('fomschr').value || '',
     inschrijfOpen: document.getElementById('fop').value || '',
