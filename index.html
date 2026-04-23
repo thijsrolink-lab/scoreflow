@@ -2757,7 +2757,14 @@ function renderWedstrijden(){
     var ic=INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';}).length;
     var pct=Math.round((ic/w.max)*100);
     var acts='';
-    if(kanNieuw)acts+='<button class="btn btn-s btn-xs" onclick="editW(\''+w.id+'\')">Bewerken</button>';
+    var hasScores = wedstrijdHeeftScores(w.id);
+    if(kanNieuw){
+      if(hasScores){
+        acts+='<button class="btn btn-s btn-xs" disabled title="Bewerken niet meer mogelijk — er zijn al scores ingevoerd" style="opacity:.5;cursor:not-allowed">Bewerken</button>';
+      } else {
+        acts+='<button class="btn btn-s btn-xs" onclick="editW(\''+w.id+'\')">Bewerken</button>';
+      }
+    }
     if(heeftToegang('inschrijvingen'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'inschrijvingen\',\''+w.id+'\')">Inschrijvingen</button>';
     if(heeftToegang('flights'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'flights\',\''+w.id+'\')">Flights</button>';
     if(heeftToegang('scores'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'scores\',\''+w.id+'\')">Scores</button>';
@@ -2775,6 +2782,28 @@ function adminNavToW(view,wId){
   },50);
 }
 
+// Check of er al scores zijn ingevoerd voor een wedstrijd
+// Return: true als er minimaal één score is ingevoerd
+function wedstrijdHeeftScores(wId) {
+  var s = SCORES[wId];
+  if (!s) return false;
+  // Doorzoek alle rondes en spelers
+  for (var ronde in s) {
+    var spelers = s[ronde];
+    for (var sid in spelers) {
+      var arr = spelers[sid];
+      if (Array.isArray(arr)) {
+        for (var i = 0; i < arr.length; i++) {
+          if (arr[i] !== '' && arr[i] !== null && arr[i] !== undefined) {
+            return true;  // minimaal 1 score gevonden
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
 function editW(id){
   console.log('[editW] Aangeroepen met id:', id);
   var w = WEDSTRIJDEN.find(function(x){ return x.id === id; });
@@ -2782,6 +2811,11 @@ function editW(id){
     console.error('[editW] Wedstrijd niet gevonden in WEDSTRIJDEN array. Totaal wedstrijden:', WEDSTRIJDEN.length);
     console.error('[editW] Beschikbare IDs:', WEDSTRIJDEN.map(function(x){return x.id;}));
     toast('Wedstrijd niet gevonden — herlaad de pagina.', 'err');
+    return;
+  }
+  // Lock: bewerken niet toegestaan zodra er scores zijn ingevoerd
+  if (wedstrijdHeeftScores(id)) {
+    toast('Deze wedstrijd heeft al scores — bewerken is niet meer mogelijk.', 'err');
     return;
   }
   console.log('[editW] Wedstrijd gevonden:', w.naam);
@@ -2942,6 +2976,13 @@ async function bouwEnSlaWedstrijdOp(status) {
 
   // Als we bewerken: update
   if (_editId) {
+    // Extra veiligheid: weiger als er tijdens het bewerken scores zijn binnengekomen
+    if (wedstrijdHeeftScores(_editId)) {
+      toast('Deze wedstrijd heeft scores — wijziging is geannuleerd.', 'err');
+      _editId = null;
+      adminNav('wedstrijden');
+      return;
+    }
     data.id = _editId;
     var i = WEDSTRIJDEN.findIndex(function(x) { return x.id === _editId; });
     if (i > -1) Object.assign(WEDSTRIJDEN[i], data);
