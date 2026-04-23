@@ -351,17 +351,18 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 /* ── SPELER PORTAAL ── */
 #screen-speler{display:none}
 #screen-speler.active{display:block;min-height:100vh;background:var(--bg)}
-.sp-topbar{background:linear-gradient(135deg,#162f22,#1e4a30);padding:0;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.sp-topbar{background:#ffffff;padding:0;position:sticky;top:0;z-index:100;border-bottom:1px solid #e6eaf0}
 .sp-topbar-inner{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.25rem}
-.sp-logo{font-family:Playfair Display,serif;font-size:16px;color:#fff;font-weight:700}
-.sp-user{display:flex;align-items:center;gap:8px}
-.sp-user-name{font-size:12px;color:rgba(255,255,255,.8)}
-.sp-logout-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:4px 10px;border-radius:var(--r);font-size:12px;cursor:pointer;font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif}
-.sp-nav{display:flex;border-top:1px solid rgba(255,255,255,.1);overflow-x:auto;scrollbar-width:none}
+.sp-logo{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:#0c1b2a;letter-spacing:-0.01em}
+.sp-user{display:flex;align-items:center;gap:10px;font-family:'Inter',sans-serif;font-size:13px;color:#425466}
+.sp-user-name{font-weight:600;color:#0c1b2a}
+.sp-logout-btn:hover{border-color:#0c1b2a;color:#0c1b2a}
+.sp-logout-btn{background:transparent;border:1px solid #e6eaf0;border-radius:100px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:12px;color:#425466;cursor:pointer;transition:all .15s}
+.sp-nav{display:flex;border-top:1px solid #e6eaf0;overflow-x:auto;scrollbar-width:none}
 .sp-nav::-webkit-scrollbar{display:none}
-.sp-nav-item{padding:.65rem 1.25rem;font-size:13px;color:rgba(255,255,255,.6);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s}
-.sp-nav-item:hover{color:#fff}
-.sp-nav-item.on{color:#fff;border-bottom-color:var(--lime)}
+.sp-nav-item{padding:.85rem 1.25rem;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:#8b94a3;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s}
+.sp-nav-item:hover{color:#0c1b2a}
+.sp-nav-item.on{color:#16a34a;border-bottom-color:#16a34a;font-weight:600}
 .sp-content{padding:1rem 1.25rem;max-width:800px;margin:0 auto}
 .sp-view{display:none}.sp-view.on{display:block}
 
@@ -382,7 +383,7 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 .inschrijf-btn.vol{background:var(--surf);color:var(--txh);cursor:default}
 .inschrijf-btn.afgemeld{background:var(--card);border:1px solid var(--bd);color:var(--txm)}
 .inschrijf-btn.gesloten{background:var(--surf);color:var(--txh);cursor:default;font-size:12px}
-.sp-section-title{font-family:Playfair Display,serif;font-size:17px;color:var(--g);margin-bottom:1rem;padding-top:.25rem}
+.sp-section-title{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.01em;color:#0c1b2a;margin-bottom:1rem;padding-top:.25rem}
 
 /* Score bekijken speler */
 .score-hole-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-bottom:.5rem}
@@ -534,10 +535,10 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 .gw-lb-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--surf)}
 .gw-lb-row:last-child{border-bottom:none}
 .gw-lb-row.jij{background:var(--gl);border-radius:var(--r);padding:10px 8px;margin:0 -8px}
-.gw-lege-state{text-align:center;padding:2.5rem 1rem;color:var(--txm)}
+.gw-lege-state{text-align:center;padding:3rem 1rem;color:#8b94a3;background:#ffffff;border:1px solid #e6eaf0;border-radius:14px}
 .gw-lege-icon{font-size:40px;margin-bottom:.75rem}
-.gw-lege-titel{font-size:15px;font-weight:500;color:var(--tx);margin-bottom:.4rem}
-.gw-lege-sub{font-size:13px}
+.gw-lege-titel{font-family:'Inter',sans-serif;font-size:16px;font-weight:600;color:#0c1b2a;margin-bottom:.4rem}
+.gw-lege-sub{font-family:'Inter',sans-serif;font-size:13px;color:#8b94a3;line-height:1.5}
 
 /* ── COMPACTE SCOREKAART ─────────────────────────────── */
 .csk-wrap{background:var(--card);border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;margin-bottom:.75rem}
