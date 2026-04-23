@@ -1859,6 +1859,151 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 }
 .life-btn-heractiveer:hover { background: #15803d; }
 
+
+/* ═══════════════════════════════════════════════
+   SPELER LIFECYCLE UI — banners + badges
+═══════════════════════════════════════════════ */
+
+/* Afgelast-banner (op scorekaart-view) */
+.sp-afgelast-banner {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  align-items: flex-start;
+}
+.sp-afgelast-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.sp-afgelast-content {
+  flex: 1;
+  min-width: 0;
+}
+.sp-afgelast-content h4 {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 0.35rem 0;
+}
+.sp-afgelast-content p {
+  font-size: 14px;
+  color: #78350f;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.5;
+}
+.sp-afgelast-reden {
+  font-size: 13px;
+  color: #78350f;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255,255,255,0.5);
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+/* Read-only (afgerond) banner */
+.sp-readonly-banner {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f1f4f8;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  align-items: flex-start;
+}
+.sp-readonly-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.sp-readonly-banner h4 {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0c1b2a;
+  margin: 0 0 0.35rem 0;
+}
+.sp-readonly-banner p {
+  font-size: 13px;
+  color: #425466;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Nieuwe lijst-badges (live + afgelast) */
+.sp-w-badge.live {
+  background: #dc2626;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sp-live-dot-sm {
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+  animation: liveDotPulse 1.5s ease-in-out infinite;
+}
+.sp-w-badge.afgelast {
+  background: #fef3c7;
+  color: #92400e;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Rij-styling voor afgelaste wedstrijd */
+.sp-w-row.afgelast {
+  opacity: 0.6;
+  background: #fafbfc;
+}
+.sp-w-row.afgelast .naam {
+  text-decoration: line-through;
+  text-decoration-color: rgba(12, 27, 42, 0.3);
+  text-decoration-thickness: 1px;
+}
+.sp-w-row.afgelast:hover {
+  opacity: 0.8;
+}
+
+
+/* Speler hero: live-variant van eyebrow */
+.sp-hero-eyebrow.live {
+  color: #fca5a5;
+  font-weight: 700;
+}
+.sp-hero-eyebrow.live::before {
+  background: #dc2626;
+  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  animation: liveDotPulseRed 1.5s infinite;
+}
+@keyframes liveDotPulseRed {
+  0%,100% { 
+    opacity: 1; 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  }
+  50% { 
+    opacity: 0.9;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+  }
+}
+
+/* Variant: hele hero-card een subtiele rode gloed bij live */
+.sp-hero.live::before {
+  background: linear-gradient(
+    135deg,
+    rgba(127, 29, 29, 0.85) 0%,
+    rgba(185, 28, 28, 0.6) 60%,
+    rgba(220, 38, 38, 0.3) 100%
+  );
+}
+
 </style>
 
 <script>
@@ -5733,16 +5878,28 @@ function renderSpelerKalender(){
   if (welEl) welEl.innerHTML = welkomHtml;
 
   // ── 2. Hero: eerstvolgende wedstrijd ─────────────────────
-  var next = ws[0];
+  // Filter uit afgelaste wedstrijden voor de "eerstvolgende" selectie
+  // (maar toon wel apart als banner hieronder)
+  var wsActief = ws.filter(function(w) { return wedstrijdFase(w) !== 'afgelast'; });
+  var wsAfgelast = ws.filter(function(w) { return wedstrijdFase(w) === 'afgelast'; });
+
+  var next = wsActief[0];
   var heroHtml = '';
   if (next) {
     var d = new Date(next.datum);
     var dagNaam = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()];
     var datumStr = dagNaam + ' ' + d.getDate() + ' ' + MN[d.getMonth()];
+    var nextFase = wedstrijdFase(next);
+    var eyebrowText = 'Eerstvolgende wedstrijd';
+    var eyebrowClass = '';
+    if (nextFase === 'live') {
+      eyebrowText = 'Nu live · Ronde bezig';
+      eyebrowClass = ' live';
+    }
     heroHtml =
-      '<div class="sp-hero">' +
+      '<div class="sp-hero' + (nextFase === 'live' ? ' live' : '') + '">' +
         '<div class="sp-hero-content">' +
-          '<div class="sp-hero-eyebrow">Eerstvolgende wedstrijd</div>' +
+          '<div class="sp-hero-eyebrow' + eyebrowClass + '">' + eyebrowText + '</div>' +
           '<h3>' + escHtml(next.naam) + '</h3>' +
           '<div class="sp-hero-meta">' +
             '<div class="row">' +
@@ -5803,7 +5960,8 @@ function renderSpelerKalender(){
   if (heroEl) heroEl.innerHTML = heroHtml;
 
   // ── 3. Lijst header ───────────────────────────────────────
-  var others = ws.slice(1);  // zonder eerste (die is hero)
+  // Lijst: alle actieve wedstrijden behalve de hero + afgelaste apart gemarkeerd
+  var others = wsActief.slice(next ? 1 : 0).concat(wsAfgelast);
   var listHeadHtml =
     '<div class="sp-list-head">' +
       '<h4>Aankomende wedstrijden' +
@@ -5841,7 +5999,12 @@ function renderSpelerKalender(){
     }).length;
 
     var statusBadge = '';
-    if (mijnIng) {
+    var fase = wedstrijdFase(w);
+    if (fase === 'afgelast') {
+      statusBadge = '<span class="sp-w-badge afgelast">Afgelast</span>';
+    } else if (fase === 'live') {
+      statusBadge = '<span class="sp-w-badge live"><span class="sp-live-dot-sm"></span>Live</span>';
+    } else if (mijnIng) {
       if (mijnIng.status === 'ingeschreven') {
         statusBadge = '<span class="sp-w-badge ingeschreven">Ingeschreven</span>';
       } else if (mijnIng.status === 'wachtlijst') {
@@ -5849,7 +6012,8 @@ function renderSpelerKalender(){
       }
     }
 
-    return '<div class="sp-w-row" onclick="spelerOpenWedstrijd(\'' + w.id + '\')">' +
+    var rowExtraClass = fase === 'afgelast' ? ' afgelast' : '';
+    return '<div class="sp-w-row' + rowExtraClass + '" onclick="spelerOpenWedstrijd(\'' + w.id + '\')">' +
       '<div class="sp-w-date">' +
         '<div class="m">' + MN[d.getMonth()].slice(0, 3).toUpperCase() + '</div>' +
         '<div class="d">' + d.getDate() + '</div>' +
@@ -5874,6 +6038,16 @@ function renderSpelerKalender(){
 
 // Direct naar scorekaart voor specifieke wedstrijd (vanaf hero)
 function spelerNaarScorekaart(wId) {
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (w && wedstrijdFase(w) === 'afgelast') {
+    var reden = w.afgelast_reden || '';
+    toast('Deze wedstrijd is afgelast.' + (reden ? ' ' + reden : ''), 'err');
+    return;
+  }
+  if (w && !scorekaartToegankelijk(w)) {
+    toast('Scorekaart nog gesloten — open vanaf 2 uur voor start.');
+    // Gaan we toch? Ja: laat speler zien dat het nog dicht is via de lege state
+  }
   spNav('scorekaart');
   setTimeout(function() {
     var sel = document.getElementById('sk-w');
@@ -5887,6 +6061,13 @@ function spelerNaarScorekaart(wId) {
 function spelerOpenWedstrijd(wId) {
   var u = _currentUser;
   if (!u) return;
+  // Afgelast? Toon toast + geen navigatie
+  var wCheck = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (wCheck && wedstrijdFase(wCheck) === 'afgelast') {
+    var reden = wCheck.afgelast_reden || '';
+    toast('Deze wedstrijd is afgelast.' + (reden ? ' ' + reden : ''), 'err');
+    return;
+  }
   var mijnIng = (INSCHRIJVINGEN || []).find(function(i) {
     return i.wid === wId && i.sid === u.id && i.status === 'ingeschreven';
   });
@@ -6191,6 +6372,34 @@ function initScorekaart() {
   var ing = INSCHRIJVINGEN.find(function(i) { return i.wid === wId && i.sid === u.id && i.status === 'ingeschreven'; });
   if (!ing) { document.getElementById('sp-scorekaart-content').innerHTML = '<p style="color:var(--txm);font-size:13px">Je bent niet ingeschreven voor deze wedstrijd.</p>'; return; }
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+
+  // Lifecycle-check: afgelaste wedstrijd → duidelijke melding, geen scorekaart
+  var fase = wedstrijdFase(w);
+  if (fase === 'afgelast') {
+    var reden = w.afgelast_reden || '';
+    document.getElementById('sp-scorekaart-content').innerHTML =
+      '<div class="sp-afgelast-banner">' +
+        '<div class="sp-afgelast-icon">⚠️</div>' +
+        '<div class="sp-afgelast-content">' +
+          '<h4>Wedstrijd afgelast</h4>' +
+          '<p>' + escHtml(w.naam) + ' gaat niet door.</p>' +
+          (reden ? '<div class="sp-afgelast-reden"><strong>Reden:</strong> ' + escHtml(reden) + '</div>' : '') +
+        '</div>' +
+      '</div>';
+    return;
+  }
+  if (fase === 'afgerond') {
+    // Read-only voor recent afgeronde wedstrijd (ook zichtbaar in dropdown)
+    document.getElementById('sp-scorekaart-content').innerHTML =
+      '<div class="sp-readonly-banner">' +
+        '<div class="sp-readonly-icon">🔒</div>' +
+        '<div>' +
+          '<h4>Wedstrijd afgerond</h4>' +
+          '<p>De uitslag is definitief. Je kunt je scores inzien via <a onclick="spNav(\'scores\')" style="color:#16a34a;cursor:pointer;font-weight:600">Uitslagen</a>.</p>' +
+        '</div>' +
+      '</div>';
+    return;
+  }
   var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var shv = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
