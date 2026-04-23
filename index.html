@@ -6501,14 +6501,19 @@ function renderGroepOverzicht() {
   }).sort(function(a, b) { return new Date(b.datum) - new Date(a.datum); });
 
   var html = '';
+  var heeftGw = mijnGw.length > 0;
 
-  // Header met acties
+  // Header: alleen titel + knoppen als er al wedstrijden zijn
+  // (in lege state staan knoppen al onder de uitleg)
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">';
   html += '<div class="sp-section-title" style="margin-bottom:0">Mijn groepswedstrijden</div>';
-  html += '<div style="display:flex;gap:6px">';
-  html += '<button class="btn btn-s btn-sm" onclick="openModal(\'modal-code\')">&#128273; Code invoeren</button>';
-  html += '<button class="btn btn-p btn-sm" onclick="gwNieuwWizard()">+ Aanmaken</button>';
-  html += '</div></div>';
+  if (heeftGw) {
+    html += '<div style="display:flex;gap:6px">';
+    html += '<button class="btn btn-s btn-sm" onclick="openModal(\'modal-code\')">&#128273; Code invoeren</button>';
+    html += '<button class="btn btn-p btn-sm" onclick="gwNieuwWizard()">+ Aanmaken</button>';
+    html += '</div>';
+  }
+  html += '</div>';
 
   if (!mijnGw.length) {
     html += '<div class="gw-lege-state">';
