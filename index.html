@@ -2500,6 +2500,10 @@ function buildAdminNav(){
 
 function adminNav(id){
   if(!heeftToegang(id)){toast('Geen toegang tot dit onderdeel.','err');return;}
+  // Reset _editId als je wegnavigeert van wedstrijd-wizard zonder op te slaan
+  if(id !== 'nieuw' && _editId !== null){
+    _editId = null;
+  }
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});
   var t=document.getElementById('v-'+id);if(t)t.classList.add('on');
   // Toggle class op admin-main zodat CSS kan responderen per view
