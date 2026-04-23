@@ -1404,6 +1404,28 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.7);
 }
+.sp-hero-btn.live {
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  gap: 8px;
+}
+.sp-hero-btn.live:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+}
+.sp-hero-live-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  animation: liveDotPulse 1.5s ease-in-out infinite;
+}
+@keyframes liveDotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+  50% { opacity: 0.9; transform: scale(1.2); box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+}
 
 /* Leeg-state hero */
 .sp-hero.empty {
@@ -5363,16 +5385,34 @@ function renderSpelerKalender(){
               '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' +
               'Start ' + escHtml(next.tijd) + '</div>' : '') +
           '</div>' +
-          '<div class="sp-hero-actions">' +
-            '<button class="sp-hero-btn primary" onclick="spelerNaarScorekaart(\'' + next.id + '\')">' +
+          (function() {
+            // Dynamische knoppen op basis van tijd tot start
+            var startTs = null;
+            if (next.datum && next.tijd) {
+              startTs = new Date(next.datum + 'T' + next.tijd + ':00').getTime();
+            } else if (next.datum) {
+              startTs = new Date(next.datum + 'T00:00:00').getTime();
+            }
+            var nowTs = Date.now();
+            var minutenTot = startTs ? Math.round((startTs - nowTs) / 60000) : null;
+            // Live leaderboard tonen als ≤60 min voor start of tijdens de ronde
+            // (aannemen dat ronde ~5 uur duurt = 300 min; dus leaderboard zinvol tot 4u na start)
+            var toonLeaderboard = minutenTot !== null && minutenTot <= 60 && minutenTot >= -300;
+            var html = '<div class="sp-hero-actions">';
+            html += '<button class="sp-hero-btn primary" onclick="spelerNaarScorekaart(\'' + next.id + '\')">' +
               '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>' +
-              'Scorekaart' +
-            '</button>' +
-            '<button class="sp-hero-btn secondary" onclick="spNav(\'startlijst\')">' +
+              'Scorekaart</button>';
+            if (toonLeaderboard) {
+              html += '<button class="sp-hero-btn live" onclick="openLiveLeaderboard(\'' + next.id + '\')">' +
+                '<span class="sp-hero-live-dot"></span>' +
+                'Live leaderboard</button>';
+            }
+            html += '<button class="sp-hero-btn secondary" onclick="spNav(\'startlijst\')">' +
               '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' +
-              'Mijn start' +
-            '</button>' +
-          '</div>' +
+              'Mijn start</button>';
+            html += '</div>';
+            return html;
+          })() +
         '</div>' +
       '</div>';
   } else {
