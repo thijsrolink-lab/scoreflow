@@ -1223,6 +1223,16 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
   .login-title { font-size: 26px; }
 }
 
+
+/* Verberg topbar op dashboard (dubbel met welkom-blok) */
+.admin-main.view-dashboard .topbar {
+  display: none;
+}
+/* En dan meer ruimte boven de content */
+.admin-main.view-dashboard .admin-content {
+  padding-top: 2.5rem;
+}
+
 </style>
 
 <script>
@@ -1921,6 +1931,9 @@ function adminNav(id){
   if(!heeftToegang(id)){toast('Geen toegang tot dit onderdeel.','err');return;}
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});
   var t=document.getElementById('v-'+id);if(t)t.classList.add('on');
+  // Toggle class op admin-main zodat CSS kan responderen per view
+  var adminMain = document.querySelector('.admin-main');
+  if(adminMain){adminMain.className = 'admin-main view-'+id;}
   document.querySelectorAll('[data-anavid]').forEach(function(el){el.classList.toggle('on',el.dataset.anavid===id);});
   document.getElementById('page-title').textContent=(id==='nieuw'&&_editId)?'Wedstrijd bewerken':ADMIN_TITLES[id]||'';
   var bc=ADMIN_BC[id];
