@@ -1545,6 +1545,180 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
   .sp-welcome h2 { font-size: 22px; }
 }
 
+
+/* ═══════════════════════════════════════════════
+   SPELER BOTTOM NAVIGATION — mobile first
+═══════════════════════════════════════════════ */
+
+.sp-bottom-nav {
+  display: none;
+}
+
+/* Alleen op mobiel zichtbaar */
+@media (max-width: 900px) {
+  .sp-bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #ffffff;
+    border-top: 1px solid #e6eaf0;
+    padding: 6px 0 max(6px, env(safe-area-inset-bottom, 6px));
+    z-index: 50;
+    box-shadow: 0 -2px 8px rgba(12, 27, 42, 0.04);
+  }
+  /* Verberg oude top-nav op mobiel */
+  .sp-nav {
+    display: none !important;
+  }
+  /* Content niet onder de bottom-nav */
+  .sp-content {
+    padding-bottom: 80px !important;
+  }
+}
+
+.sp-bn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px;
+  cursor: pointer;
+  color: #8b94a3;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  transition: color .15s;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.sp-bn-item svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
+}
+.sp-bn-item:active {
+  opacity: 0.6;
+}
+.sp-bn-item.on {
+  color: #16a34a;
+}
+.sp-bn-item.on svg {
+  stroke-width: 2.2;
+}
+.sp-bn-badge {
+  position: absolute;
+  top: 3px;
+  right: calc(50% - 18px);
+  width: 8px;
+  height: 8px;
+  background: #dc2626;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+}
+
+/* Meer bottom sheet */
+.sp-sheet-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(12, 27, 42, 0.5);
+  z-index: 60;
+  animation: fadeIn .2s;
+}
+.sp-sheet-overlay.open {
+  display: block;
+}
+@keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
+
+.sp-sheet {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: #ffffff;
+  border-radius: 24px 24px 0 0;
+  padding: 8px 20px max(20px, env(safe-area-inset-bottom, 20px));
+  z-index: 70;
+  transform: translateY(100%);
+  transition: transform .25s ease-out;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.sp-sheet.open {
+  transform: translateY(0);
+}
+.sp-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #e6eaf0;
+  border-radius: 100px;
+  margin: 0 auto 16px;
+}
+.sp-sheet-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0c1b2a;
+  margin-bottom: 12px;
+  padding-left: 4px;
+}
+.sp-sheet-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sp-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 4px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #0c1b2a;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background .15s;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.sp-sheet-item:active {
+  background: #f0fdf4;
+}
+.sp-sheet-item svg {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+.sp-sheet-item.sp-sheet-logout {
+  color: #dc2626;
+  border-top: 1px solid #e6eaf0;
+  margin-top: 8px;
+  padding-top: 16px;
+}
+.sp-sheet-item.sp-sheet-logout svg {
+  color: #dc2626;
+}
+.sp-sheet-badge {
+  margin-left: auto;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+  min-width: 22px;
+  text-align: center;
+}
+
+/* Alleen op mobiel helemaal weg de oude sp-topbar vereenvoudigen */
+@media (max-width: 900px) {
+  .sp-topbar {
+    padding-bottom: 0 !important;
+  }
+  .sp-topbar-inner {
+    padding: .65rem 1rem !important;
+  }
+}
+
 </style>
 
 <script>
@@ -1560,6 +1734,53 @@ var CLUB_NAAM_KORT = 'De Hooge';           // Voor kleine plekken
 
 
 // Past clubnaam toe op alle UI-elementen (sidebar, login, speler, etc.)
+
+
+// ── Speler 'Meer' bottom sheet ──────────────────────────────
+function spelerOpenMeer() {
+  var overlay = document.getElementById('sp-sheet-overlay');
+  var sheet = document.getElementById('sp-sheet');
+  if (overlay) overlay.classList.add('open');
+  if (sheet) {
+    // Kleine timeout zodat CSS transition werkt
+    requestAnimationFrame(function() {
+      sheet.classList.add('open');
+    });
+  }
+  // Update berichten badge in sheet
+  var count = (BERICHTEN || []).length;
+  var badgeEl = document.getElementById('sp-sheet-berichten-badge');
+  if (badgeEl) {
+    if (count > 0) {
+      badgeEl.textContent = count;
+      badgeEl.style.display = '';
+    } else {
+      badgeEl.style.display = 'none';
+    }
+  }
+}
+function spelerSluitMeer() {
+  var overlay = document.getElementById('sp-sheet-overlay');
+  var sheet = document.getElementById('sp-sheet');
+  if (sheet) sheet.classList.remove('open');
+  if (overlay) {
+    // Wait voor animatie
+    setTimeout(function() { overlay.classList.remove('open'); }, 250);
+  }
+}
+
+// ── Update bottom-nav badge indicator voor 'Meer' ───────────
+function spUpdateMeerBadge() {
+  var badge = document.getElementById('sp-bn-meer-badge');
+  if (!badge) return;
+  var berCount = (BERICHTEN || []).length;
+  if (berCount > 0) {
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 function applyClubBranding() {
   var el;
   // Sidebar
@@ -6201,9 +6422,19 @@ function dupliceerWedstrijd(id) {
 function spNav(id, el) {
   document.querySelectorAll('.sp-view').forEach(function(v) { v.classList.remove('on'); });
   document.querySelectorAll('.sp-nav-item').forEach(function(n) { n.classList.remove('on'); });
+  // Bottom-nav sync
+  document.querySelectorAll('.sp-bn-item').forEach(function(n) { n.classList.remove('on'); });
   var target = document.getElementById('sp-' + id);
   if (target) target.classList.add('on');
   if (el) el.classList.add('on');
+  // Sync top-nav én bottom-nav items met zelfde data-spview
+  document.querySelectorAll('[data-spview="' + id + '"]').forEach(function(n) { n.classList.add('on'); });
+  // Als item niet in bottom-nav staat (bijv. ranglijst, inschrijvingen), markeer 'Meer' als actief
+  var bnItem = document.querySelector('.sp-bn-item[data-spview="' + id + '"]');
+  if (!bnItem) {
+    var meerBtn = document.getElementById('sp-bn-meer');
+    if (meerBtn) meerBtn.classList.add('on');
+  }
   if (id === 'kalender') renderSpelerKalender();
   else if (id === 'groep') renderGroepOverzicht();
   else if (id === 'groep-detail') { /* inhoud al gezet door gwNieuwWizard/gwOpenDetail */ }
@@ -8996,6 +9227,66 @@ try {
     </div>
 
   </div>
+
+    <!-- Mobiele bottom navigation -->
+    <nav class="sp-bottom-nav" id="sp-bottom-nav">
+      <div class="sp-bn-item on" data-spview="kalender" onclick="spNav('kalender',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+        <span>Home</span>
+      </div>
+      <div class="sp-bn-item" data-spview="startlijst" onclick="spNav('startlijst',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span>Mijn start</span>
+      </div>
+      <div class="sp-bn-item" data-spview="scorekaart" onclick="spNav('scorekaart',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>
+        <span>Score</span>
+      </div>
+      <div class="sp-bn-item" data-spview="scores" onclick="spNav('scores',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l3 3 3-3 3 3 3-3"/><path d="M3 18h18"/></svg>
+        <span>Uitslagen</span>
+      </div>
+      <div class="sp-bn-item" id="sp-bn-meer" onclick="spelerOpenMeer()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+        <span>Meer</span>
+        <div class="sp-bn-badge" id="sp-bn-meer-badge" style="display:none"></div>
+      </div>
+    </nav>
+
+    <!-- Meer bottom sheet (mobiel) -->
+    <div class="sp-sheet-overlay" id="sp-sheet-overlay" onclick="spelerSluitMeer()"></div>
+    <div class="sp-sheet" id="sp-sheet">
+      <div class="sp-sheet-handle"></div>
+      <div class="sp-sheet-title">Meer</div>
+      <div class="sp-sheet-items">
+        <div class="sp-sheet-item" onclick="spNav('inschrijvingen');spelerSluitMeer()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span>Inschrijvingen</span>
+        </div>
+        <div class="sp-sheet-item" onclick="spNav('ranglijst');spelerSluitMeer()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l3 3 3-3 3 3 3-3"/><path d="M12 3v18"/></svg>
+          <span>Ranglijst</span>
+        </div>
+        <div class="sp-sheet-item" onclick="spNav('groep');spelerSluitMeer()" id="sp-sheet-groep">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="3"/></svg>
+          <span>Groepswedstrijd</span>
+        </div>
+        <div class="sp-sheet-item" onclick="spNav('berichten');spelerSluitMeer()" id="sp-sheet-berichten">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span>Berichten</span>
+          <div class="sp-sheet-badge" id="sp-sheet-berichten-badge" style="display:none">0</div>
+        </div>
+        <div class="sp-sheet-item" onclick="spNav('profiel');spelerSluitMeer()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/></svg>
+          <span>Profiel</span>
+        </div>
+        <div class="sp-sheet-item sp-sheet-logout" onclick="logout()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>Uitloggen</span>
+        </div>
+      </div>
+    </div>
+
 </div>
 
 <!-- ══════════════════════════════════════
