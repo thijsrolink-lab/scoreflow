@@ -1369,25 +1369,40 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
   align-items: center;
   gap: 8px;
 }
+.sp-hero-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .sp-hero-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #ffffff;
-  color: #0c1b2a;
   padding: 0.7rem 1.1rem;
   border-radius: 10px;
-  border: none;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all .15s;
-  width: fit-content;
 }
-.sp-hero-btn:hover {
+.sp-hero-btn.primary {
+  background: #ffffff;
+  color: #0c1b2a;
+  border: none;
+}
+.sp-hero-btn.primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+.sp-hero-btn.secondary {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.sp-hero-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
 /* Leeg-state hero */
@@ -5348,10 +5363,16 @@ function renderSpelerKalender(){
               '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' +
               'Start ' + escHtml(next.tijd) + '</div>' : '') +
           '</div>' +
-          '<button class="sp-hero-btn" onclick="spelerOpenWedstrijd(\'' + next.id + '\')">' +
-            'Naar wedstrijd ' +
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>' +
-          '</button>' +
+          '<div class="sp-hero-actions">' +
+            '<button class="sp-hero-btn primary" onclick="spelerNaarScorekaart(\'' + next.id + '\')">' +
+              '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>' +
+              'Scorekaart' +
+            '</button>' +
+            '<button class="sp-hero-btn secondary" onclick="spNav(\'startlijst\')">' +
+              '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' +
+              'Mijn start' +
+            '</button>' +
+          '</div>' +
         '</div>' +
       '</div>';
   } else {
@@ -5438,6 +5459,19 @@ function renderSpelerKalender(){
 
 // Helper: open een wedstrijd vanuit speler perspectief
 // Voor nu: ga naar inschrijvingen of scorekaart, afhankelijk van status
+
+// Direct naar scorekaart voor specifieke wedstrijd (vanaf hero)
+function spelerNaarScorekaart(wId) {
+  spNav('scorekaart');
+  setTimeout(function() {
+    var sel = document.getElementById('sk-w');
+    if (sel) {
+      sel.value = wId;
+      if (typeof initScorekaart === 'function') initScorekaart();
+    }
+  }, 100);
+}
+
 function spelerOpenWedstrijd(wId) {
   var u = _currentUser;
   if (!u) return;
