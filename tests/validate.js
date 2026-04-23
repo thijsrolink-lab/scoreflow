@@ -405,6 +405,163 @@ test('Geen losse JavaScript in de HTML (broncode lek)', () => {
   return found.length === 0 || `Code buiten <script>: ${found.slice(0,2).join(', ')}`;
 });
 
+
+// ═══════════════════════════════════════════════════════════════
+// WEDSTRIJD FORM ROUNDTRIP — elke input moet in alle 4 functies zitten
+// (voorkomt 'flt' bug: veld bestond in form, werd niet opgeslagen)
+// ═══════════════════════════════════════════════════════════════
+section('Form roundtrip (save/load completeness)');
+
+// Extract script for these tests
+const scriptMatch = html.match(/<script>([\s\S]+?)<\/script>/);
+const scriptText = scriptMatch ? scriptMatch[1] : '';
+
+function getFnBody(src, name) {
+  const idx = src.indexOf('function ' + name);
+  if (idx < 0) return '';
+  let depth = 0, started = false;
+  for (let i = idx; i < idx + 8000 && i < src.length; i++) {
+    if (src[i] === '{') { depth++; started = true; }
+    else if (src[i] === '}' && started) {
+      depth--;
+      if (depth === 0) return src.substring(idx, i + 1);
+    }
+  }
+  return '';
+}
+
+// Critical inputs that MUST roundtrip: formId → appKey
+// form = input id, app = camelCase key in JS object, db = snake_case DB column
+const criticalFields = [
+  {form: 'fn',      app: 'naam',          db: 'naam',           label: 'Naam'},
+  {form: 'fd',      app: 'datum',         db: 'datum',          label: 'Datum'},
+  {form: 'fb',      app: 'baan',          db: 'baan',           label: 'Baan'},
+  {form: 'ft',      app: 'tijd',          db: 'tijd',           label: 'Starttijd'},
+  {form: 'fcr',     app: 'cr',            db: 'cr',             label: 'CR'},
+  {form: 'fsl',     app: 'slope',         db: 'slope',          label: 'Slope'},
+  {form: 'fh',      app: 'holes',         db: 'holes',          label: 'Holes'},
+  {form: 'fmax',    app: 'max',           db: 'max_deelnemers', label: 'Max deelnemers'},
+  {form: 'fflt',    app: 'flt',           db: 'flt',            label: 'Flight grootte'},
+  {form: 'fhmax',   app: 'hcpmax',        db: 'hcp_max',        label: 'HCP max'},
+  {form: 'fhmin',   app: 'hcpmin',        db: 'hcp_min',        label: 'HCP min'},
+  {form: 'fhp',     app: 'hcpperc',       db: 'hcp_perc',       label: 'HCP %'},
+  {form: 'fesc',    app: 'esc',           db: 'esc',            label: 'ESC'},
+  {form: 'fsg',     app: 'startgeld',     db: 'startgeld',      label: 'Startgeld'},
+  {form: 'fop',     app: 'inschrijfOpen', db: 'inschrijf_open', label: 'Inschrijving open'},
+  {form: 'fsluit',  app: 'inschrijfSluit',db: 'inschrijf_sluit',label: 'Inschrijving sluit'},
+  {form: 'fomschr', app: 'omschrijving',  db: 'omschrijving',   label: 'Omschrijving'},
+];
+
+const bouw = getFnBody(scriptText, 'bouwWedstrijdUitFormulier');
+const edit = getFnBody(scriptText, 'editW');
+const dbSave = getFnBody(scriptText, 'dbSaveWedstrijd');
+const dbLoad = getFnBody(scriptText, 'dbWedstrijdNaarApp');
+
+criticalFields.forEach(f => {
+  test(`Field '${f.label}' (${f.form}) roundtrip`, () => {
+    const issues = [];
+    // 1. form-input wordt gelezen bij save
+    if (!bouw.includes("'" + f.form + "'")) issues.push('bouwWedstrijdUitFormulier leest form-veld niet');
+    // 2. form-input wordt gevuld bij edit
+    if (!edit.includes("'" + f.form + "'")) issues.push('editW vult form-veld niet');
+    // 3. veld wordt naar DB gestuurd (DB-kolom linkerhand)
+    if (!dbSave.includes(f.db + ':')) issues.push('dbSaveWedstrijd stuurt veld niet naar DB');
+    // 4. veld wordt uit DB gelezen (DB-kolom aan .w zijde)
+    if (!dbLoad.includes('w.' + f.db)) issues.push('dbWedstrijdNaarApp leest veld niet terug');
+    return issues.length === 0 || issues.join(' | ');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// LIFECYCLE HELPERS — must exist en must be globally callable
+// ═══════════════════════════════════════════════════════════════
+section('Lifecycle helpers');
+
+const lifecycleFns = [
+  'wedstrijdFase',
+  'wedstrijdStartTs',
+  'wedstrijdEindeTs',
+  'scorekaartToegankelijk',
+  'veldBewerkbaar',
+  'statusBadge',
+  'startWedstrijd',
+  'afrondWedstrijd',
+  'afgelastWedstrijd',
+  'heractiveerWedstrijd',
+];
+
+lifecycleFns.forEach(fn => {
+  test(`${fn}() bestaat`, () => {
+    return scriptText.includes('function ' + fn + '(') ||
+      `Functie '${fn}' niet gedefinieerd`;
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ONCLICK HANDLERS — alle moeten een definitie hebben
+// ═══════════════════════════════════════════════════════════════
+section('Onclick handlers');
+
+test('Alle onclick handlers verwijzen naar bestaande functies', () => {
+  const htmlOnly = html.replace(/<script>[\s\S]+?<\/script>/g, '');
+  const onclickCalls = new Set();
+  const re = /onclick=["']([a-zA-Z_][\w]*)\s*\(/g;
+  let m;
+  while ((m = re.exec(htmlOnly)) !== null) {
+    onclickCalls.add(m[1]);
+  }
+  const missing = [];
+  onclickCalls.forEach(fn => {
+    if (!scriptText.includes('function ' + fn + '(') &&
+        !scriptText.includes('function ' + fn + ' (') &&
+        !scriptText.includes(fn + ' = function')) {
+      missing.push(fn);
+    }
+  });
+  return missing.length === 0 || 'Ontbrekende functies: ' + missing.join(', ');
+});
+
+// ═══════════════════════════════════════════════════════════════
+// HELP SYSTEEM — alle admin views moeten help content hebben
+// ═══════════════════════════════════════════════════════════════
+section('Help systeem');
+
+test('HELP object bestaat en heeft alle admin views', () => {
+  const helpMatch = scriptText.match(/var\s+HELP\s*=\s*\{([\s\S]+?)^\};/m);
+  if (!helpMatch) return 'HELP object niet gevonden';
+  const helpBody = helpMatch[1];
+  const requiredKeys = ['dashboard', 'wedstrijden', 'inschrijvingen', 'flights', 'scores'];
+  const missing = requiredKeys.filter(k => !new RegExp('^\\s*' + k + '\\s*:\\s*\\{', 'm').test(helpBody));
+  return missing.length === 0 || 'Ontbrekende help-keys: ' + missing.join(', ');
+});
+
+// ═══════════════════════════════════════════════════════════════
+// DB SYNC — alle velden met DB-tegenhanger moeten bidirectioneel
+// ═══════════════════════════════════════════════════════════════
+section('Database sync');
+
+test('dbSaveWedstrijd en dbWedstrijdNaarApp hebben symmetrische velden', () => {
+  const save = getFnBody(scriptText, 'dbSaveWedstrijd');
+  const load = getFnBody(scriptText, 'dbWedstrijdNaarApp');
+  if (!save || !load) return 'dbSave/dbLoad functies niet gevonden';
+
+  // Extract db-kolomnamen uit save (patroon: naam: value)
+  const saveKeys = new Set();
+  const saveFields = save.match(/\b(\w+):\s*w\.\w+/g) || [];
+  saveFields.forEach(f => {
+    const m = f.match(/^(\w+):/);
+    if (m) saveKeys.add(m[1]);
+  });
+
+  // Moet ook in load voorkomen (als DB-kolom-naam aan linkerkant van value lezen)
+  const missing = [];
+  ['tijd', 'flt', 'afgelast_reden', 'status'].forEach(k => {
+    if (saveKeys.has(k) && !load.includes(k)) missing.push(k);
+  });
+
+  return missing.length === 0 || 'Niet bidirectioneel gesynct: ' + missing.join(', ');
+});
+
 // ═══════════════════════════════════════════════════════════════
 // SAMENVATTING
 // ═══════════════════════════════════════════════════════════════
