@@ -2509,7 +2509,9 @@ function adminNav(id){
   // Toggle class op admin-main zodat CSS kan responderen per view
   var adminMain = document.querySelector('.admin-main');
   if(adminMain){adminMain.className = 'admin-main view-'+id;}
-  document.querySelectorAll('[data-anavid]').forEach(function(el){el.classList.toggle('on',el.dataset.anavid===id);});
+  // Bij bewerken: markeer sidebar-item 'wedstrijden' ipv 'nieuw'
+  var sidebarActief = (id === 'nieuw' && _editId) ? 'wedstrijden' : id;
+  document.querySelectorAll('[data-anavid]').forEach(function(el){el.classList.toggle('on',el.dataset.anavid===sidebarActief);});
   document.getElementById('page-title').textContent=(id==='nieuw'&&_editId)?'Wedstrijd bewerken':ADMIN_TITLES[id]||'';
   var bc=ADMIN_BC[id];
   var bcP=document.getElementById('bc-parent');
