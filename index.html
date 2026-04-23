@@ -480,222 +480,341 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 
 
 /* ═══════════════════════════════════════════════
-   DASHBOARD v4 — Soft Modern (mint + navy, fris)
+   DASHBOARD v4 — Soft Modern (fris, mint + navy)
 ═══════════════════════════════════════════════ */
-#v-dashboard { padding-top: .5rem; }
-#v-dashboard > div { margin-bottom: 2rem !important; }
 
+/* Nieuwe design tokens overriden waar nodig */
+#v-dashboard {
+  --navy: #0c1b2a;
+  --navy-soft: #425466;
+  --sm-muted: #8b94a3;
+  --sm-line: #e6eaf0;
+  --sm-line-soft: #f1f4f8;
+  --sm-bg: #f8faf8;
+  --sage: #86efac;
+  --sage-deep: #16a34a;
+  --sage-tint: #f0fdf4;
+  --sage-border: #bbf7d0;
+  --peach: #fecaca;
+  --peach-deep: #dc2626;
+
+  padding-top: .5rem;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  color: var(--navy);
+}
+#v-dashboard > div { margin-bottom: 2rem !important; }
+#v-dashboard * { font-family: 'Inter', -apple-system, system-ui, sans-serif; }
+
+/* Welkom */
 .dash-welcome {
   display: flex; align-items: baseline; justify-content: space-between;
   flex-wrap: wrap; gap: 1rem;
 }
 .dash-welcome h2 {
-  font-size: 38px; font-weight: 700; color: var(--tx); margin: 0;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 700; font-size: 40px;
   letter-spacing: -0.025em; line-height: 1.1;
-  font-family: 'Inter', sans-serif;
+  color: var(--navy); margin: 0;
 }
 .dash-welcome h2 .accent {
-  font-family: 'Fraunces', Georgia, serif; font-style: italic;
-  font-weight: 500; color: var(--g);
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--sage-deep);
 }
-.dash-welcome .sub { font-size: 13px; color: var(--txm); margin-top: 6px; }
+.dash-welcome .sub {
+  font-size: 14px; color: var(--sm-muted); margin-top: 6px;
+  font-weight: 400;
+}
 .dash-welcome-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* Nieuwe button-stijl voor welkom-area */
+.dash-welcome-actions .btn {
+  padding: .7rem 1.25rem !important;
+  border-radius: 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  transition: all .15s;
+}
+.dash-welcome-actions .btn-p {
+  background: var(--navy) !important;
+  border-color: var(--navy) !important;
+  color: #fff !important;
+}
+.dash-welcome-actions .btn-p:hover {
+  background: #1a2a3a !important;
+  transform: translateY(-1px);
+}
+.dash-welcome-actions .btn-s {
+  background: #fff !important;
+  border: 1px solid var(--sm-line) !important;
+  color: var(--navy) !important;
+}
+.dash-welcome-actions .btn-s:hover {
+  border-color: var(--navy) !important;
+}
+
+/* Hero — pastel mint gradient */
 .hero-match {
   position: relative; overflow: hidden;
-  border-radius: var(--rxl); padding: 2rem 2.25rem;
   background: linear-gradient(135deg, #d7f2e3 0%, #b0e5c9 100%);
-  color: var(--tx);
+  border-radius: 20px;
+  padding: 2rem 2.25rem;
   display: grid; grid-template-columns: 1fr auto;
   align-items: end; gap: 2rem;
+  color: var(--navy);
 }
 .hero-match::before {
-  content: ''; position: absolute;
-  bottom: -50px; right: -30px; width: 280px; height: 280px;
-  border: 2px solid rgba(22, 163, 74, 0.15); border-radius: 50%;
+  content: '';
+  position: absolute;
+  bottom: -50px; right: -30px;
+  width: 280px; height: 280px;
+  border: 2px solid rgba(22, 163, 74, 0.15);
+  border-radius: 50%;
   pointer-events: none;
 }
 .hero-match::after {
-  content: ''; position: absolute;
-  bottom: 20px; right: 80px; width: 180px; height: 180px;
-  border: 2px solid rgba(22, 163, 74, 0.12); border-radius: 50%;
+  content: '';
+  position: absolute;
+  bottom: 20px; right: 80px;
+  width: 180px; height: 180px;
+  border: 2px solid rgba(22, 163, 74, 0.12);
+  border-radius: 50%;
   pointer-events: none;
 }
-.hero-match-content { position: relative; z-index: 2; min-width: 0; }
+.hero-match-content {
+  position: relative; z-index: 2; min-width: 0;
+}
 .hero-match-date {
-  font-size: 12px; font-weight: 600; color: var(--gd);
-  margin-bottom: 12px; display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600;
+  color: var(--sage-deep); margin-bottom: 12px;
+  display: inline-flex; align-items: center; gap: 8px;
 }
 .hero-match-date::before {
-  content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--g);
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--sage-deep);
 }
 .hero-match h3 {
-  font-family: 'Fraunces', Georgia, serif; font-style: italic;
-  font-size: 40px; font-weight: 700; margin: 0 0 12px 0;
-  line-height: 1.05; letter-spacing: -0.02em; color: var(--tx);
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-style: italic;
+  font-size: 40px; font-weight: 700;
+  letter-spacing: -0.02em; line-height: 1.05;
+  margin: 0 0 12px 0;
+  color: var(--navy);
 }
 .hero-match-meta {
-  font-size: 14px; color: var(--navy-soft); font-weight: 500;
   display: flex; gap: 1.25rem; flex-wrap: wrap;
+  font-size: 14px; color: var(--navy-soft);
+  font-weight: 500;
 }
-.hero-match-meta .sep { opacity: .4; }
+.hero-match-meta .sep {
+  opacity: .4;
+}
 .hero-match .btn-hero {
-  background: var(--tx); color: #fff;
-  padding: .9rem 1.5rem; border-radius: var(--r);
-  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-  border: none; transition: all .2s ease; flex-shrink: 0;
+  background: var(--navy); color: #fff;
+  padding: .9rem 1.5rem; border-radius: 12px;
+  font-weight: 600; font-size: 14px;
+  border: none; cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all .2s;
   position: relative; z-index: 2;
+  flex-shrink: 0;
 }
 .hero-match .btn-hero:hover {
-  transform: translateY(-2px); box-shadow: 0 8px 20px rgba(12,27,42,.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(12,27,42,.25);
 }
 
+/* Cards section */
 .dash-cards-head {
   display: flex; align-items: baseline; justify-content: space-between;
   margin-bottom: 1.25rem;
 }
 .dash-cards-head h3 {
-  font-size: 22px; font-weight: 700; color: var(--tx); margin: 0;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 22px; font-weight: 700;
   letter-spacing: -0.01em;
+  color: var(--navy); margin: 0;
 }
 .dash-cards-head h3 .sub-count {
-  color: var(--txm); font-weight: 400; font-size: 14px; margin-left: 8px;
+  color: var(--sm-muted); font-weight: 400; font-size: 14px;
+  margin-left: 8px;
 }
 .dash-cards-head .show-all {
-  font-size: 13px; color: var(--g); font-weight: 600; cursor: pointer;
-  text-decoration: none;
+  color: var(--sage-deep); font-size: 13px; font-weight: 600;
+  cursor: pointer;
 }
 .dash-cards-head .show-all:hover { text-decoration: underline; }
 
 .dash-cards {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
 }
+
 .wed-card {
-  background: var(--card); border: 1px solid var(--bd);
-  border-radius: var(--rl); padding: 1.5rem;
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid var(--sm-line);
   transition: all .2s ease; cursor: pointer;
   display: flex; flex-direction: column; gap: 1rem;
+  position: relative;
 }
 .wed-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(12,27,42,.06);
-  border-color: var(--gl2);
+  border-color: var(--sage-border);
 }
 .wed-card.first {
-  border-color: var(--gl2);
-  background: linear-gradient(to bottom, var(--gl) 0%, var(--card) 40%);
+  border-color: var(--sage-border);
+  background: linear-gradient(to bottom, var(--sage-tint) 0%, #fff 40%);
 }
 
-.wed-card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wed-card-head {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
 .wed-card-date-text {
-  font-size: 12px; font-weight: 600; color: var(--navy-soft); flex-shrink: 0;
+  font-size: 12px; font-weight: 600;
+  color: var(--navy-soft);
 }
 .wed-card-badge {
-  display: inline-block; padding: 3px 10px; border-radius: 100px;
-  font-size: 10px; font-weight: 700; letter-spacing: .04em;
-  background: var(--lime); color: var(--tx);
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--sage); color: var(--navy);
 }
-.wed-card-naam {
-  font-family: 'Fraunces', Georgia, serif; font-style: italic;
-  font-weight: 700; font-size: 20px; color: var(--tx);
-  line-height: 1.2; margin: .25rem 0;
-  letter-spacing: -0.01em;
-}
-.wed-card-sub { font-size: 13px; color: var(--txm); }
 
+.wed-card-naam {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-style: italic;
+  font-weight: 700; font-size: 22px;
+  letter-spacing: -0.01em; line-height: 1.2;
+  color: var(--navy); margin: 0;
+}
+.wed-card-sub {
+  font-size: 13px; color: var(--sm-muted);
+}
+
+/* Progress */
 .wed-card-stats {
   display: flex; flex-direction: column; gap: 8px;
   padding: 12px 0;
-  border-top: 1px solid var(--surf);
-  border-bottom: 1px solid var(--surf);
+  border-top: 1px solid var(--sm-line-soft);
+  border-bottom: 1px solid var(--sm-line-soft);
+}
+.wed-card-stats-row-progress {
+  display: flex; justify-content: space-between; align-items: center;
   font-size: 12px;
 }
-.wed-card-stats-row {
-  display: flex; justify-content: space-between; align-items: center;
-}
-.wed-card-stats-row .lbl { color: var(--txm); }
-.wed-card-stats-row .val { font-weight: 600; color: var(--tx); }
-.wed-card-stats-row .val strong {
-  font-family: 'Fraunces', Georgia, serif; font-style: italic;
-  font-size: 15px; color: var(--g); margin-right: 2px;
-}
+.wed-card-stats-row-progress .lbl { color: var(--sm-muted); }
+.wed-card-stats-row-progress .val { font-weight: 600; color: var(--navy); }
 .wed-card-progress-bar {
-  height: 4px; background: var(--surf); border-radius: 100px; overflow: hidden;
+  height: 4px; background: var(--sm-line-soft);
+  border-radius: 100px; overflow: hidden;
 }
 .wed-card-progress-fill {
-  height: 100%; background: var(--tx); border-radius: 100px; transition: width .4s;
+  height: 100%; background: var(--navy);
+  border-radius: 100px; transition: width .4s;
 }
-.wed-card.first .wed-card-progress-fill { background: var(--g); }
+.wed-card.first .wed-card-progress-fill {
+  background: var(--sage-deep);
+}
+.wed-card-stats-extra {
+  font-size: 11px; color: var(--sm-muted); margin-top: 2px;
+}
 
+/* Taken + footer */
 .wed-card-footer {
   display: flex; align-items: center; justify-content: space-between;
 }
 .wed-card-taken-chip {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 500; color: var(--navy-soft);
 }
 .wed-card-taken-num {
   display: inline-flex; align-items: center; justify-content: center;
   padding: 2px 8px; border-radius: 100px;
-  background: var(--redb); color: var(--red);
-  font-size: 11px; font-weight: 700; min-width: 22px;
+  background: var(--peach); color: var(--peach-deep);
+  font-size: 11px; font-weight: 700;
 }
-.wed-card-taken-num.zero { background: var(--surf); color: var(--txh); }
+.wed-card-taken-num.zero {
+  background: var(--sm-line-soft); color: var(--sm-muted);
+}
 .wed-card-arrow {
-  color: var(--tx); font-size: 16px; font-weight: 600; transition: transform .2s;
+  color: var(--navy); font-size: 18px;
+  transition: transform .2s;
 }
-.wed-card:hover .wed-card-arrow { transform: translateX(4px); }
+.wed-card:hover .wed-card-arrow {
+  transform: translateX(4px);
+}
 
+/* Bottom sections */
 .dash-bottom-section h4 {
-  font-size: 20px; font-weight: 700; color: var(--tx);
-  margin: 0 0 1rem 0; letter-spacing: -0.01em;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 20px; font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--navy); margin: 0 0 1rem 0;
 }
 
+/* Quick links als pills */
 .quick-links {
   display: flex; flex-wrap: wrap; gap: 6px;
 }
 .quick-link {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: .5rem 1rem; background: var(--card);
-  border: 1px solid var(--bd); border-radius: 10px;
-  font-size: 13px; font-weight: 500; cursor: pointer;
-  transition: all .15s; color: var(--tx); text-decoration: none;
+  padding: .55rem 1rem;
+  background: #fff;
+  border: 1px solid var(--sm-line);
+  border-radius: 10px;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  color: var(--navy);
+  text-decoration: none;
 }
 .quick-link:hover {
-  background: var(--gl); color: var(--g); border-color: var(--gl2);
+  background: var(--sage-tint);
+  color: var(--sage-deep);
+  border-color: var(--sage-border);
+}
+.quick-link::after {
+  content: none;
 }
 
+/* Berichten */
 .bericht-item {
-  padding: 1rem 0; border-bottom: 1px solid var(--bd);
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--sm-line);
   display: flex; gap: 12px; align-items: flex-start;
 }
 .bericht-item:last-child { border-bottom: none; }
 .bericht-item-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: var(--g); flex-shrink: 0; margin-top: 6px;
+  background: var(--sage-deep);
+  margin-top: 6px; flex-shrink: 0;
 }
 .bericht-item-content { flex: 1; min-width: 0; }
 .bericht-item-titel {
-  font-size: 14px; font-weight: 600; color: var(--tx);
+  font-size: 14px; font-weight: 600; color: var(--navy);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .bericht-item-tekst {
-  font-size: 12px; color: var(--txm); margin-top: 2px;
+  font-size: 12px; color: var(--sm-muted); margin-top: 2px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .bericht-item-datum {
-  font-size: 11px; color: var(--txm); flex-shrink: 0; margin-top: 4px;
+  font-size: 11px; color: var(--sm-muted);
+  flex-shrink: 0; margin-top: 3px;
 }
 
+/* Responsive */
 @media (max-width: 900px) {
   #v-dashboard > div { margin-bottom: 1.5rem !important; }
   .dash-welcome { flex-direction: column; align-items: flex-start; }
-  .dash-welcome h2 { font-size: 28px; }
-  .hero-match { padding: 1.5rem; grid-template-columns: 1fr; }
+  .dash-welcome h2 { font-size: 30px; }
+  .hero-match { padding: 1.5rem; flex-direction: column; align-items: flex-start; }
   .hero-match h3 { font-size: 28px; }
-  #dash-bottom { grid-template-columns: 1fr !important; gap: 2rem !important; }
+  #dash-bottom { grid-template-columns: 1fr !important; }
   .dash-cards { grid-template-columns: 1fr; }
 }
 
@@ -1410,6 +1529,7 @@ function renderAdminDashboard(){
   var now = new Date();
   updateAdminBadges();
 
+  // ── Welkom header (met geaccentueerde naam) ─────────────
   var u = _currentUser || { voor: 'Admin', ach: '' };
   var naam = u.voor || 'Admin';
   var dag = new Date();
@@ -1422,13 +1542,14 @@ function renderAdminDashboard(){
         '<div class="sub">' + datumStr + ' · Dit is wat er speelt op de club.</div>' +
       '</div>' +
       '<div class="dash-welcome-actions">' +
-        (heeftToegang('kalender') ? '<button class="btn btn-s btn-sm" onclick="adminNav(\'kalender\')">Kalender</button>' : '') +
         (heeftToegang('nieuw') ? '<button class="btn btn-p btn-sm" onclick="adminNav(\'nieuw\')">+ Nieuwe wedstrijd</button>' : '') +
+        (heeftToegang('kalender') ? '<button class="btn btn-s btn-sm" onclick="adminNav(\'kalender\')">Kalender openen</button>' : '') +
       '</div>' +
     '</div>';
   var welEl = document.getElementById('dash-welcome');
   if (welEl) welEl.innerHTML = welkomHtml;
 
+  // ── Hero: eerstvolgende wedstrijd ───────────────────────
   var alle = (WEDSTRIJDEN || []).filter(function(w) {
     return w && w.datum && new Date(w.datum) >= now && w.status === 'gepubliceerd';
   }).sort(function(a, b) { return new Date(a.datum) - new Date(b.datum); });
@@ -1452,27 +1573,32 @@ function renderAdminDashboard(){
         '<button class="btn-hero" onclick="adminNavToW(\'' + next.id + '\')">Naar wedstrijd →</button>' +
       '</div>';
   } else {
-    heroHtml = '<div class="hero-match"><div class="hero-match-content">' +
-      '<div class="hero-match-date">Geen geplande wedstrijd</div>' +
-      '<h3>Tijd voor een nieuwe wedstrijd</h3>' +
-      '<div class="hero-match-meta"><span>Maak een wedstrijd aan om te beginnen</span></div>' +
-      '</div>' +
-      (heeftToegang('nieuw') ? '<button class="btn-hero" onclick="adminNav(\'nieuw\')">+ Nieuwe wedstrijd</button>' : '') +
+    heroHtml = '' +
+      '<div class="hero-match">' +
+        '<div class="hero-match-content">' +
+          '<div class="hero-match-date">Geen geplande wedstrijd</div>' +
+          '<h3>Tijd voor een nieuwe wedstrijd</h3>' +
+          '<div class="hero-match-meta"><span>Maak een wedstrijd aan om te beginnen</span></div>' +
+        '</div>' +
+        (heeftToegang('nieuw') ? '<button class="btn-hero" onclick="adminNav(\'nieuw\')">+ Nieuwe wedstrijd</button>' : '') +
       '</div>';
   }
   var heroEl = document.getElementById('dash-hero');
   if (heroEl) heroEl.innerHTML = heroHtml;
 
+  // ── Wedstrijd cards (3 stuks) ───────────────────────────
   var cardsLijst = alle.slice(0, 3);
   var cardsHtml = '' +
     '<div class="dash-cards-head">' +
-      '<h3>Aankomende wedstrijden' + (alle.length > 0 ? '<span class="sub-count">' + alle.length + ' gepland</span>' : '') + '</h3>' +
+      '<h3>Aankomende wedstrijden' +
+        (alle.length > 0 ? ' <span class="sub-count">' + alle.length + ' gepland</span>' : '') +
+      '</h3>' +
       (alle.length > 3 ? '<a class="show-all" onclick="adminNav(\'wedstrijden\')">Toon alle →</a>' : '') +
     '</div>' +
     '<div class="dash-cards">';
 
   if (cardsLijst.length === 0) {
-    cardsHtml += '<div style="grid-column:1/-1;padding:1.5rem;text-align:center;color:var(--txm);font-size:13px">Nog geen gepubliceerde wedstrijden.</div>';
+    cardsHtml += '<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--sm-muted,#8b94a3);font-size:13px;background:#fff;border-radius:16px;border:1px solid var(--sm-line,#e6eaf0)">Nog geen gepubliceerde wedstrijden.</div>';
   } else {
     cardsLijst.forEach(function(w, idx) {
       var d = new Date(w.datum);
@@ -1485,6 +1611,7 @@ function renderAdminDashboard(){
       var isFirst = idx === 0;
       var pct = w.max ? Math.round((ic / w.max) * 100) : 0;
 
+      // Taken
       var taken = 0;
       var flights = FLIGHTS[w.id] || [];
       var scores = SCORES[w.id] || {};
@@ -1494,33 +1621,34 @@ function renderAdminDashboard(){
       if (flights.length > 0 && daysTill <= 3) taken++;
       if (d <= now && Object.keys(scores).length === 0) taken++;
 
-      var datumLabel = d.getDate() + ' ' + MN[d.getMonth()].slice(0,3) +
-        ' · ' + ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()];
+      var dagLang = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()];
+      var datumLabel = d.getDate() + ' ' + MN[d.getMonth()] + ' · ' + dagLang;
+
+      var sluitDatum = w.inschrijfSluit ? new Date(w.inschrijfSluit) : null;
+      var sluitLabel = sluitDatum ?
+        'sluit ' + sluitDatum.getDate() + ' ' + MN[sluitDatum.getMonth()].slice(0,3).toLowerCase() : '';
 
       cardsHtml += '' +
         '<div class="wed-card' + (isFirst ? ' first' : '') + '" onclick="adminNavToW(\'' + w.id + '\')">' +
-          '<div>' +
-            '<div class="wed-card-head">' +
-              '<span class="wed-card-date-text">' + datumLabel + '</span>' +
-              (isFirst ? '<span class="wed-card-badge">Eerstvolgende</span>' : '') +
-            '</div>' +
-            '<div class="wed-card-naam">' + escHtml(w.naam) + '</div>' +
-            '<div class="wed-card-sub">' + escHtml(w.vorm || '') +
-              (w.tijd ? ' · ' + escHtml(w.tijd) : '') + '</div>' +
+          '<div class="wed-card-head">' +
+            '<span class="wed-card-date-text">' + datumLabel + '</span>' +
+            (isFirst ? '<span class="wed-card-badge">Eerstvolgende</span>' : '') +
           '</div>' +
+          '<div class="wed-card-naam">' + escHtml(w.naam) + '</div>' +
+          '<div class="wed-card-sub">' + escHtml(w.vorm || '') +
+            (w.tijd ? ' · ' + escHtml(w.tijd) : '') + '</div>' +
           '<div class="wed-card-stats">' +
-            '<div class="wed-card-stats-row">' +
+            '<div class="wed-card-stats-row-progress">' +
               '<span class="lbl">Inschrijvingen</span>' +
-              '<span class="val"><strong>' + ic + '</strong>/ ' + (w.max || '?') + '</span>' +
+              '<span class="val">' + ic + ' / ' + (w.max || '?') + '</span>' +
             '</div>' +
-            '<div class="wed-card-progress-bar">' +
-              '<div class="wed-card-progress-fill" style="width:' + pct + '%"></div>' +
-            '</div>' +
+            '<div class="wed-card-progress-bar"><div class="wed-card-progress-fill" style="width:' + pct + '%"></div></div>' +
+            (sluitLabel ? '<div class="wed-card-stats-extra">' + sluitLabel + '</div>' : '') +
           '</div>' +
           '<div class="wed-card-footer">' +
             '<div class="wed-card-taken-chip">' +
               '<span class="wed-card-taken-num' + (taken === 0 ? ' zero' : '') + '">' + taken + '</span>' +
-              (taken === 1 ? 'Open taak' : taken === 0 ? 'Geen taken' : 'Open taken') +
+              (taken === 0 ? 'Geen taken' : (taken === 1 ? 'Open taak' : 'Open taken')) +
             '</div>' +
             '<span class="wed-card-arrow">→</span>' +
           '</div>' +
@@ -1532,6 +1660,7 @@ function renderAdminDashboard(){
   var cardsEl = document.getElementById('dash-cards-section');
   if (cardsEl) cardsEl.innerHTML = cardsHtml;
 
+  // ── Snel acties als pills ───────────────────────────────
   var tiles = [
     { id: 'inschrijvingen', label: 'Inschrijvingen' },
     { id: 'flights',        label: 'Startlijsten' },
@@ -1549,6 +1678,7 @@ function renderAdminDashboard(){
   var qaEl = document.getElementById('dash-quick-actions');
   if (qaEl) qaEl.innerHTML = tilesHtml;
 
+  // ── Berichten widget ────────────────────────────────────
   var berichten = (BERICHTEN || []).slice().sort(function(a, b) {
     return new Date(b.datum || 0) - new Date(a.datum || 0);
   }).slice(0, 3);
@@ -1556,7 +1686,7 @@ function renderAdminDashboard(){
   var notEl = document.getElementById('dash-notifs');
   if (notEl) {
     if (berichten.length === 0) {
-      notEl.innerHTML = '<p style="font-size:13px;color:var(--txm);padding:.25rem 0">Geen nieuwe berichten.</p>';
+      notEl.innerHTML = '<p style="font-size:13px;color:var(--sm-muted,#8b94a3);padding:.5rem 0">Geen nieuwe berichten.</p>';
     } else {
       notEl.innerHTML = berichten.map(function(b) {
         var bd = b.datum ? new Date(b.datum) : null;
