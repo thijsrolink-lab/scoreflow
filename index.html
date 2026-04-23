@@ -1757,6 +1757,108 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
   }
 }
 
+
+/* ═══════════════════════════════════════════════
+   WEDSTRIJD LIFECYCLE — status badges + banners
+═══════════════════════════════════════════════ */
+.st-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 100px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.st-badge.st-concept {
+  background: #f1f4f8; color: #8b94a3;
+}
+.st-badge.st-gepubliceerd {
+  background: #f0fdf4; color: #16a34a;
+}
+.st-badge.st-live {
+  background: #dc2626; color: #ffffff;
+}
+.st-badge.st-afgerond {
+  background: #e6eaf0; color: #425466;
+}
+.st-badge.st-afgelast {
+  background: #fef3c7; color: #a16207;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.st-live-dot {
+  width: 6px; height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+  animation: liveDotPulse 1.5s ease-in-out infinite;
+}
+
+/* Lifecycle action banner (op wedstrijd-detail) */
+.life-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+.life-banner.live {
+  background: #fff1f2;
+  border-color: #fecaca;
+}
+.life-banner.afgerond {
+  background: #f1f4f8;
+  border-color: #e6eaf0;
+}
+.life-banner.afgelast {
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+.life-banner-text {
+  flex: 1; min-width: 0;
+}
+.life-banner-titel {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; font-weight: 600;
+  color: #0c1b2a;
+  margin-bottom: 2px;
+}
+.life-banner-sub {
+  font-size: 12px; color: #8b94a3;
+}
+.life-banner-actions {
+  display: flex; gap: 8px; flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.life-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none;
+  transition: all .15s;
+}
+.life-btn-start {
+  background: #16a34a; color: #ffffff;
+}
+.life-btn-start:hover { background: #15803d; }
+.life-btn-afronden {
+  background: #0c1b2a; color: #ffffff;
+}
+.life-btn-afronden:hover { background: #1a2a3a; }
+.life-btn-afgelasten {
+  background: transparent; color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.life-btn-afgelasten:hover {
+  background: #fee2e2; border-color: #dc2626;
+}
+.life-btn-heractiveer {
+  background: #16a34a; color: #ffffff;
+}
+.life-btn-heractiveer:hover { background: #15803d; }
+
 </style>
 
 <script>
@@ -1769,6 +1871,157 @@ var BERICHTEN = [];  // systeem notificaties
 // ═══════════════════════════════════════════════════════════
 var CLUB_NAAM = 'De Hooge Rotterdamsche';  // Aanpasbaar per installatie
 var CLUB_NAAM_KORT = 'De Hooge';           // Voor kleine plekken
+
+
+// ═══════════════════════════════════════════════════════════════════
+// WEDSTRIJD LIFECYCLE HELPERS
+// ═══════════════════════════════════════════════════════════════════
+var STATUS_LABELS = {
+  concept: 'Concept',
+  gepubliceerd: 'Gepubliceerd',
+  live: 'Live',
+  afgerond: 'Afgerond',
+  afgelast: 'Afgelast'
+};
+
+// Geeft timestamp van wedstrijd-start (datum+tijd)
+function wedstrijdStartTs(w) {
+  if (!w || !w.datum) return null;
+  var tijd = w.tijd || '08:00';
+  return new Date(w.datum + 'T' + tijd + ':00').getTime();
+}
+
+// Geeft timestamp van midnight (einde van wedstrijddag)
+function wedstrijdEindeTs(w) {
+  if (!w || !w.datum) return null;
+  var d = new Date(w.datum + 'T00:00:00');
+  d.setDate(d.getDate() + 1);  // volgende dag 00:00
+  return d.getTime();
+}
+
+// Bepaalt effectieve status (handmatig gezet OF automatisch op basis van tijd)
+// Dit is dé waarheid over status — gebruik dit, niet w.status direct
+function wedstrijdFase(w) {
+  if (!w) return 'concept';
+  // Expliciete eindstatussen: niet auto-overrulen
+  if (w.status === 'afgelast') return 'afgelast';
+  if (w.status === 'afgerond') return 'afgerond';
+  if (w.status === 'concept') return 'concept';
+
+  var now = Date.now();
+  var startTs = wedstrijdStartTs(w);
+  var eindeTs = wedstrijdEindeTs(w);
+
+  // Als handmatig op live gezet, blijf live tot middernacht
+  if (w.status === 'live') {
+    if (eindeTs && now >= eindeTs) return 'afgerond';  // auto-afronden middernacht
+    return 'live';
+  }
+
+  // Default: gepubliceerd — maar check tijd
+  if (startTs && now >= startTs) {
+    // Wedstrijd is qua tijd gestart → effectief 'live'
+    if (eindeTs && now >= eindeTs) return 'afgerond';
+    return 'live';
+  }
+  return 'gepubliceerd';
+}
+
+// Scorekaart is toegankelijk voor speler?
+// Regel: vanaf 2u voor starttijd tot middernacht (en alleen bij live-achtige status)
+function scorekaartToegankelijk(w) {
+  if (!w) return false;
+  var fase = wedstrijdFase(w);
+  if (fase === 'afgelast' || fase === 'concept') return false;
+
+  var now = Date.now();
+  var startTs = wedstrijdStartTs(w);
+  var eindeTs = wedstrijdEindeTs(w);
+  if (!startTs || !eindeTs) return false;
+
+  var twoHoursBefore = startTs - 2 * 60 * 60 * 1000;
+  // Open window: [start-2u, middernacht)
+  return now >= twoHoursBefore && now < eindeTs;
+}
+
+// Kan admin dit veld nog bewerken?
+// tijdens LIVE zijn bepaalde velden gelockt
+function veldBewerkbaar(w, veldNaam) {
+  if (!w) return true;
+  var fase = wedstrijdFase(w);
+  if (fase === 'afgerond' || fase === 'afgelast') return false;
+  if (fase !== 'live') return true;
+
+  // LIVE: alleen cosmetische velden vrij
+  var cosmetisch = ['naam', 'omschrijving', 'kleur'];
+  return cosmetisch.indexOf(veldNaam) >= 0;
+}
+
+// Badge HTML voor status (gebruik in lijsten)
+function statusBadge(w) {
+  var fase = wedstrijdFase(w);
+  var labels = {
+    concept: { txt: 'Concept', cls: 'st-concept' },
+    gepubliceerd: { txt: 'Gepland', cls: 'st-gepubliceerd' },
+    live: { txt: 'Live', cls: 'st-live' },
+    afgerond: { txt: 'Afgerond', cls: 'st-afgerond' },
+    afgelast: { txt: 'Afgelast', cls: 'st-afgelast' }
+  };
+  var info = labels[fase] || labels.concept;
+  return '<span class="st-badge ' + info.cls + '">' +
+    (fase === 'live' ? '<span class="st-live-dot"></span>' : '') +
+    info.txt + '</span>';
+}
+
+// Admin actie: start wedstrijd handmatig
+function startWedstrijd(wId) {
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) return;
+  if (!confirm('Start deze wedstrijd nu? Inschrijvingen sluiten automatisch en scores kunnen worden ingevoerd.')) return;
+  w.status = 'live';
+  dbSaveWedstrijd(w).catch(function(e){console.warn(e);});
+  toast('Wedstrijd is gestart — scorekaart is nu open voor spelers.');
+  // Re-render huidige view
+  if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
+}
+
+// Admin actie: afronden
+function afrondWedstrijd(wId) {
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) return;
+  if (!confirm('Wedstrijd afronden? Alle scores worden definitief. Alleen superadmin kan daarna nog corrigeren.')) return;
+  w.status = 'afgerond';
+  dbSaveWedstrijd(w).catch(function(e){console.warn(e);});
+  toast('Wedstrijd afgerond — uitslag is definitief.');
+  if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
+}
+
+// Admin actie: afgelasten
+function afgelastWedstrijd(wId) {
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) return;
+  var reden = prompt('Reden voor afgelasting (optioneel, zichtbaar voor spelers):');
+  if (reden === null) return;  // cancel
+  if (!confirm('Wedstrijd afgelasten? Spelers kunnen geen scores meer invoeren.')) return;
+  w.status = 'afgelast';
+  w.afgelast_reden = reden || '';
+  dbSaveWedstrijd(w).catch(function(e){console.warn(e);});
+  toast('Wedstrijd afgelast.');
+  if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
+}
+
+// Admin actie: heractiveer afgelaste wedstrijd
+function heractiveerWedstrijd(wId) {
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) return;
+  if (!confirm('Wedstrijd opnieuw activeren? Status gaat terug naar Gepubliceerd.')) return;
+  w.status = 'gepubliceerd';
+  w.afgelast_reden = '';
+  dbSaveWedstrijd(w).catch(function(e){console.warn(e);});
+  toast('Wedstrijd heractiveerd.');
+  if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
+}
+
 
 
 // Past clubnaam toe op alle UI-elementen (sidebar, login, speler, etc.)
@@ -2749,28 +3002,69 @@ function renderCal(){
 // WEDSTRIJDEN (admin)
 // ============================================================
 function renderWedstrijden(){
-  var q=(document.getElementById('w-search').value||'').toLowerCase();
-  var list=WEDSTRIJDEN.filter(function(w){return !q||w.naam.toLowerCase().indexOf(q)>=0;});
-  var kanNieuw=heeftToegang('nieuw');
-  document.getElementById('w-list').innerHTML=list.length?list.map(function(w){
-    var d=new Date(w.datum);
-    var ic=INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';}).length;
-    var pct=Math.round((ic/w.max)*100);
-    var acts='';
-    var hasScores = wedstrijdHeeftScores(w.id);
-    if(kanNieuw){
-      if(hasScores){
-        acts+='<button class="btn btn-s btn-xs" disabled title="Bewerken niet meer mogelijk — er zijn al scores ingevoerd" style="opacity:.5;cursor:not-allowed">Bewerken</button>';
+  var q = (document.getElementById('w-search').value || '').toLowerCase();
+  var list = WEDSTRIJDEN.filter(function(w) { return !q || w.naam.toLowerCase().indexOf(q) >= 0; });
+  var kanNieuw = heeftToegang('nieuw');
+
+  document.getElementById('w-list').innerHTML = list.length ? list.map(function(w) {
+    var d = new Date(w.datum);
+    var ic = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).length;
+    var pct = w.max ? Math.round((ic / w.max) * 100) : 0;
+    var fase = wedstrijdFase(w);
+    var acts = '';
+
+    // Bewerken: mag alleen als niet alles-gelockt (dus concept/gepubliceerd)
+    if (kanNieuw) {
+      if (fase === 'concept' || fase === 'gepubliceerd') {
+        acts += '<button class="btn btn-s btn-xs" onclick="editW(\'' + w.id + '\')">Bewerken</button>';
+      } else if (fase === 'live') {
+        acts += '<button class="btn btn-s btn-xs" onclick="editW(\'' + w.id + '\')" title="Beperkt bewerkbaar tijdens live">Bewerken</button>';
       } else {
-        acts+='<button class="btn btn-s btn-xs" onclick="editW(\''+w.id+'\')">Bewerken</button>';
+        acts += '<button class="btn btn-s btn-xs" disabled title="Wedstrijd is ' + fase + ' — niet meer bewerkbaar" style="opacity:.5;cursor:not-allowed">Bewerken</button>';
       }
     }
-    if(heeftToegang('inschrijvingen'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'inschrijvingen\',\''+w.id+'\')">Inschrijvingen</button>';
-    if(heeftToegang('flights'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'flights\',\''+w.id+'\')">Flights</button>';
-    if(heeftToegang('scores'))acts+='<button class="btn btn-s btn-xs" onclick="adminNavToW(\'scores\',\''+w.id+'\')">Scores</button>';
-    if(kanNieuw)acts+='<button class="btn btn-d btn-xs" onclick="delW(\''+w.id+'\')">&#215;</button>';
-    return '<div class="lr"><div class="lr-l"><div class="lr-n">'+w.naam+'</div><div class="lr-m">'+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear()+' &middot; <span class="badge bx">'+w.vorm+'</span> &middot; '+w.holes+'h</div><div style="display:flex;align-items:center;gap:6px;margin-top:3px"><div class="pb" style="width:80px"><div class="pf" style="width:'+pct+'%"></div></div><span style="font-size:11px;color:var(--txm)">'+ic+'/'+w.max+'</span></div></div><div class="lr-r"><span class="badge '+(w.status==='gepubliceerd'?'bg':'bx')+'">'+w.status+'</span>'+acts+'</div></div>';
-  }).join(''):'<p style="font-size:13px;color:var(--txm);padding:8px 0">Geen wedstrijden gevonden.</p>';
+
+    // Lifecycle-acties per fase
+    if (kanNieuw) {
+      if (fase === 'gepubliceerd') {
+        acts += '<button class="btn btn-s btn-xs" onclick="startWedstrijd(\'' + w.id + '\')" title="Start wedstrijd nu" style="background:#16a34a;color:#fff;border-color:#16a34a">Start</button>';
+      }
+      if (fase === 'live') {
+        acts += '<button class="btn btn-s btn-xs" onclick="afrondWedstrijd(\'' + w.id + '\')" title="Wedstrijd afronden" style="background:#0c1b2a;color:#fff;border-color:#0c1b2a">Afronden</button>';
+      }
+      if (fase === 'afgelast') {
+        acts += '<button class="btn btn-s btn-xs" onclick="heractiveerWedstrijd(\'' + w.id + '\')" title="Wedstrijd opnieuw activeren" style="background:#16a34a;color:#fff;border-color:#16a34a">Heractiveer</button>';
+      }
+    }
+
+    if (heeftToegang('inschrijvingen')) acts += '<button class="btn btn-s btn-xs" onclick="adminNavToW(\'inschrijvingen\',\'' + w.id + '\')">Inschrijvingen</button>';
+    if (heeftToegang('flights')) acts += '<button class="btn btn-s btn-xs" onclick="adminNavToW(\'flights\',\'' + w.id + '\')">Flights</button>';
+    if (heeftToegang('scores')) acts += '<button class="btn btn-s btn-xs" onclick="adminNavToW(\'scores\',\'' + w.id + '\')">Scores</button>';
+
+    // Afgelasten: alleen als nog niet afgerond/afgelast
+    if (kanNieuw && fase !== 'afgerond' && fase !== 'afgelast') {
+      acts += '<button class="btn btn-s btn-xs" onclick="afgelastWedstrijd(\'' + w.id + '\')" title="Wedstrijd afgelasten" style="color:#dc2626;border-color:#fecaca">Afgelasten</button>';
+    }
+    if (kanNieuw) acts += '<button class="btn btn-d btn-xs" onclick="delW(\'' + w.id + '\')">&#215;</button>';
+
+    return '<div class="lr">' +
+      '<div class="lr-l">' +
+        '<div class="lr-n">' + escHtml(w.naam) + '</div>' +
+        '<div class="lr-m">' +
+          d.getDate() + ' ' + MN[d.getMonth()] + ' ' + d.getFullYear() +
+          ' &middot; <span class="badge bx">' + escHtml(w.vorm) + '</span> &middot; ' + w.holes + 'h' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-top:3px">' +
+          '<div class="pb" style="width:80px"><div class="pf" style="width:' + pct + '%"></div></div>' +
+          '<span style="font-size:11px;color:var(--txm)">' + ic + '/' + (w.max || '?') + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="lr-r">' +
+        statusBadge(w) +
+        acts +
+      '</div>' +
+    '</div>';
+  }).join('') : '<p style="font-size:13px;color:var(--txm);padding:8px 0">Geen wedstrijden gevonden.</p>';
 }
 
 function adminNavToW(view,wId){
@@ -6214,10 +6508,63 @@ function vulScorekaartSelect() {
   var mijnWids = INSCHRIJVINGEN.filter(function(i) { return i.sid === u.id && i.status === 'ingeschreven'; }).map(function(i) { return i.wid; });
   var sel = document.getElementById('sk-w');
   if (!sel) return;
-  var ws = WEDSTRIJDEN.filter(function(w) { return mijnWids.indexOf(w.id) >= 0 && w.status === 'gepubliceerd'; });
-  sel.innerHTML = '<option value="">Kies jouw wedstrijd</option>' + ws.map(function(w) { return '<option value="' + w.id + '">' + w.naam + '</option>'; }).join('');
-  // Auto-selecteer als er maar één is
-  if (ws.length === 1) { sel.value = ws[0].id; initScorekaart(); }
+
+  // Alleen wedstrijden waarvan scorekaart open is (2u voor start tot middernacht)
+  // én die niet afgelast zijn
+  var ws = WEDSTRIJDEN.filter(function(w) {
+    if (mijnWids.indexOf(w.id) < 0) return false;
+    var fase = wedstrijdFase(w);
+    if (fase === 'concept' || fase === 'afgelast') return false;
+    return scorekaartToegankelijk(w);
+  });
+
+  // Toon ook read-only opties voor recent afgeronde wedstrijden (speler kan nog kijken)
+  var leesbaarNaAfloop = WEDSTRIJDEN.filter(function(w) {
+    if (mijnWids.indexOf(w.id) < 0) return false;
+    if (wedstrijdFase(w) !== 'afgerond') return false;
+    // Alleen recent (laatste 7 dagen)
+    var eind = wedstrijdEindeTs(w);
+    if (!eind) return false;
+    return (Date.now() - eind) < 7 * 24 * 60 * 60 * 1000;
+  });
+
+  var opts = '<option value="">Kies jouw wedstrijd</option>';
+  opts += ws.map(function(w) { return '<option value="' + w.id + '">' + escHtml(w.naam) + '</option>'; }).join('');
+  if (leesbaarNaAfloop.length > 0) {
+    opts += '<optgroup label="Recent afgerond (read-only)">';
+    opts += leesbaarNaAfloop.map(function(w) { return '<option value="' + w.id + '">' + escHtml(w.naam) + '</option>'; }).join('');
+    opts += '</optgroup>';
+  }
+  sel.innerHTML = opts;
+
+  // Auto-selecteer als er maar één open wedstrijd is
+  if (ws.length === 1 && leesbaarNaAfloop.length === 0) {
+    sel.value = ws[0].id;
+    initScorekaart();
+  }
+
+  // Geen open wedstrijden? Toon duidelijke melding
+  var content = document.getElementById('sp-scorekaart-content');
+  if (ws.length === 0 && leesbaarNaAfloop.length === 0 && content && !content.innerHTML) {
+    // Check of er wedstrijden zijn waarvoor ik ben ingeschreven maar die nog niet open zijn
+    var komend = WEDSTRIJDEN.filter(function(w) {
+      return mijnWids.indexOf(w.id) >= 0 && wedstrijdFase(w) === 'gepubliceerd';
+    });
+    if (komend.length > 0) {
+      var w = komend.sort(function(a,b){return new Date(a.datum)-new Date(b.datum);})[0];
+      var startTs = wedstrijdStartTs(w);
+      var uur2Voor = startTs ? new Date(startTs - 2*60*60*1000) : null;
+      var datumStr = uur2Voor ? (uur2Voor.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long'}) + ' om ' + uur2Voor.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})) : '';
+      content.innerHTML = '<div class="sp-empty">' +
+        '<span class="icon">⏰</span>' +
+        '<div style="margin-bottom:6px;color:#0c1b2a;font-weight:600">Scorekaart nog gesloten</div>' +
+        '<div style="font-size:12px">Je kunt scores invoeren vanaf 2 uur voor de starttijd.<br>' +
+        (datumStr ? 'Open vanaf ' + datumStr : '') +
+        '</div></div>';
+    } else {
+      content.innerHTML = '<div class="sp-empty"><span class="icon">⛳</span>Geen actieve wedstrijden.</div>';
+    }
+  }
 }
 
 // ============================================================
