@@ -138,23 +138,154 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 /* ── ADMIN INTERFACE ── */
 #screen-admin{display:none}
 #screen-admin.active{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:230px;background:#162f22;flex-shrink:0;display:flex;flex-direction:column;overflow-y:auto}
-.sb-logo{padding:1.25rem 1.25rem .9rem;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;background:rgba(0,0,0,.12)}
-.sb-logo h1{font-family:Playfair Display,serif;font-size:17px;color:#fff;font-weight:700;line-height:1.25}
-.sb-logo small{font-size:11px;color:rgba(255,255,255,.45);display:block;margin-top:1px}
-.sb-nav{padding:.5rem 0;flex:1}
-.sb-sec{padding:.6rem 1.25rem .2rem;font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:.25rem}
-.sb-item{display:flex;align-items:center;gap:10px;padding:.55rem 1.25rem;cursor:pointer;color:rgba(255,255,255,.6);font-size:13px;transition:all .15s;border-left:3px solid transparent;user-select:none}
-.sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
-.sb-item.on{background:rgba(255,255,255,.1);color:#fff;border-left-color:var(--lime)}
-.sb-item svg{width:15px;height:15px;flex-shrink:0}
-.sb-badge{margin-left:auto;background:var(--gold);color:#fff;font-size:10px;font-weight:500;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center}
-.sb-user{padding:.9rem 1.25rem;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:8px}
-.sb-user-info{flex:1;min-width:0}
-.sb-user-name{font-size:12px;color:#fff;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-user-role{font-size:10px;color:rgba(255,255,255,.45)}
-.sb-logout{background:transparent;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:11px;padding:2px 0;font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif}
-.sb-logout:hover{color:#fff}
+.sidebar {
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid #e6eaf0;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.sb-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 1.5rem 1.25rem 1.25rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f4f8;
+}
+.sb-logo-mark {
+  width: 36px; height: 36px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #86efac, #16a34a);
+  display: flex; align-items: center; justify-content: center;
+  color: #ffffff; font-weight: 800; font-size: 18px;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0;
+}
+.sb-logo-text { flex: 1; min-width: 0; }
+.sb-logo h1 {
+  font-size: 17px; font-weight: 700; letter-spacing: -0.02em;
+  color: #0c1b2a; margin: 0; line-height: 1.1;
+  font-family: 'Inter', sans-serif;
+}
+.sb-logo small {
+  font-size: 11px; color: #8b94a3; font-weight: 500;
+  display: block; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sb-nav {
+  flex: 1;
+  padding: .75rem .75rem;
+  overflow-y: auto;
+}
+.sb-sec {
+  font-size: 11px;
+  color: #8b94a3;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  padding: 1rem .75rem .5rem;
+  margin-top: .25rem;
+  font-family: 'Inter', sans-serif;
+}
+.sb-sec:first-child { margin-top: 0; }
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: .65rem .75rem;
+  cursor: pointer;
+  color: #425466;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all .15s;
+  user-select: none;
+  border-radius: 10px;
+  margin-bottom: 2px;
+  position: relative;
+  font-family: 'Inter', sans-serif;
+}
+.sb-item:hover {
+  background: #f0fdf4;
+  color: #0c1b2a;
+}
+.sb-item.on {
+  background: #f0fdf4;
+  color: #16a34a;
+  font-weight: 600;
+}
+.sb-item.on::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 16px;
+  background: #16a34a;
+  border-radius: 2px;
+}
+.sb-item svg {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+}
+.sb-badge {
+  margin-left: auto;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  letter-spacing: 0;
+}
+.sb-user {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #f1f4f8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sb-user .av {
+  width: 36px !important; height: 36px !important;
+  font-size: 13px !important;
+  background: linear-gradient(135deg, #86efac, #16a34a) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sb-user-info { flex: 1; min-width: 0; }
+.sb-user-name {
+  font-size: 13px;
+  color: #0c1b2a;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sb-user-role {
+  font-size: 11px;
+  color: #8b94a3;
+  margin-top: 1px;
+}
+.sb-logout {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #8b94a3;
+  font-size: 11px;
+  padding: 2px 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  transition: color .15s;
+}
+.sb-logout:hover { color: #0c1b2a; }
 .admin-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{background:#fff;border-bottom:1px solid #e8e8e2;padding:.7rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .topbar-l{display:flex;align-items:center;gap:8px}
@@ -1478,7 +1609,7 @@ function buildAdminNav(){
     if(item.sec){html+='<div class="sb-sec">'+item.sec+'</div>';return;}
     var badge=item.badge?'<span class="sb-badge" id="asbadge-'+item.badge+'">0</span>':'';
     html+='<div class="sb-item" data-anavid="'+item.id+'">'
-      +'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">'+item.icon+'</svg>'
+      +'<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">'+item.icon+'</svg>'
       +item.label+badge+'</div>';
   });
   document.getElementById('admin-nav').innerHTML=html;
