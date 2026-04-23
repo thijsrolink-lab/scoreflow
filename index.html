@@ -1233,6 +1233,318 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
   padding-top: 2.5rem;
 }
 
+
+/* ═══════════════════════════════════════════════
+   SPELER HOMEPAGE — Soft Modern met baanfoto hero
+═══════════════════════════════════════════════ */
+
+/* Welkom header */
+.sp-welcome {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.sp-welcome-text {
+  flex: 1; min-width: 0;
+}
+.sp-welcome h2 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  color: #0c1b2a;
+  margin: 0 0 4px 0;
+  line-height: 1.1;
+}
+.sp-welcome h2 .accent {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  color: #16a34a;
+}
+.sp-welcome .sub {
+  font-size: 13px;
+  color: #8b94a3;
+  font-weight: 400;
+}
+.sp-notif-btn {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+  color: #425466;
+}
+.sp-notif-btn:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+.sp-notif-dot {
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 8px; height: 8px;
+  background: #dc2626;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+}
+
+/* Hero wedstrijd — foto met gradient overlay */
+.sp-hero {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  min-height: 220px;
+  background-color: #162f22;
+  background-image: url('assets/baan-hooge-rotterdamsche.jpg');
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.75rem;
+}
+.sp-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(12, 27, 42, 0.75) 0%,
+    rgba(22, 163, 74, 0.55) 60%,
+    rgba(22, 163, 74, 0.25) 100%
+  );
+  pointer-events: none;
+}
+.sp-hero-content {
+  position: relative; z-index: 2;
+}
+.sp-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #86efac;
+  margin-bottom: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.sp-hero-eyebrow::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #86efac;
+}
+.sp-hero h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 0.75rem 0;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+.sp-hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 1rem;
+}
+.sp-hero-meta .row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.sp-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  color: #0c1b2a;
+  padding: 0.7rem 1.1rem;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  width: fit-content;
+}
+.sp-hero-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+/* Leeg-state hero */
+.sp-hero.empty {
+  background-image: none;
+  background: linear-gradient(135deg, #0c1b2a, #16a34a);
+}
+
+/* Lijst header */
+.sp-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.sp-list-head h4 {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #0c1b2a;
+  margin: 0;
+}
+.sp-list-head .count {
+  font-size: 13px;
+  color: #8b94a3;
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+/* Wedstrijd-rij (lijst-variant ipv card grid) */
+.sp-w-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.sp-w-row:hover {
+  border-color: #bbf7d0;
+  box-shadow: 0 4px 12px rgba(12, 27, 42, 0.04);
+  transform: translateY(-1px);
+}
+.sp-w-date {
+  flex-shrink: 0;
+  min-width: 56px;
+  text-align: center;
+  padding: 6px 8px;
+  background: #f8faf8;
+  border-radius: 10px;
+  border: 1px solid #e6eaf0;
+}
+.sp-w-date .m {
+  font-size: 10px;
+  font-weight: 600;
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sp-w-date .d {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0c1b2a;
+  line-height: 1;
+}
+.sp-w-date .dow {
+  font-size: 10px;
+  color: #8b94a3;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+.sp-w-info {
+  flex: 1;
+  min-width: 0;
+}
+.sp-w-info .naam {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0c1b2a;
+  line-height: 1.25;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp-w-info .meta {
+  font-size: 12px;
+  color: #8b94a3;
+}
+.sp-w-info .meta .sep {
+  margin: 0 6px;
+  opacity: 0.5;
+}
+.sp-w-status {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.sp-w-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 100px;
+  text-transform: uppercase;
+}
+.sp-w-badge.ingeschreven {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.sp-w-badge.wachtlijst {
+  background: #fef3c7;
+  color: #d97706;
+}
+.sp-w-arrow {
+  color: #a1a1aa;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: transform .2s, color .2s;
+}
+.sp-w-row:hover .sp-w-arrow {
+  color: #16a34a;
+  transform: translateX(3px);
+}
+
+/* Empty state */
+.sp-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  color: #8b94a3;
+  font-size: 14px;
+}
+.sp-empty .icon {
+  font-size: 32px;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .sp-hero h3 { font-size: 22px; }
+  .sp-hero { padding: 1.25rem; min-height: 180px; }
+  .sp-welcome h2 { font-size: 22px; }
+}
+
 </style>
 
 <script>
@@ -4765,13 +5077,171 @@ function initSpelerPortaal(){
 
 // Speler wedstrijdenkalender
 function renderSpelerKalender(){
-  var u=_currentUser;
-  var now=new Date();
-  var ws=WEDSTRIJDEN.filter(function(w){return w.status==='gepubliceerd'&&new Date(w.datum)>=now;}).sort(function(a,b){return new Date(a.datum)-new Date(b.datum);});
-  document.getElementById('sp-kal-title').textContent='Aankomende wedstrijden ('+ws.length+')';
-  document.getElementById('sp-wedstrijden-list').innerHTML=ws.map(function(w){
-    return buildWedstrijdKaart(w,u);
-  }).join('')||'<p style="color:var(--txm);font-size:13px">Geen aankomende wedstrijden.</p>';
+  var u = _currentUser;
+  var now = new Date();
+  var ws = (WEDSTRIJDEN || []).filter(function(w) {
+    return w && w.datum && w.status === 'gepubliceerd' && new Date(w.datum) >= now;
+  }).sort(function(a, b) { return new Date(a.datum) - new Date(b.datum); });
+
+  // ── 1. Welkom header ─────────────────────────────────────
+  var naam = u && u.voor ? u.voor : 'Speler';
+  var welkomHtml =
+    '<div class="sp-welcome">' +
+      '<div class="sp-welcome-text">' +
+        '<h2>Hallo, <span class="accent">' + escHtml(naam) + '</span></h2>' +
+        '<div class="sub">Welkom terug.</div>' +
+      '</div>' +
+      '<button class="sp-notif-btn" onclick="spNav(\'berichten\')" title="Berichten">' +
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>' +
+          '<path d="M13.73 21a2 2 0 0 1-3.46 0"/>' +
+        '</svg>' +
+      '</button>' +
+    '</div>';
+  var welEl = document.getElementById('sp-welcome');
+  if (welEl) welEl.innerHTML = welkomHtml;
+
+  // ── 2. Hero: eerstvolgende wedstrijd ─────────────────────
+  var next = ws[0];
+  var heroHtml = '';
+  if (next) {
+    var d = new Date(next.datum);
+    var dagNaam = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()];
+    var datumStr = dagNaam + ' ' + d.getDate() + ' ' + MN[d.getMonth()];
+    heroHtml =
+      '<div class="sp-hero">' +
+        '<div class="sp-hero-content">' +
+          '<div class="sp-hero-eyebrow">Eerstvolgende wedstrijd</div>' +
+          '<h3>' + escHtml(next.naam) + '</h3>' +
+          '<div class="sp-hero-meta">' +
+            '<div class="row">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' +
+              datumStr +
+            '</div>' +
+            '<div class="row">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+              escHtml(next.baan || 'Onbekend') +
+            '</div>' +
+            (next.tijd ? '<div class="row">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' +
+              'Start ' + escHtml(next.tijd) + '</div>' : '') +
+          '</div>' +
+          '<button class="sp-hero-btn" onclick="spelerOpenWedstrijd(\'' + next.id + '\')">' +
+            'Naar wedstrijd ' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+  } else {
+    heroHtml =
+      '<div class="sp-hero empty">' +
+        '<div class="sp-hero-content">' +
+          '<div class="sp-hero-eyebrow">Geen wedstrijd gepland</div>' +
+          '<h3>Geniet van het moment</h3>' +
+          '<div class="sp-hero-meta">' +
+            '<div class="row">Er staan nog geen aankomende wedstrijden op de agenda. Kom later terug!</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+  var heroEl = document.getElementById('sp-hero');
+  if (heroEl) heroEl.innerHTML = heroHtml;
+
+  // ── 3. Lijst header ───────────────────────────────────────
+  var others = ws.slice(1);  // zonder eerste (die is hero)
+  var listHeadHtml =
+    '<div class="sp-list-head">' +
+      '<h4>Aankomende wedstrijden' +
+        (others.length > 0 ? ' <span class="count">' + others.length + '</span>' : '') +
+      '</h4>' +
+    '</div>';
+  var listHeadEl = document.getElementById('sp-list-head');
+  if (listHeadEl) listHeadEl.innerHTML = listHeadHtml;
+
+  // ── 4. Wedstrijd rijen ────────────────────────────────────
+  var listEl = document.getElementById('sp-wedstrijden-list');
+  if (!listEl) return;
+
+  if (others.length === 0) {
+    if (ws.length === 0) {
+      // Alleen lege state als er helemaal geen wedstrijden zijn
+      // (bij 1 wedstrijd hebben we de hero al)
+      listEl.innerHTML = '<div class="sp-empty">' +
+        '<span class="icon">⛳</span>' +
+        'Geen aankomende wedstrijden gepland.' +
+      '</div>';
+    } else {
+      listEl.innerHTML = '';
+    }
+    return;
+  }
+
+  listEl.innerHTML = others.map(function(w) {
+    var d = new Date(w.datum);
+    var mijnIng = (INSCHRIJVINGEN || []).find(function(i) {
+      return i.wid === w.id && i.sid === u.id && i.status !== 'afgemeld';
+    });
+    var ic = (INSCHRIJVINGEN || []).filter(function(i) {
+      return i.wid === w.id && i.status === 'ingeschreven';
+    }).length;
+
+    var statusBadge = '';
+    if (mijnIng) {
+      if (mijnIng.status === 'ingeschreven') {
+        statusBadge = '<span class="sp-w-badge ingeschreven">Ingeschreven</span>';
+      } else if (mijnIng.status === 'wachtlijst') {
+        statusBadge = '<span class="sp-w-badge wachtlijst">Wachtlijst</span>';
+      }
+    }
+
+    return '<div class="sp-w-row" onclick="spelerOpenWedstrijd(\'' + w.id + '\')">' +
+      '<div class="sp-w-date">' +
+        '<div class="m">' + MN[d.getMonth()].slice(0, 3).toUpperCase() + '</div>' +
+        '<div class="d">' + d.getDate() + '</div>' +
+        '<div class="dow">' + ['ZO','MA','DI','WO','DO','VR','ZA'][d.getDay()] + '</div>' +
+      '</div>' +
+      '<div class="sp-w-info">' +
+        '<div class="naam">' + escHtml(w.naam) + '</div>' +
+        '<div class="meta">' +
+          escHtml(w.vorm || '') +
+          (w.tijd ? '<span class="sep">·</span>' + escHtml(w.tijd) : '') +
+          '<span class="sep">·</span>' + ic + '/' + (w.max || '?') + ' ingeschreven' +
+        '</div>' +
+      '</div>' +
+      '<div class="sp-w-status">' + statusBadge + '</div>' +
+      '<span class="sp-w-arrow">→</span>' +
+    '</div>';
+  }).join('');
+}
+
+// Helper: open een wedstrijd vanuit speler perspectief
+// Voor nu: ga naar inschrijvingen of scorekaart, afhankelijk van status
+function spelerOpenWedstrijd(wId) {
+  var u = _currentUser;
+  if (!u) return;
+  var mijnIng = (INSCHRIJVINGEN || []).find(function(i) {
+    return i.wid === wId && i.sid === u.id && i.status === 'ingeschreven';
+  });
+  // Ingeschreven? Ga naar scorekaart (op de dag zelf) of startlijst
+  if (mijnIng) {
+    var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+    var now = new Date();
+    var wd = w && w.datum ? new Date(w.datum) : null;
+    var sameDay = wd && wd.toDateString() === now.toDateString();
+    if (sameDay) {
+      // Scorekaart — selecteer deze wedstrijd
+      spNav('scorekaart');
+      setTimeout(function() {
+        var sel = document.getElementById('sk-w');
+        if (sel) { sel.value = wId; if (typeof initScorekaart === 'function') initScorekaart(); }
+      }, 100);
+    } else {
+      spNav('startlijst');
+    }
+  } else {
+    // Niet ingeschreven: ga naar inschrijvingen view of toon wedstrijd detail
+    spNav('inschrijvingen');
+  }
 }
 
 function buildWedstrijdKaart(w,u){
@@ -8433,9 +8903,11 @@ try {
   </div>
   <div class="sp-content">
 
-    <!-- Wedstrijdenkalender speler -->
+    <!-- Wedstrijdenkalender speler (NIEUWE HOMEPAGE) -->
     <div id="sp-kalender" class="sp-view on">
-      <div class="sp-section-title" id="sp-kal-title">Aankomende wedstrijden</div>
+      <div id="sp-welcome"></div>
+      <div id="sp-hero"></div>
+      <div id="sp-list-head"></div>
       <div id="sp-wedstrijden-list"></div>
     </div>
 
