@@ -3056,40 +3056,110 @@ function renderScoresInTab(wId) {
 // Uitslag tab — definitieve klassement
 function renderWdUitslagTab(w) {
   var fase = wedstrijdFase(w);
-  if (fase === 'concept' || fase === 'gepubliceerd') {
-    return '<div style="text-align:center;padding:3rem 2rem;color:#8b94a3"><div style="font-size:32px;margin-bottom:0.75rem">📋</div><h3 style="color:#0c1b2a;margin:0 0 0.5rem 0">Wedstrijd nog niet begonnen</h3><p style="margin:0;font-size:14px">Uitslag verschijnt zodra de wedstrijd Live gaat en spelers scores invoeren.</p></div>';
+
+  // Concept of nog niet begonnen: lege state
+  if (fase === 'concept') {
+    return '<div style="text-align:center;padding:3rem 2rem;color:#8b94a3"><div style="font-size:32px;margin-bottom:0.75rem">📋</div><h3 style="color:#0c1b2a;margin:0 0 0.5rem 0">Wedstrijd nog niet gepubliceerd</h3><p style="margin:0;font-size:14px">Uitslag verschijnt zodra spelers scores invoeren.</p></div>';
   }
-  // Live of afgerond: toon klassement
-  // Hergebruik bestaande klassement-logica indien mogelijk
-  var ingeschreven = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; });
+
+  // Afgelast
+  if (fase === 'afgelast') {
+    return '<div style="text-align:center;padding:3rem 2rem;color:#8b94a3"><div style="font-size:32px;margin-bottom:0.75rem">⚠️</div><h3 style="color:#0c1b2a;margin:0 0 0.5rem 0">Wedstrijd afgelast</h3>' +
+      (w.afgelast_reden ? '<p style="margin:0;font-size:14px;color:#92400e">' + escHtml(w.afgelast_reden) + '</p>' : '<p style="margin:0;font-size:14px">Geen uitslag beschikbaar.</p>') +
+      '</div>';
+  }
+
+  // Verzamel data
+  var ingeschreven = (INSCHRIJVINGEN || []).filter(function(i) {
+    return i.wid === w.id && i.status === 'ingeschreven';
+  });
+
   if (ingeschreven.length === 0) {
-    return '<p style="color:#8b94a3;padding:2rem;text-align:center">Geen deelnemers.</p>';
+    return '<div style="text-align:center;padding:3rem 2rem;color:#8b94a3"><div style="font-size:32px;margin-bottom:0.75rem">👥</div><h3 style="color:#0c1b2a;margin:0 0 0.5rem 0">Geen deelnemers</h3><p style="margin:0;font-size:14px">Er zijn nog geen ingeschreven spelers.</p></div>';
   }
-  // Eenvoudig klassement (placeholder — in volgende stap verfijnen)
-  var rows = ingeschreven.map(function(ing) {
-    var u = USERS.find(function(x) { return x.id === ing.sid; });
-    if (!u) return null;
-    var totaal = '-';
-    if (typeof SCORES !== 'undefined' && SCORES[w.id]) {
-      var rondes = SCORES[w.id];
-      var ingev = 0;
-      for (var r in rondes) {
-        var arr = rondes[r] && rondes[r][u.id];
-        if (Array.isArray(arr)) {
-          arr.forEach(function(v) { if (v !== '' && v !== null && v !== undefined) ingev++; });
-        }
-      }
-      if (ingev > 0) totaal = ingev + ' holes';
-    }
-    return { naam: u.voor + ' ' + u.ach, hcp: u.hcp, totaal: totaal };
+
+  var sps = ingeschreven.map(function(i) {
+    return USERS.find(function(u) { return u.id === i.sid; });
   }).filter(Boolean);
 
-  return '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-family:Inter,sans-serif">' +
-    '<thead><tr style="border-bottom:2px solid #e6eaf0"><th style="text-align:left;padding:0.75rem 0.5rem;font-size:12px;text-transform:uppercase;color:#8b94a3;letter-spacing:.05em">#</th><th style="text-align:left;padding:0.75rem 0.5rem;font-size:12px;text-transform:uppercase;color:#8b94a3;letter-spacing:.05em">Speler</th><th style="text-align:right;padding:0.75rem 0.5rem;font-size:12px;text-transform:uppercase;color:#8b94a3;letter-spacing:.05em">HCP</th><th style="text-align:right;padding:0.75rem 0.5rem;font-size:12px;text-transform:uppercase;color:#8b94a3;letter-spacing:.05em">Status</th></tr></thead>' +
-    '<tbody>' + rows.map(function(r, i) {
-      return '<tr style="border-bottom:1px solid #f1f4f8"><td style="padding:0.75rem 0.5rem;color:#8b94a3;font-size:13px">' + (i+1) + '</td><td style="padding:0.75rem 0.5rem;font-size:14px;color:#0c1b2a;font-weight:500">' + escHtml(r.naam) + '</td><td style="text-align:right;padding:0.75rem 0.5rem;font-size:13px;color:#425466">' + r.hcp + '</td><td style="text-align:right;padding:0.75rem 0.5rem;font-size:13px;color:#425466">' + r.totaal + '</td></tr>';
-    }).join('') + '</tbody></table></div>' +
-    '<p style="font-size:12px;color:#8b94a3;margin-top:1.5rem;text-align:center">Eenvoudig klassement — verfijning volgt.</p>';
+  // Check of er überhaupt scores zijn ingevuld
+  var heeftScores = false;
+  if (typeof SCORES !== 'undefined' && SCORES[w.id]) {
+    var rondes = SCORES[w.id];
+    for (var r in rondes) {
+      for (var sid in rondes[r]) {
+        var arr = rondes[r][sid];
+        if (Array.isArray(arr)) {
+          for (var i = 0; i < arr.length; i++) {
+            if (arr[i] !== '' && arr[i] !== null && arr[i] !== undefined) {
+              heeftScores = true;
+              break;
+            }
+          }
+        }
+        if (heeftScores) break;
+      }
+      if (heeftScores) break;
+    }
+  }
+
+  if (!heeftScores) {
+    var msg = fase === 'live'
+      ? 'Wedstrijd is bezig — scores worden hier zichtbaar zodra spelers ze invoeren.'
+      : (fase === 'gepubliceerd' ? 'Klaar voor invoer als de wedstrijd Live gaat.' : 'Geen scores ingevoerd.');
+    return '<div style="text-align:center;padding:3rem 2rem;color:#8b94a3"><div style="font-size:32px;margin-bottom:0.75rem">⛳</div><h3 style="color:#0c1b2a;margin:0 0 0.5rem 0">Nog geen scores</h3><p style="margin:0;font-size:14px">' + msg + '</p></div>';
+  }
+
+  // Bouw klassement met bestaande logica
+  if (typeof buildLeaderboard !== 'function' || typeof getBaan !== 'function') {
+    return '<p style="color:#8b94a3;padding:2rem;text-align:center">Klassement-functies niet beschikbaar.</p>';
+  }
+
+  var baan = getBaan(w.holes);
+  baan.slope = w.slope; baan.cr = w.cr;
+  baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
+
+  // Header met fase-indicatie
+  var faseHeader = '';
+  if (fase === 'live') {
+    faseHeader = '<div style="display:flex;align-items:center;gap:8px;padding:0.75rem 1rem;background:#fff1f2;border:1px solid #fecaca;border-radius:10px;margin-bottom:1.25rem">' +
+      '<span style="width:8px;height:8px;background:#dc2626;border-radius:50%;animation:liveDotPulse 1.5s infinite"></span>' +
+      '<span style="font-size:13px;color:#991b1b;font-weight:600">Live — wordt bijgewerkt zodra scores binnenkomen</span>' +
+      '</div>';
+  } else if (fase === 'afgerond') {
+    faseHeader = '<div style="display:flex;align-items:center;gap:8px;padding:0.75rem 1rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:1.25rem">' +
+      '<span style="font-size:14px">✓</span>' +
+      '<span style="font-size:13px;color:#166534;font-weight:600">Definitief — uitslag is vastgesteld</span>' +
+      '</div>';
+  }
+
+  // Multi-ronde wedstrijd? Combineer of laat keuze
+  // Voor nu: ronde 0 (eerste ronde). Later kunnen we totaal van meerdere rondes maken.
+  var ronde = 0;
+
+  // Bouw klassement-tabel via bestaande functie
+  var leaderboardHtml = buildLeaderboard(w.id, ronde, baan, sps, w);
+
+  // Live LB knop voor publiek scherm
+  var lbBtn = '';
+  if (typeof openLiveLeaderboard === 'function' && (fase === 'live' || fase === 'afgerond')) {
+    lbBtn = '<div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openLiveLeaderboard()">📺 Open op groot scherm</button></div>';
+  }
+
+  // Multi-ronde rondeselector
+  var rondeSelector = '';
+  if (w.rondes > 1) {
+    var opts = '';
+    for (var r = 0; r < w.rondes; r++) {
+      opts += '<option value="' + r + '">Ronde ' + (r+1) + '</option>';
+    }
+    rondeSelector = '<select id="uitslag-ronde" style="padding:6px 12px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;margin-bottom:1rem" onchange="renderWdTabContent()">' + opts + '</select>';
+  }
+
+  return faseHeader + lbBtn + rondeSelector +
+    '<div class="lb-wrap" style="background:#fff;border:1px solid #e6eaf0;border-radius:12px;overflow:hidden">' +
+    leaderboardHtml +
+    '</div>';
 }
 
 // Action bar: lifecycle-knoppen onderaan
