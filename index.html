@@ -1597,7 +1597,7 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 @media (max-width: 900px) {
   .sp-bottom-nav {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     position: fixed;
     bottom: 0; left: 0; right: 0;
     background: #ffffff;
@@ -2251,6 +2251,266 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
     justify-content: center;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   SPELER WEDSTRIJD DETAIL — tabs view
+═══════════════════════════════════════════════ */
+
+/* Header */
+.sp-wd-header {
+  position: relative;
+  padding: 1.75rem 1.5rem 1.5rem;
+  background: linear-gradient(135deg, #16a34a 0%, #166534 100%);
+  border-radius: 16px;
+  margin: 1rem 1rem 1.25rem;
+  color: #ffffff;
+  overflow: hidden;
+  background-image: url('assets/baan-hooge-rotterdamsche.jpg');
+  background-size: cover;
+  background-position: center;
+}
+.sp-wd-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(20, 60, 40, 0.6) 0%, rgba(12, 27, 42, 0.85) 100%);
+}
+.sp-wd-header > * {
+  position: relative;
+  z-index: 1;
+}
+.sp-wd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  cursor: pointer;
+  margin-bottom: 1rem;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.sp-wd-back::before {
+  content: '←';
+  font-size: 14px;
+}
+.sp-wd-back:active { opacity: 0.7; }
+
+.sp-wd-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.sp-wd-eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #bbf7d0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sp-wd-eyebrow.live {
+  color: #fca5a5;
+}
+.sp-wd-eyebrow.live::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: #dc2626;
+  border-radius: 50%;
+  animation: liveDotPulse 1.5s infinite;
+}
+.sp-wd-eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: #86efac;
+  border-radius: 50%;
+}
+
+.sp-wd-titel {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.1;
+  color: #ffffff;
+  margin: 0.25rem 0 1rem 0;
+}
+.sp-wd-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: rgba(255,255,255,0.92);
+}
+.sp-wd-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.sp-wd-meta-item svg {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+/* Tabs */
+.sp-wd-tabs {
+  display: flex;
+  gap: 4px;
+  background: #f1f4f8;
+  padding: 4px;
+  border-radius: 12px;
+  margin: 0 1rem 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.sp-wd-tabs::-webkit-scrollbar { display: none; }
+
+.sp-wd-tab {
+  flex: 1 0 auto;
+  padding: 0.75rem 0.85rem;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #425466;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.sp-wd-tab:active { opacity: 0.7; }
+.sp-wd-tab.active {
+  background: #ffffff;
+  color: #0c1b2a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.sp-wd-tab.active.live {
+  color: #991b1b;
+}
+.sp-wd-tab.active.live::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background: #dc2626;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: 1px;
+  animation: liveDotPulse 1.5s infinite;
+}
+
+/* Content area */
+.sp-wd-content {
+  padding: 0 1rem 1rem;
+}
+.sp-wd-card {
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.sp-wd-card h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b94a3;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem 0;
+}
+.sp-wd-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f4f8;
+}
+.sp-wd-card-row:last-child { border-bottom: none; }
+.sp-wd-card-row .label {
+  font-size: 13px;
+  color: #8b94a3;
+}
+.sp-wd-card-row .value {
+  font-size: 14px;
+  color: #0c1b2a;
+  font-weight: 500;
+  text-align: right;
+}
+
+.sp-wd-empty {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: #8b94a3;
+}
+.sp-wd-empty .icon {
+  font-size: 38px;
+  margin-bottom: 0.75rem;
+}
+.sp-wd-empty h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0c1b2a;
+  margin: 0 0 0.5rem 0;
+}
+.sp-wd-empty p {
+  font-size: 13px;
+  margin: 0;
+}
+
+/* Hero CTA buttons in detail-view */
+.sp-wd-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+.sp-wd-cta .btn {
+  width: 100%;
+  padding: 0.95rem 1rem;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  transition: all .15s;
+}
+.sp-wd-cta .btn-primary {
+  background: #16a34a;
+  color: #ffffff;
+}
+.sp-wd-cta .btn-primary:active { background: #15803d; }
+.sp-wd-cta .btn-live {
+  background: #dc2626;
+  color: #ffffff;
+}
+.sp-wd-cta .btn-outline {
+  background: #ffffff;
+  color: #0c1b2a;
+  border: 1.5px solid #e6eaf0;
+}
+
 </style>
 
 <script>
@@ -7067,7 +7327,7 @@ function renderSpelerKalender(){
             var html = '<div class="sp-hero-actions">';
             html += '<button class="sp-hero-btn primary" onclick="spelerNaarScorekaart(\'' + next.id + '\')">' +
               '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>' +
-              'Scorekaart</button>';
+              'Open wedstrijd</button>';
             if (toonLeaderboard) {
               html += '<button class="sp-hero-btn live" onclick="openLiveLeaderboard(\'' + next.id + '\')">' +
                 '<span class="sp-hero-live-dot"></span>' +
@@ -7196,37 +7456,10 @@ function spelerNaarScorekaart(wId) {
 }
 
 function spelerOpenWedstrijd(wId) {
-  var u = _currentUser;
-  if (!u) return;
-  // Afgelast? Toon toast + geen navigatie
-  var wCheck = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
-  if (wCheck && wedstrijdFase(wCheck) === 'afgelast') {
-    var reden = wCheck.afgelast_reden || '';
-    toast('Deze wedstrijd is afgelast.' + (reden ? ' ' + reden : ''), 'err');
-    return;
-  }
-  var mijnIng = (INSCHRIJVINGEN || []).find(function(i) {
-    return i.wid === wId && i.sid === u.id && i.status === 'ingeschreven';
-  });
-  // Ingeschreven? Ga naar scorekaart (op de dag zelf) of startlijst
-  if (mijnIng) {
-    var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
-    var now = new Date();
-    var wd = w && w.datum ? new Date(w.datum) : null;
-    var sameDay = wd && wd.toDateString() === now.toDateString();
-    if (sameDay) {
-      // Scorekaart — selecteer deze wedstrijd
-      spNav('scorekaart');
-      setTimeout(function() {
-        var sel = document.getElementById('sk-w');
-        if (sel) { sel.value = wId; if (typeof initScorekaart === 'function') initScorekaart(); }
-      }, 100);
-    } else {
-      spNav('startlijst');
-    }
-  } else {
-    // Niet ingeschreven: ga naar inschrijvingen view of toon wedstrijd detail
-    spNav('inschrijvingen');
+  // Open de unified wedstrijd-detail view
+  // Werkt voor alle fases en alle inschrijvings-statussen
+  if (typeof openSpelerWdDetail === 'function') {
+    openSpelerWdDetail(wId);
   }
 }
 
@@ -7468,6 +7701,365 @@ function renderSpelerProfiel(){
     mc('Wachtlijst',wl,'openstaand','color:var(--amb)')+
     mc('Handicap',u.hcp.toFixed(1),'EGA index');
 }
+
+// ═══════════════════════════════════════════════════════════════
+// SPELER WEDSTRIJD DETAIL — unified tabs voor speler
+// ═══════════════════════════════════════════════════════════════
+
+var _spWdDetailState = { wId: null, tab: 'info' };
+
+// Open detail-view voor speler
+function openSpelerWdDetail(wId, tab) {
+  _spWdDetailState.wId = wId;
+  _spWdDetailState.tab = tab || 'info';
+  // Switch naar wddetail view
+  spNav('wddetail');
+}
+
+// Hoofdrenderer
+function renderSpelerWdDetail() {
+  var wId = _spWdDetailState.wId;
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  var hdr = document.getElementById('sp-wd-header');
+  var tabsEl = document.getElementById('sp-wd-tabs');
+  var contentEl = document.getElementById('sp-wd-content');
+
+  if (!w || !hdr || !tabsEl || !contentEl) {
+    if (contentEl) contentEl.innerHTML = '<div class="sp-wd-empty"><div class="icon">⚠️</div><h3>Wedstrijd niet gevonden</h3></div>';
+    return;
+  }
+
+  var fase = wedstrijdFase(w);
+  var d = new Date(w.datum);
+  var dagen = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+  var maanden = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+  var datumStr = dagen[d.getDay()] + ' ' + d.getDate() + ' ' + maanden[d.getMonth()];
+
+  // Status eyebrow
+  var eyebrowCls = fase === 'live' ? 'sp-wd-eyebrow live' : 'sp-wd-eyebrow';
+  var eyebrowTxt = '';
+  if (fase === 'live') eyebrowTxt = 'Live';
+  else if (fase === 'gepubliceerd') eyebrowTxt = 'Gepland';
+  else if (fase === 'afgerond') eyebrowTxt = 'Afgerond';
+  else if (fase === 'afgelast') eyebrowTxt = 'Afgelast';
+  else if (fase === 'concept') eyebrowTxt = 'Concept';
+
+  hdr.innerHTML =
+    '<button class="sp-wd-back" onclick="spNav(\'kalender\')">Terug</button>' +
+    '<div class="sp-wd-status-row"><span class="' + eyebrowCls + '">' + eyebrowTxt + '</span></div>' +
+    '<h1 class="sp-wd-titel">' + escHtml(w.naam) + '</h1>' +
+    '<div class="sp-wd-meta">' +
+      '<span class="sp-wd-meta-item"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6h11M5.5 2v3M10.5 2v3"/></svg>' + datumStr + (w.tijd ? ' &middot; ' + w.tijd : '') + '</span>' +
+      '<span class="sp-wd-meta-item"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 14s5-4.5 5-8.5A5 5 0 0 0 3 5.5C3 9.5 8 14 8 14z"/><circle cx="8" cy="6" r="1.5"/></svg>' + escHtml(w.baan) + '</span>' +
+      '<span class="sp-wd-meta-item"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 7l3 4 2-3 3 4"/></svg>' + escHtml(w.vorm) + ' &middot; ' + w.holes + ' holes</span>' +
+    '</div>';
+
+  // Tabs
+  var tabs = [
+    { id: 'info', label: 'Info' },
+    { id: 'mijnstart', label: 'Mijn start' },
+    { id: 'scorekaart', label: 'Scorekaart' },
+    { id: 'leaderboard', label: 'Leaderboard' },
+    { id: 'mijnscores', label: 'Mijn scores' }
+  ];
+  tabsEl.innerHTML = tabs.map(function(t) {
+    var activeCls = t.id === _spWdDetailState.tab ? ' active' : '';
+    var liveCls = (fase === 'live' && t.id === _spWdDetailState.tab && (t.id === 'leaderboard' || t.id === 'scorekaart')) ? ' live' : '';
+    return '<button class="sp-wd-tab' + activeCls + liveCls + '" onclick="switchSpWdTab(\'' + t.id + '\')">' + escHtml(t.label) + '</button>';
+  }).join('');
+
+  // Content per tab
+  renderSpWdTabContent(w, fase);
+}
+
+function switchSpWdTab(tab) {
+  _spWdDetailState.tab = tab;
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === _spWdDetailState.wId; });
+  if (!w) return;
+  // Update tab classes
+  document.querySelectorAll('#sp-wd-tabs .sp-wd-tab').forEach(function(el) {
+    el.classList.remove('active', 'live');
+  });
+  var btns = document.querySelectorAll('#sp-wd-tabs .sp-wd-tab');
+  var ids = ['info','mijnstart','scorekaart','leaderboard','mijnscores'];
+  var idx = ids.indexOf(tab);
+  if (idx >= 0 && btns[idx]) {
+    btns[idx].classList.add('active');
+    var fase = wedstrijdFase(w);
+    if (fase === 'live' && (tab === 'leaderboard' || tab === 'scorekaart')) {
+      btns[idx].classList.add('live');
+    }
+  }
+  renderSpWdTabContent(w, wedstrijdFase(w));
+  window.scrollTo(0, 0);
+}
+
+// Content router
+function renderSpWdTabContent(w, fase) {
+  var tab = _spWdDetailState.tab;
+  var contentEl = document.getElementById('sp-wd-content');
+  if (!contentEl) return;
+
+  if (tab === 'info') contentEl.innerHTML = renderSpInfoTab(w, fase);
+  else if (tab === 'mijnstart') contentEl.innerHTML = renderSpMijnStartTab(w, fase);
+  else if (tab === 'scorekaart') contentEl.innerHTML = renderSpScorekaartTab(w, fase);
+  else if (tab === 'leaderboard') contentEl.innerHTML = renderSpLeaderboardTab(w, fase);
+  else if (tab === 'mijnscores') contentEl.innerHTML = renderSpMijnScoresTab(w, fase);
+}
+
+// ─── Tab: Info ──────────────────────────────────
+function renderSpInfoTab(w, fase) {
+  var leider = (typeof leiderNaam === 'function') ? leiderNaam(w) : '';
+  var ingeschreven = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).length;
+
+  var html = '<div class="sp-wd-card">' +
+    '<h3>Wedstrijd-info</h3>' +
+    '<div class="sp-wd-card-row"><span class="label">Vorm</span><span class="value">' + escHtml(w.vorm) + '</span></div>' +
+    '<div class="sp-wd-card-row"><span class="label">Baan</span><span class="value">' + escHtml(w.baan) + '</span></div>' +
+    '<div class="sp-wd-card-row"><span class="label">Holes</span><span class="value">' + w.holes + '</span></div>' +
+    '<div class="sp-wd-card-row"><span class="label">CR / Slope</span><span class="value">' + w.cr + ' / ' + w.slope + '</span></div>' +
+    '<div class="sp-wd-card-row"><span class="label">Starttijd</span><span class="value">' + (w.tijd || '08:00') + '</span></div>' +
+    (leider ? '<div class="sp-wd-card-row"><span class="label">Wedstrijdleider</span><span class="value">' + escHtml(leider) + '</span></div>' : '') +
+    '<div class="sp-wd-card-row"><span class="label">Deelnemers</span><span class="value">' + ingeschreven + (w.max ? ' / ' + w.max : '') + '</span></div>' +
+    (w.hcpmax ? '<div class="sp-wd-card-row"><span class="label">HCP-grens</span><span class="value">' + (w.hcpmin || 0) + ' - ' + w.hcpmax + '</span></div>' : '') +
+    '</div>';
+
+  if (w.omschrijving) {
+    html += '<div class="sp-wd-card"><h3>Omschrijving</h3><p style="margin:0;font-size:14px;color:#425466;line-height:1.5">' + escHtml(w.omschrijving) + '</p></div>';
+  }
+
+  if (fase === 'afgelast' && w.afgelast_reden) {
+    html = '<div class="sp-wd-card" style="background:#fef3c7;border-color:#fde68a"><h3 style="color:#92400e">Wedstrijd afgelast</h3><p style="margin:0;font-size:14px;color:#78350f">' + escHtml(w.afgelast_reden) + '</p></div>' + html;
+  }
+
+  return html;
+}
+
+// ─── Tab: Mijn start (flight + tijd) ────────────
+function renderSpMijnStartTab(w, fase) {
+  if (!_currentUser) return '<div class="sp-wd-empty"><div class="icon">⚠️</div><h3>Niet ingelogd</h3></div>';
+
+  var ing = INSCHRIJVINGEN.find(function(i) { return i.wid === w.id && i.sid === _currentUser.id && i.status === 'ingeschreven'; });
+  if (!ing) {
+    return '<div class="sp-wd-empty"><div class="icon">📋</div><h3>Niet ingeschreven</h3><p>Je staat (nog) niet ingeschreven voor deze wedstrijd.</p></div>';
+  }
+
+  var flights = (typeof FLIGHTS !== 'undefined' && FLIGHTS[w.id]) ? FLIGHTS[w.id] : [];
+  var mijnFlight = -1;
+  var mijnFlightSpelers = [];
+  for (var i = 0; i < flights.length; i++) {
+    if (flights[i].indexOf(_currentUser.id) >= 0) {
+      mijnFlight = i;
+      mijnFlightSpelers = flights[i];
+      break;
+    }
+  }
+
+  if (mijnFlight === -1) {
+    return '<div class="sp-wd-empty"><div class="icon">⏳</div><h3>Flight nog niet ingedeeld</h3><p>De wedstrijdleider maakt de flight-indeling vóór de wedstrijd. Check hier later terug.</p></div>';
+  }
+
+  // Tijd berekenen: starttijd + flight-nummer * 10 min
+  var startStr = w.tijd || '08:00';
+  var parts = startStr.split(':');
+  var totalMin = parseInt(parts[0]) * 60 + parseInt(parts[1]) + (mijnFlight * 10);
+  var teeUur = Math.floor(totalMin / 60);
+  var teeMin = totalMin % 60;
+  var teeTijd = String(teeUur).padStart(2,'0') + ':' + String(teeMin).padStart(2,'0');
+
+  var html = '<div class="sp-wd-card" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);border-color:#bbf7d0">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem">' +
+      '<div><div style="font-size:11px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:0.05em">Jouw start</div>' +
+      '<div style="font-family:Fraunces,serif;font-style:italic;font-size:32px;font-weight:700;color:#0c1b2a;margin-top:4px">' + teeTijd + '</div></div>' +
+      '<div style="text-align:right"><div style="font-size:11px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:0.05em">Flight</div>' +
+      '<div style="font-family:Fraunces,serif;font-style:italic;font-size:32px;font-weight:700;color:#0c1b2a;margin-top:4px">' + (mijnFlight + 1) + '</div></div>' +
+    '</div>' +
+  '</div>';
+
+  // Flight-genoten
+  if (mijnFlightSpelers.length > 1) {
+    html += '<div class="sp-wd-card"><h3>Flight-genoten</h3>';
+    mijnFlightSpelers.forEach(function(sid) {
+      var u = USERS.find(function(x) { return x.id === sid; });
+      if (!u) return;
+      var isMij = sid === _currentUser.id;
+      var initials = (u.voor[0] || '') + (u.ach[0] || '');
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:0.75rem 0;border-bottom:1px solid #f1f4f8">' +
+        '<div class="av" style="width:36px;height:36px;font-size:13px;background:' + (isMij ? '#16a34a' : '#e6eaf0') + ';color:' + (isMij ? '#fff' : '#425466') + ';border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600">' + escHtml(initials) + '</div>' +
+        '<div style="flex:1"><div style="font-size:14px;font-weight:500;color:#0c1b2a">' + escHtml(u.voor + ' ' + u.ach) + (isMij ? ' <span style="color:#16a34a;font-size:11px;font-weight:700">(jij)</span>' : '') + '</div>' +
+        '<div style="font-size:12px;color:#8b94a3">HCP ' + u.hcp + '</div></div>' +
+      '</div>';
+    });
+    html += '</div>';
+  }
+
+  return html;
+}
+
+// ─── Tab: Scorekaart ───────────────────────────
+function renderSpScorekaartTab(w, fase) {
+  if (!_currentUser) return '';
+
+  var toegankelijk = (typeof scorekaartToegankelijk === 'function') ? scorekaartToegankelijk(w) : (fase === 'live');
+
+  if (fase === 'concept' || fase === 'gepubliceerd') {
+    if (!toegankelijk) {
+      return '<div class="sp-wd-empty"><div class="icon">⏳</div><h3>Scorekaart nog niet open</h3><p>De scorekaart wordt open gezet kort vóór de starttijd.</p></div>';
+    }
+  }
+  if (fase === 'afgelast') {
+    return '<div class="sp-wd-empty"><div class="icon">⚠️</div><h3>Wedstrijd afgelast</h3><p>De scorekaart is gesloten.</p></div>';
+  }
+
+  // Check of speler is ingeschreven
+  var ing = INSCHRIJVINGEN.find(function(i) { return i.wid === w.id && i.sid === _currentUser.id && i.status === 'ingeschreven'; });
+  if (!ing) {
+    return '<div class="sp-wd-empty"><div class="icon">📋</div><h3>Niet ingeschreven</h3><p>Schrijf je eerst in voor deze wedstrijd om scores te kunnen invoeren.</p></div>';
+  }
+
+  // Probeer bestaande scorekaart-renderer te triggeren
+  // We zetten state en renderen erop
+  return '<div class="sp-wd-card"><h3>Scorekaart</h3>' +
+    '<div style="text-align:center;padding:1rem"><button class="btn btn-p" style="padding:0.85rem 1.5rem;font-size:15px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;width:100%;min-height:48px" onclick="openScorekaartVoor(\'' + w.id + '\')">Open scorekaart</button></div>' +
+    '<p style="font-size:12px;color:#8b94a3;text-align:center;margin:0.75rem 0 0">Tikt naar de volledige scorekaart-weergave.</p>' +
+    '</div>';
+}
+
+// Helper om scorekaart te openen voor specifieke wedstrijd
+function openScorekaartVoor(wId) {
+  // Selectiestate zetten + naar scorekaart view
+  var sel = document.getElementById('sk-w');
+  if (sel) sel.value = wId;
+  spNav('scorekaart');
+}
+
+// ─── Tab: Leaderboard ──────────────────────────
+function renderSpLeaderboardTab(w, fase) {
+  if (fase === 'concept' || fase === 'gepubliceerd') {
+    return '<div class="sp-wd-empty"><div class="icon">⛳</div><h3>Wedstrijd nog niet begonnen</h3><p>Het leaderboard verschijnt zodra spelers scores invoeren.</p></div>';
+  }
+  if (fase === 'afgelast') {
+    return '<div class="sp-wd-empty"><div class="icon">⚠️</div><h3>Wedstrijd afgelast</h3></div>';
+  }
+
+  // Check scores
+  var heeftScores = false;
+  if (typeof SCORES !== 'undefined' && SCORES[w.id]) {
+    var rondes = SCORES[w.id];
+    for (var r in rondes) {
+      for (var sid in rondes[r]) {
+        var arr = rondes[r][sid];
+        if (Array.isArray(arr)) {
+          for (var i = 0; i < arr.length; i++) {
+            if (arr[i] !== '' && arr[i] !== null && arr[i] !== undefined) { heeftScores = true; break; }
+          }
+        }
+        if (heeftScores) break;
+      }
+      if (heeftScores) break;
+    }
+  }
+  if (!heeftScores) {
+    return '<div class="sp-wd-empty"><div class="icon">⛳</div><h3>Nog geen scores</h3><p>Het leaderboard wordt zichtbaar zodra spelers scores invoeren.</p></div>';
+  }
+
+  // Hergebruik buildLeaderboard
+  if (typeof buildLeaderboard !== 'function' || typeof getBaan !== 'function') {
+    return '<div class="sp-wd-empty"><h3>Klassement niet beschikbaar</h3></div>';
+  }
+  var sps = INSCHRIJVINGEN
+    .filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; })
+    .map(function(i) { return USERS.find(function(u) { return u.id === i.sid; }); })
+    .filter(Boolean);
+  var baan = getBaan(w.holes);
+  baan.slope = w.slope; baan.cr = w.cr;
+  baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
+
+  var html = '';
+  if (fase === 'live') {
+    html = '<div style="display:flex;align-items:center;gap:8px;padding:0.6rem 1rem;background:#fff1f2;border:1px solid #fecaca;border-radius:10px;margin-bottom:1rem">' +
+      '<span style="width:7px;height:7px;background:#dc2626;border-radius:50%;animation:liveDotPulse 1.5s infinite"></span>' +
+      '<span style="font-size:13px;color:#991b1b;font-weight:600">Live - wordt bijgewerkt</span></div>';
+  }
+  html += '<div class="sp-wd-card" style="padding:0;overflow:hidden">' + buildLeaderboard(w.id, 0, baan, sps, w) + '</div>';
+  return html;
+}
+
+// ─── Tab: Mijn scores ──────────────────────────
+function renderSpMijnScoresTab(w, fase) {
+  if (!_currentUser) return '';
+
+  var ing = INSCHRIJVINGEN.find(function(i) { return i.wid === w.id && i.sid === _currentUser.id && i.status === 'ingeschreven'; });
+  if (!ing) {
+    return '<div class="sp-wd-empty"><div class="icon">📋</div><h3>Niet ingeschreven</h3><p>Je staat niet ingeschreven voor deze wedstrijd.</p></div>';
+  }
+
+  // Pak scores van mij
+  var mijnScores = null;
+  if (typeof SCORES !== 'undefined' && SCORES[w.id]) {
+    var rondes = SCORES[w.id];
+    if (rondes[0] && rondes[0][_currentUser.id]) mijnScores = rondes[0][_currentUser.id];
+  }
+
+  if (!mijnScores) {
+    return '<div class="sp-wd-empty"><div class="icon">📝</div><h3>Nog geen scores ingevoerd</h3><p>Je scores verschijnen hier zodra je ze hebt ingevoerd.</p></div>';
+  }
+
+  // Berekenen
+  if (typeof getBaan !== 'function' || typeof berekenStrokeplay !== 'function' || typeof berekenStableford !== 'function' || typeof berekenSpeelhandicap !== 'function') {
+    return '<div class="sp-wd-empty"><h3>Berekening niet beschikbaar</h3></div>';
+  }
+  var baan = getBaan(w.holes);
+  baan.slope = w.slope; baan.cr = w.cr;
+  baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
+  var sh = berekenSpeelhandicap(_currentUser.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
+  var sp = berekenStrokeplay(mijnScores, baan, sh, w.esc || 'geen');
+  var sf = berekenStableford(mijnScores, baan, sh);
+
+  // Stats card
+  var html = '<div class="sp-wd-card">' +
+    '<h3>Jouw resultaat</h3>' +
+    '<div class="sp-wd-card-row"><span class="label">Speelhandicap</span><span class="value">' + sh + '</span></div>' +
+    '<div class="sp-wd-card-row"><span class="label">Bruto</span><span class="value">' + (sp.gespeeld > 0 ? sp.bruto : '—') + '</span></div>' +
+    '<div class="sp-wd-card-row"><span class="label">Netto</span><span class="value">' + (sp.gespeeld > 0 ? sp.netto : '—') + '</span></div>' +
+    '<div class="sp-wd-card-row"><span class="label">+/- par</span><span class="value">' + (sp.gespeeld > 0 ? (sp.nettoVsPar > 0 ? '+' : '') + sp.nettoVsPar : '—') + '</span></div>' +
+    '<div class="sp-wd-card-row"><span class="label">Stableford-punten</span><span class="value">' + sf.punten + '</span></div>' +
+    '<div class="sp-wd-card-row"><span class="label">Gespeeld</span><span class="value">' + sp.gespeeld + ' / ' + w.holes + '</span></div>' +
+    '</div>';
+
+  // Hole-by-hole table
+  html += '<div class="sp-wd-card" style="padding:0;overflow:hidden">' +
+    '<div style="padding:1rem 1.25rem 0.5rem"><h3>Per hole</h3></div>' +
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-family:Inter,sans-serif;font-size:13px">' +
+    '<thead style="background:#f8fafa"><tr style="border-bottom:1px solid #e6eaf0">' +
+    '<th style="text-align:left;padding:0.5rem 0.75rem;color:#8b94a3;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Hole</th>' +
+    '<th style="text-align:right;padding:0.5rem 0.75rem;color:#8b94a3;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Par</th>' +
+    '<th style="text-align:right;padding:0.5rem 0.75rem;color:#8b94a3;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Score</th>' +
+    '<th style="text-align:right;padding:0.5rem 0.75rem;color:#8b94a3;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:0.05em">+/-</th>' +
+    '</tr></thead><tbody>';
+
+  for (var h = 0; h < w.holes; h++) {
+    var s = mijnScores[h];
+    var par = baan.par[h] || 4;
+    var hasScore = s !== '' && s !== null && s !== undefined;
+    var scoreNum = hasScore ? Number(s) : null;
+    var diff = hasScore ? scoreNum - par : null;
+    var diffStr = hasScore ? (diff > 0 ? '+' + diff : (diff < 0 ? diff : 'E')) : '—';
+    var diffColor = hasScore ? (diff < 0 ? '#16a34a' : (diff > 0 ? '#dc2626' : '#425466')) : '#8b94a3';
+
+    html += '<tr style="border-bottom:1px solid #f1f4f8">' +
+      '<td style="padding:0.5rem 0.75rem;color:#0c1b2a;font-weight:500">' + (h + 1) + '</td>' +
+      '<td style="padding:0.5rem 0.75rem;color:#8b94a3;text-align:right">' + par + '</td>' +
+      '<td style="padding:0.5rem 0.75rem;color:#0c1b2a;text-align:right;font-weight:600">' + (hasScore ? scoreNum : '—') + '</td>' +
+      '<td style="padding:0.5rem 0.75rem;text-align:right;color:' + diffColor + ';font-weight:600">' + diffStr + '</td>' +
+    '</tr>';
+  }
+
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
+
 
 // ============================================================
 // GEDEELDE FUNCTIES
@@ -8300,6 +8892,7 @@ function spNav(id, el) {
   else if (id === 'ranglijst') renderRanglijst();
   else if (id === 'berichten') renderBerichten();
   else if (id === 'profiel') renderSpelerProfiel();
+  else if (id === 'wddetail') renderSpelerWdDetail();
 }
 
 // ============================================================
@@ -11117,6 +11710,16 @@ try {
       </div>
     </div>
 
+      <!-- ═══════════════════════════════════════════════════════
+           SPELER WEDSTRIJD DETAIL VIEW (unified tabs voor speler)
+           ═══════════════════════════════════════════════════════ -->
+      <div id="sp-wddetail" class="sp-view">
+        <div id="sp-wd-header" class="sp-wd-header"></div>
+        <div class="sp-wd-tabs" id="sp-wd-tabs"></div>
+        <div class="sp-wd-content" id="sp-wd-content"></div>
+      </div>
+
+
   </div>
 
     <!-- Mobiele bottom navigation -->
@@ -11125,17 +11728,13 @@ try {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
         <span>Home</span>
       </div>
-      <div class="sp-bn-item" data-spview="startlijst" onclick="spNav('startlijst',this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        <span>Mijn start</span>
+      <div class="sp-bn-item" data-spview="kalender" onclick="spNav('kalender',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span>Kalender</span>
       </div>
-      <div class="sp-bn-item" data-spview="scorekaart" onclick="spNav('scorekaart',this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>
-        <span>Score</span>
-      </div>
-      <div class="sp-bn-item" data-spview="scores" onclick="spNav('scores',this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l3 3 3-3 3 3 3-3"/><path d="M3 18h18"/></svg>
-        <span>Uitslagen</span>
+      <div class="sp-bn-item" data-spview="profiel" onclick="spNav('profiel',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+        <span>Profiel</span>
       </div>
       <div class="sp-bn-item" id="sp-bn-meer" onclick="spelerOpenMeer()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
