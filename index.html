@@ -3803,9 +3803,40 @@ function renderWdInfoTab(w) {
     '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Wedstrijdleider</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + (leiderNaam(w) ? escHtml(leiderNaam(w)) : '<span style="color:#a16207;font-style:italic">Nog niet gekozen</span>') + '</p></div>' +
     (function() {
       var hsp = (typeof hoofdsponsorVoorWedstrijd === 'function') ? hoofdsponsorVoorWedstrijd(w.id) : null;
-      if (!hsp) return '';
-      var logo = hsp.logoUrl ? '<img src="' + escHtml(hsp.logoUrl) + '" style="height:28px;width:auto;vertical-align:middle;margin-right:8px;border-radius:4px" onerror="this.style.display=\'none\'"/>' : '';
-      return '<div style="grid-column:1/-1;background:linear-gradient(135deg,#fefce8,#fef3c7);padding:0.85rem 1rem;border-radius:8px;border:1px solid #fde68a;display:flex;align-items:center;gap:8px"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700">Hoofdsponsor</span>' + logo + '<span style="font-size:15px;color:#0c1b2a;font-weight:600">' + escHtml(hsp.naam) + '</span>' + (hsp.website ? '<a href="' + escHtml(hsp.website) + '" target="_blank" style="font-size:12px;color:#0c1b2a;margin-left:auto;text-decoration:underline">Website →</a>' : '') + '</div>';
+      var coList = (typeof coSponsorenVoorWedstrijd === 'function') ? coSponsorenVoorWedstrijd(w.id) : [];
+      var holeList = (typeof holeSponsorenVoorWedstrijd === 'function') ? holeSponsorenVoorWedstrijd(w.id) : [];
+      if (!hsp && coList.length === 0 && holeList.length === 0) return '';
+
+      var html = '';
+      // Hoofdsponsor (geel)
+      if (hsp) {
+        var logo = hsp.logoUrl ? '<img src="' + escHtml(hsp.logoUrl) + '" style="height:28px;width:auto;vertical-align:middle;margin-right:8px;border-radius:4px" onerror="this.style.display=\'none\'"/>' : '';
+        html += '<div style="grid-column:1/-1;background:linear-gradient(135deg,#fefce8,#fef3c7);padding:0.85rem 1rem;border-radius:8px;border:1px solid #fde68a;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700">🥇 Hoofdsponsor</span>' + logo + '<span style="font-size:15px;color:#0c1b2a;font-weight:600">' + escHtml(hsp.naam) + '</span>' + (hsp.website ? '<a href="' + escHtml(hsp.website) + '" target="_blank" style="font-size:12px;color:#0c1b2a;margin-left:auto;text-decoration:underline">Website →</a>' : '') + '</div>';
+      }
+      // Co-sponsoren (lichter, rij met logo's)
+      if (coList.length > 0) {
+        html += '<div style="grid-column:1/-1;background:#f8fafa;padding:0.85rem 1rem;border-radius:8px;border:1px solid #e6eaf0">';
+        html += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#425466;font-weight:700;margin-bottom:0.5rem">🤝 Co-sponsoren (' + coList.length + ')</div>';
+        html += '<div style="display:flex;gap:1.25rem;flex-wrap:wrap;align-items:center">';
+        coList.forEach(function(s) {
+          var l = s.logoUrl ? '<img src="' + escHtml(s.logoUrl) + '" style="height:24px;width:auto;border-radius:3px" onerror="this.style.display=\'none\'"/>' : '';
+          html += '<span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#0c1b2a">' + l + escHtml(s.naam) + '</span>';
+        });
+        html += '</div></div>';
+      }
+      // Hole-sponsoren (compacte tabel)
+      if (holeList.length > 0) {
+        holeList.sort(function(a, b) { return a.holeNr - b.holeNr; });
+        html += '<div style="grid-column:1/-1;background:#f0fdf4;padding:0.85rem 1rem;border-radius:8px;border:1px solid #bbf7d0">';
+        html += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#166534;font-weight:700;margin-bottom:0.5rem">⛳ Hole-sponsoren (' + holeList.length + ')</div>';
+        html += '<div style="display:flex;gap:0.75rem;flex-wrap:wrap">';
+        holeList.forEach(function(item) {
+          var l = item.sponsor.logoUrl ? '<img src="' + escHtml(item.sponsor.logoUrl) + '" style="height:18px;width:auto;border-radius:3px" onerror="this.style.display=\'none\'"/>' : '';
+          html += '<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#0c1b2a;background:#fff;padding:4px 8px;border-radius:6px;border:1px solid #bbf7d0"><span style="background:#16a34a;color:#fff;font-weight:700;font-size:10px;padding:2px 5px;border-radius:3px">H' + item.holeNr + '</span>' + l + escHtml(item.sponsor.naam) + '</span>';
+        });
+        html += '</div></div>';
+      }
+      return html;
     })() +
     (w.omschrijving ? '<div style="grid-column:1/-1"><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Omschrijving</h4><p style="font-size:14px;color:#425466;margin:0;line-height:1.5">' + escHtml(w.omschrijving) + '</p></div>' : '') +
     (w.afgelast_reden ? '<div style="grid-column:1/-1;background:#fef3c7;padding:0.85rem 1rem;border-radius:8px;border:1px solid #fde68a"><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;margin:0 0 0.3rem 0;font-weight:700">Afgelast — reden</h4><p style="font-size:13px;color:#78350f;margin:0">' + escHtml(w.afgelast_reden) + '</p></div>' : '') +
@@ -4118,11 +4149,25 @@ function renderWdUitslagTab(w) {
   // Bouw klassement-tabel via bestaande functie
   var leaderboardHtml = buildLeaderboard(w.id, ronde, baan, sps, w);
 
-  // Sponsor-banner onder leaderboard (Sprint 1 zichtbaarheid)
+  // Sponsor-banner onder leaderboard (hoofdsponsor + co-sponsoren)
   var hsp_lb = (typeof hoofdsponsorVoorWedstrijd === 'function') ? hoofdsponsorVoorWedstrijd(w.id) : null;
-  if (hsp_lb) {
-    var logoBanner = hsp_lb.logoUrl ? '<img src="' + escHtml(hsp_lb.logoUrl) + '" style="height:36px;width:auto;border-radius:4px" onerror="this.style.display=\'none\'"/>' : '';
-    leaderboardHtml += '<div style="margin-top:1rem;padding:0.85rem 1.25rem;background:linear-gradient(135deg,#fefce8,#fef3c7);border:1px solid #fde68a;border-radius:10px;display:flex;align-items:center;gap:12px;justify-content:center"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700">Powered by</span>' + logoBanner + '<span style="font-size:16px;color:#0c1b2a;font-weight:600;font-family:Inter,sans-serif">' + escHtml(hsp_lb.naam) + '</span></div>';
+  var co_lb = (typeof coSponsorenVoorWedstrijd === 'function') ? coSponsorenVoorWedstrijd(w.id) : [];
+  if (hsp_lb || co_lb.length > 0) {
+    var sponsorBanner = '<div style="margin-top:1rem;padding:1rem 1.25rem;background:linear-gradient(135deg,#fefce8,#fef3c7);border:1px solid #fde68a;border-radius:10px;text-align:center">';
+    if (hsp_lb) {
+      var logoBanner = hsp_lb.logoUrl ? '<img src="' + escHtml(hsp_lb.logoUrl) + '" style="height:36px;width:auto;border-radius:4px;vertical-align:middle" onerror="this.style.display=\'none\'"/>' : '';
+      sponsorBanner += '<div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:' + (co_lb.length > 0 ? '0.75rem' : '0') + '"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700">Powered by</span>' + logoBanner + '<span style="font-size:16px;color:#0c1b2a;font-weight:600">' + escHtml(hsp_lb.naam) + '</span></div>';
+    }
+    if (co_lb.length > 0) {
+      sponsorBanner += '<div style="border-top:' + (hsp_lb ? '1px solid rgba(146,64,14,0.2)' : 'none') + ';padding-top:' + (hsp_lb ? '0.75rem' : '0') + '"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700;margin-bottom:0.5rem">Mede mogelijk gemaakt door</div><div style="display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center;align-items:center">';
+      co_lb.forEach(function(s) {
+        var l = s.logoUrl ? '<img src="' + escHtml(s.logoUrl) + '" style="height:24px;width:auto;border-radius:3px" onerror="this.style.display=\'none\'"/>' : '';
+        sponsorBanner += '<span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#0c1b2a">' + l + escHtml(s.naam) + '</span>';
+      });
+      sponsorBanner += '</div></div>';
+    }
+    sponsorBanner += '</div>';
+    leaderboardHtml += sponsorBanner;
   }
 
   // Live LB knop voor publiek scherm
@@ -8539,6 +8584,32 @@ function renderSpInfoTab(w, fase) {
     '<div class="sp-wd-card-row"><span class="label">Deelnemers</span><span class="value">' + ingeschreven + (w.max ? ' / ' + w.max : '') + '</span></div>' +
     (w.hcpmax ? '<div class="sp-wd-card-row"><span class="label">HCP-grens</span><span class="value">' + (w.hcpmin || 0) + ' - ' + w.hcpmax + '</span></div>' : '') +
     '</div>';
+
+  // Sponsoren in speler info-tab
+  var hsp_sp = (typeof hoofdsponsorVoorWedstrijd === 'function') ? hoofdsponsorVoorWedstrijd(w.id) : null;
+  var co_sp = (typeof coSponsorenVoorWedstrijd === 'function') ? coSponsorenVoorWedstrijd(w.id) : [];
+  if (hsp_sp || co_sp.length > 0) {
+    html += '<div class="sp-wd-card" style="background:linear-gradient(135deg,#fefce8,#fef3c7);border-color:#fde68a">';
+    html += '<h3 style="color:#92400e">Sponsoren</h3>';
+    if (hsp_sp) {
+      var logo = hsp_sp.logoUrl ? '<img src="' + escHtml(hsp_sp.logoUrl) + '" style="height:32px;width:auto;border-radius:4px" onerror="this.style.display=\'none\'"/>' : '';
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:0.5rem 0">' +
+        '<span style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700;min-width:80px">🥇 Hoofdsponsor</span>' +
+        logo + '<span style="font-size:15px;color:#0c1b2a;font-weight:600">' + escHtml(hsp_sp.naam) + '</span>' +
+        '</div>';
+    }
+    if (co_sp.length > 0) {
+      html += '<div style="padding:0.5rem 0;border-top:' + (hsp_sp ? '1px solid rgba(146,64,14,0.2)' : 'none') + '">';
+      html += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700;margin-bottom:0.5rem">🤝 Co-sponsoren</div>';
+      html += '<div style="display:flex;gap:1rem;flex-wrap:wrap">';
+      co_sp.forEach(function(s) {
+        var l = s.logoUrl ? '<img src="' + escHtml(s.logoUrl) + '" style="height:22px;width:auto;border-radius:3px" onerror="this.style.display=\'none\'"/>' : '';
+        html += '<span style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#0c1b2a">' + l + escHtml(s.naam) + '</span>';
+      });
+      html += '</div></div>';
+    }
+    html += '</div>';
+  }
 
   if (w.omschrijving) {
     html += '<div class="sp-wd-card"><h3>Omschrijving</h3><p style="margin:0;font-size:14px;color:#425466;line-height:1.5">' + escHtml(w.omschrijving) + '</p></div>';
