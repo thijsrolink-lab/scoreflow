@@ -3219,6 +3219,119 @@ async function verwijderSponsor() {
   }
 }
 
+// ─── Scrape: Open Graph metadata ophalen via CORS-proxy ──────
+async function scrapeSponsorSite() {
+  var urlInput = document.getElementById('msp-website');
+  var btn = document.getElementById('msp-ophaal-btn');
+  if (!urlInput) return;
+
+  var url = (urlInput.value || '').trim();
+  if (!url) { toast('Vul eerst een website-URL in.', 'err'); return; }
+
+  // Auto-prepend https:// als ontbreekt
+  if (!/^https?:\/\//i.test(url)) {
+    url = 'https://' + url;
+    urlInput.value = url;
+  }
+
+  var origLabel = btn.textContent;
+  btn.textContent = '⏳ Bezig...';
+  btn.disabled = true;
+
+  try {
+    // Gebruik allorigins.win als CORS-proxy
+    var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    var res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error('Proxy gaf status ' + res.status);
+    var data = await res.json();
+    var html = data.contents || '';
+    if (!html) throw new Error('Geen content ontvangen');
+
+    // Parse HTML
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+
+    // Helper: meta-content ophalen
+    function metaContent(selectors) {
+      for (var i = 0; i < selectors.length; i++) {
+        var el = doc.querySelector(selectors[i]);
+        if (el && el.getAttribute('content')) return el.getAttribute('content').trim();
+      }
+      return '';
+    }
+
+    // Naam: og:site_name → og:title → <title>
+    var naam = metaContent([
+      'meta[property="og:site_name"]',
+      'meta[property="og:title"]',
+      'meta[name="application-name"]'
+    ]);
+    if (!naam) {
+      var titleEl = doc.querySelector('title');
+      if (titleEl) naam = titleEl.textContent.trim().split('|')[0].split('-')[0].trim();
+    }
+
+    // Beschrijving: og:description → meta description
+    var beschrijving = metaContent([
+      'meta[property="og:description"]',
+      'meta[name="description"]'
+    ]);
+
+    // Logo: og:image → apple-touch-icon → grootste icon → favicon
+    var logoUrl = metaContent([
+      'meta[property="og:image"]',
+      'meta[name="twitter:image"]'
+    ]);
+    if (!logoUrl) {
+      var iconEl = doc.querySelector('link[rel="apple-touch-icon"]') ||
+                   doc.querySelector('link[rel="apple-touch-icon-precomposed"]') ||
+                   doc.querySelector('link[rel="icon"][sizes]') ||
+                   doc.querySelector('link[rel="icon"]') ||
+                   doc.querySelector('link[rel="shortcut icon"]');
+      if (iconEl) logoUrl = iconEl.getAttribute('href');
+    }
+
+    // Maak relatieve URLs absoluut
+    if (logoUrl && !/^https?:\/\//i.test(logoUrl) && !/^data:/i.test(logoUrl)) {
+      try {
+        var base = new URL(url);
+        logoUrl = new URL(logoUrl, base.origin).href;
+      } catch(e) { /* laat staan */ }
+    }
+
+    // Vul velden — alleen als leeg (admin kan al iets ingetikt hebben)
+    var aangepast = [];
+    var naamEl = document.getElementById('msp-naam');
+    if (naamEl && !naamEl.value.trim() && naam) {
+      naamEl.value = naam;
+      aangepast.push('naam');
+    }
+    var logoEl = document.getElementById('msp-logo');
+    if (logoEl && !logoEl.value.trim() && logoUrl) {
+      logoEl.value = logoUrl;
+      aangepast.push('logo');
+    }
+    var notitieEl = document.getElementById('msp-notitie');
+    if (notitieEl && !notitieEl.value.trim() && beschrijving) {
+      notitieEl.value = beschrijving;
+      aangepast.push('beschrijving');
+    }
+
+    if (aangepast.length === 0) {
+      toast('Geen nieuwe info gevonden of velden waren al ingevuld.', 'err');
+    } else {
+      toast('✓ Opgehaald: ' + aangepast.join(', ') + '. Pas zo nodig aan.');
+    }
+  } catch(e) {
+    console.warn('Scrape mislukt:', e);
+    toast('Ophalen mislukt: ' + e.message + '. Vul handmatig in.', 'err');
+  } finally {
+    btn.textContent = origLabel;
+    btn.disabled = false;
+  }
+}
+
+
 
 
 
@@ -12148,7 +12261,13 @@ try {
       <div class="field"><label>Pakket</label><select id="msp-pakket"><option value="">— kies —</option><option>Goud</option><option>Zilver</option><option>Brons</option><option>Hole-sponsor</option><option>Vrij</option></select></div>
     </div>
     <div class="field"><label>Logo URL</label><input id="msp-logo" type="text" placeholder="https://...logo.png"/><small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">Plak voor nu een URL. Upload-functie volgt later.</small></div>
-    <div class="field"><label>Website</label><input id="msp-website" type="text" placeholder="https://bavaria.nl"/></div>
+    <div class="field"><label>Website</label>
+      <div style="display:flex;gap:6px">
+        <input id="msp-website" type="text" placeholder="https://bavaria.nl" style="flex:1"/>
+        <button class="btn btn-s btn-sm" id="msp-ophaal-btn" onclick="scrapeSponsorSite()" type="button" style="white-space:nowrap">⬇ Ophalen</button>
+      </div>
+      <small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">Tik website-URL en klik Ophalen om naam, logo en beschrijving automatisch in te vullen.</small>
+    </div>
     <div class="g2">
       <div class="field"><label>Contactpersoon</label><input id="msp-cont-naam" type="text" placeholder="Jan Janssen"/></div>
       <div class="field"><label>Contact e-mail</label><input id="msp-cont-email" type="email" placeholder="jan@bavaria.nl"/></div>
