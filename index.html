@@ -3050,28 +3050,6 @@ function sponsorenVoorWedstrijd(wId) {
   }).filter(Boolean);
 }
 
-// Koppel hoofdsponsor aan wedstrijd (verwijder oude eerst)
-async function koppelHoofdsponsorAanWedstrijd(wedstrijdId, sponsorId) {
-  try {
-    // Verwijder bestaande hoofdsponsor-koppeling voor deze wedstrijd
-    await supa('wedstrijd_sponsoren', 'DELETE', null, {
-      wedstrijd_id: 'eq.' + wedstrijdId,
-      type: 'eq.hoofdsponsor'
-    });
-    // Voeg nieuwe toe (als sponsorId niet leeg is)
-    if (sponsorId) {
-      await supa('wedstrijd_sponsoren', 'POST', {
-        wedstrijd_id: wedstrijdId,
-        sponsor_id: sponsorId,
-        type: 'hoofdsponsor'
-      });
-    }
-    // Refresh lokale array
-    await laadSponsoren();
-    return true;
-  } catch(e) { console.warn('koppelHoofdsponsor:', e.message); return false; }
-}
-
 // ─── Render: sponsoren overzicht ───────────────────────────────
 
 function renderSponsoren() {
@@ -3262,7 +3240,7 @@ async function scrapeSponsorSite() {
   for (var i = 0; i < proxies.length; i++) {
     var p = proxies[i];
     try {
-      console.log('[scrape] Probeer proxy:', p.name);
+      
       var fetchPromise = fetch(p.url);
       // Timeout na 8 seconden
       var timeoutPromise = new Promise(function(_, rej) { setTimeout(function() { rej(new Error('Timeout')); }, 8000); });
@@ -3270,7 +3248,7 @@ async function scrapeSponsorSite() {
       if (!res.ok) throw new Error('Status ' + res.status);
       html = await p.parse(res);
       if (html && html.length > 100) {
-        console.log('[scrape] Proxy', p.name, 'gaf', html.length, 'chars');
+        
         break;
       }
       lastErr = new Error('Lege response');
@@ -9320,67 +9298,7 @@ function vulScorekaartSelect() {
 // ============================================================
 // FEATURE 2: STARTLIJST SPELER
 // ============================================================
-function renderStartlijst() {
-  var u = _currentUser;
-  var mijnIng = INSCHRIJVINGEN.filter(function(i) { return i.sid === u.id && i.status === 'ingeschreven'; });
-  if (!mijnIng.length) {
-    document.getElementById('sp-startlijst-content').innerHTML = '<p style="color:var(--txm);font-size:13px">Je bent nog niet ingeschreven voor een wedstrijd.</p>';
-    return;
-  }
-  var html = '';
-  mijnIng.forEach(function(ing) {
-    var w = WEDSTRIJDEN.find(function(x) { return x.id === ing.wid; });
-    if (!w) return;
-    var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
-    var sh = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
-    var d = new Date(w.datum);
-    html += '<div class="start-card">';
-    html += '<div class="start-card-datum">' + d.getDate() + ' ' + MN[d.getMonth()] + ' ' + d.getFullYear() + '</div>';
-    html += '<div class="start-card-naam">' + w.naam + '</div>';
-    html += '<div class="start-card-meta">';
-    html += '<div class="start-meta-item">&#127358; ' + w.vorm + '</div>';
-    html += '<div class="start-meta-item">&#127994; ' + w.holes + ' holes</div>';
-    html += '<div class="start-meta-item">Jouw SH: <span class="start-meta-val">' + sh + '</span></div>';
-    if (w.startgeld > 0) html += '<div class="start-meta-item">&euro; ' + w.startgeld + '</div>';
-    html += '</div></div>';
 
-    // Zoek flight
-    var flights = FLIGHTS[w.id];
-    if (!flights || !flights.length) {
-      html += '<div class="card" style="margin-bottom:.75rem"><div style="font-size:13px;color:var(--txm);text-align:center;padding:.5rem">&#9200; Flight-indeling wordt later bekendgemaakt</div></div>';
-    } else {
-      var mijnFlight = null, mijnFlightNr = -1;
-      for (var fi = 0; fi < flights.length; fi++) {
-        if (flights[fi].indexOf(u.id) >= 0) { mijnFlight = flights[fi]; mijnFlightNr = fi; break; }
-      }
-      if (!mijnFlight) {
-        html += '<div class="card" style="margin-bottom:.75rem"><div style="font-size:13px;color:var(--txm);text-align:center;padding:.5rem">Je bent nog niet ingedeeld in een flight</div></div>';
-      } else {
-        var totalMin = mijnFlightNr * 10;
-        var startH = 8 + Math.floor(totalMin / 60); var startM = totalMin % 60;
-        var time = String(startH).padStart(2,'0') + ':' + String(startM).padStart(2,'0');
-        html += '<div class="card" style="margin-bottom:.75rem">';
-        html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">';
-        html += '<div><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.06em">Flight ' + (mijnFlightNr+1) + '</div><div style="font-family:Playfair Display,serif;font-size:20px;color:var(--g);font-weight:500">&#9201; ' + time + '</div></div>';
-        html += '<div style="text-align:right"><div style="font-size:11px;color:var(--txm)">Hole 1</div><div style="font-size:13px;font-weight:500;color:var(--g)">' + w.baan + '</div></div>';
-        html += '</div>';
-        mijnFlight.forEach(function(sid) {
-          var s = USERS.find(function(x) { return x.id === sid; });
-          if (!s) return;
-          var sSH = berekenSpeelhandicap(s.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
-          var isJij = s.id === u.id;
-          html += '<div class="flight-speler-row' + (isJij ? ' flight-speler-jij' : '') + '">';
-          html += '<div class="av" style="width:32px;height:32px;font-size:12px;background:' + (isJij ? 'var(--g)' : 'var(--surf)') + ';color:' + (isJij ? '#fff' : 'var(--txm)') + '">' + s.voor[0] + s.ach[0] + '</div>';
-          html += '<div style="flex:1"><div style="font-weight:' + (isJij ? 500 : 400) + ';color:' + (isJij ? 'var(--g)' : 'var(--tx)') + '">' + s.voor + ' ' + s.ach + (isJij ? ' <span style="font-size:11px;color:var(--gm)">(jij)</span>' : '') + '</div>';
-          html += '<div style="font-size:11px;color:var(--txm)">HCP ' + s.hcp.toFixed(1) + ' &middot; SH ' + sSH + '</div></div>';
-          html += '</div>';
-        });
-        html += '</div>';
-      }
-    }
-  });
-  document.getElementById('sp-startlijst-content').innerHTML = html;
-}
 
 // ============================================================
 // FEATURE 3: SNEL AANMAKEN
@@ -9698,7 +9616,7 @@ function spNav(id, el) {
   else if (id === 'groep') renderGroepOverzicht();
   else if (id === 'groep-detail') { /* inhoud al gezet door gwNieuwWizard/gwOpenDetail */ }
   else if (id === 'scorekaart') { vulScorekaartSelect(); }
-  else if (id === 'startlijst') renderStartlijst();
+  
   else if (id === 'inschrijvingen') renderSpelerInschrijvingen();
   else if (id === 'scores') renderSpelerScores();
   else if (id === 'ranglijst') renderRanglijst();
@@ -10062,10 +9980,11 @@ function gwOpslaan() {
       g.holes = w.holes; g.startgeld = w.startgeld; g.omschrijving = w.omschrijving;
       g.deelnemers = w.deelnemers;
     }
-    // Koppel hoofdsponsor (Sprint 1)
+    // Koppel sponsoren (hoofdsponsor + co + hole)
   var sponsorEl = document.getElementById('fhsponsor');
-  if (sponsorEl && typeof koppelHoofdsponsorAanWedstrijd === 'function') {
-    koppelHoofdsponsorAanWedstrijd(w.id, sponsorEl.value || null);
+  var hoofdId = sponsorEl ? (sponsorEl.value || null) : null;
+  if (typeof koppelAlleSponsorenAanWedstrijd === 'function' && w && w.id) {
+    koppelAlleSponsorenAanWedstrijd(w.id, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || []);
   }
   toast('Wedstrijd bijgewerkt!');
   } else {
@@ -12611,12 +12530,6 @@ try {
         </select>
       </div>
       <div id="sp-scorekaart-content"></div>
-    </div>
-
-    <!-- Startlijst -->
-    <div id="sp-startlijst" class="sp-view">
-      <div class="sp-section-title">Mijn start</div>
-      <div id="sp-startlijst-content"></div>
     </div>
 
     <!-- Berichten -->
