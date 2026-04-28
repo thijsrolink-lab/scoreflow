@@ -2594,19 +2594,12 @@ function renderWdInfoTab(w) {
 
 // ─── Tab: Inschrijvingen — directe render in tab-container ───
 function renderInschrijvingenInTab(wId) {
-  console.log('[renderInschrijvingenInTab] wId=', wId, 'WEDSTRIJDEN.length=', (WEDSTRIJDEN||[]).length, 'INSCHRIJVINGEN.length=', (INSCHRIJVINGEN||[]).length);
+  if(!document.getElementById('ing-body')) return; // verplaatst naar wd-detail tabs
+
   var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
-  if(!w) {
-    console.warn('[renderInschrijvingenInTab] Wedstrijd niet gevonden voor wId:', wId);
-    var c = document.getElementById('wd-tab-inschr');
-    if (c) c.innerHTML = '<p style="color:#dc2626;padding:1rem">Wedstrijd niet gevonden (id: ' + wId + ')</p>';
-    return;
-  }
+  if(!w) return;
   var container = document.getElementById('wd-tab-inschr');
-  if(!container) {
-    console.warn('[renderInschrijvingenInTab] Container wd-tab-inschr niet gevonden');
-    return;
-  }
+  if(!container) return;
 
   var ingsAll = INSCHRIJVINGEN.filter(function(i){return i.wid===wId;});
   var ingeschreven = ingsAll.filter(function(i){return i.status==='ingeschreven';});
@@ -2649,16 +2642,17 @@ function renderInschrijvingenInTab(wId) {
     html += '</tbody></table></div>';
   }
 
-  container.innerHTML = html;
+  container.innerHTML = '<input type="hidden" id="ing-fw" value="' + escHtml(wId) + '"><span id="ing-c" style="display:none"></span><span id="ing-w" style="display:none"></span><span id="ing-a" style="display:none"></span><tbody id="ing-body" style="display:none"></tbody>' + html;
 }
 
 // ─── Tab: Flights — directe render in tab-container ───
 function renderFlightsInTab(wId) {
-  console.log('[renderFlightsInTab] wId=', wId, 'FLIGHTS=', (typeof FLIGHTS!=='undefined'?Object.keys(FLIGHTS||{}).length:'undef'));
+  if(!document.getElementById('fl-content')) return; // verplaatst naar wd-detail tabs
+
   var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
-  if(!w) { console.warn('[renderFlightsInTab] Wedstrijd niet gevonden'); return; }
+  if(!w) return;
   var container = document.getElementById('wd-tab-flights');
-  if(!container) { console.warn('[renderFlightsInTab] Container niet gevonden'); return; }
+  if(!container) return;
 
   // We maken de DOM-structuur zoals renderFlights die verwacht
   // Met sortering, knoppen en target-element 'fl-content'
@@ -2681,7 +2675,7 @@ function renderFlightsInTab(wId) {
   '</div>' +
   '<div id="fl-content"></div>';
 
-  container.innerHTML = html;
+  container.innerHTML = '<input type="hidden" id="fl-w" value="' + escHtml(wId) + '">' + html;
 
   // Stel verborgen wedstrijd-selector in (renderFlights leest 'fl-w')
   // We voegen een hidden input toe zodat fl-w bestaat
@@ -2735,7 +2729,7 @@ function renderScoresInTab(wId) {
   '</div>' +
   '<div id="sc-content"></div>';
 
-  container.innerHTML = html;
+  container.innerHTML = '<input type="hidden" id="sc-w" value="' + escHtml(wId) + '">' + html;
 
   // Stel hidden sc-w selector
   var scw = document.getElementById('sc-w');
@@ -4391,6 +4385,8 @@ function renderScoresInit(){
 }
 
 function initScoreView(){
+  if(!document.getElementById('sc-content')) return; // verplaatst naar wd-detail tabs
+
   var wId=document.getElementById('sc-w').value;if(!wId){renderScoresInit();return;}
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});if(!w)return;
   var rondeEl=document.getElementById('sc-ronde');
