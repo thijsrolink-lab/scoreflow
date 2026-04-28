@@ -2592,61 +2592,159 @@ function renderWdInfoTab(w) {
     (canEdit ? '<div style="margin-top:1.5rem"><button class="wd-btn wd-btn-neutral" onclick="editW(\'' + w.id + '\')">Bewerken</button>' + lockBadge + '</div>' : '<div style="margin-top:1.5rem;padding:0.85rem 1rem;background:#f1f4f8;border-radius:8px;font-size:13px;color:#8b94a3">' + lockBadge.replace(/<[^>]*>/g, '') + '</div>');
 }
 
-// Inschrijvingen in tab: hergebruik renderInschrijvingen door wedstrijd-selector vooraf te zetten
+// ─── Tab: Inschrijvingen — directe render in tab-container ───
 function renderInschrijvingenInTab(wId) {
-  // Bestaande view heeft #ing-fw selector — we forceren wId
-  // Lazy: laad bestaande view-content in onze container via clone
-  setTimeout(function() {
-    var fwSel = document.getElementById('ing-fw');
-    if (fwSel) fwSel.value = wId;
-    if (typeof renderInschrijvingen === 'function') {
-      // Render in originele plek
-      renderInschrijvingen();
-      // Verplaats body naar onze container
-      var origBody = document.getElementById('ing-body');
-      var ourContainer = document.getElementById('wd-tab-inschr');
-      if (origBody && ourContainer) {
-        ourContainer.innerHTML = origBody.outerHTML;
-      }
-    }
-  }, 10);
+  var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
+  if(!w) return;
+  var container = document.getElementById('wd-tab-inschr');
+  if(!container) return;
+
+  var ingsAll = INSCHRIJVINGEN.filter(function(i){return i.wid===wId;});
+  var ingeschreven = ingsAll.filter(function(i){return i.status==='ingeschreven';});
+  var wachtlijst = ingsAll.filter(function(i){return i.status==='wachtlijst';});
+  var afgemeld = ingsAll.filter(function(i){return i.status==='afgemeld';});
+
+  // Stats + actieknop
+  var html = '<div class="g3" style="margin-bottom:1.25rem">' +
+    '<div class="mc"><div class="ml">Ingeschreven</div><div class="mv">' + ingeschreven.length + (w.max?' / '+w.max:'') + '</div></div>' +
+    '<div class="mc"><div class="ml">Wachtlijst</div><div class="mv" style="color:var(--amb)">' + wachtlijst.length + '</div></div>' +
+    '<div class="mc"><div class="ml">Afgemeld</div><div class="mv" style="color:var(--txm)">' + afgemeld.length + '</div></div>' +
+  '</div>';
+
+  if(heeftToegang('inschrijvingen')){
+    html += '<div style="margin-bottom:1rem"><button class="wd-btn wd-btn-primary" onclick="openAdminInschrijfModal()">+ Speler inschrijven</button></div>';
+  }
+
+  // Tabel met alle inschrijvingen voor deze wedstrijd
+  if(ingsAll.length === 0){
+    html += '<p style="color:#8b94a3;padding:2rem;text-align:center">Nog geen inschrijvingen.</p>';
+  } else {
+    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Speler</th><th>HCP</th><th>Speelhandicap</th><th>Datum</th><th>Status</th><th></th></tr></thead><tbody>';
+    ingsAll.forEach(function(ing){
+      var u = USERS.find(function(x){return x.id===ing.sid;});
+      if(!u) return;
+      var sh = (typeof berekenSpeelhandicap === 'function')
+        ? berekenSpeelhandicap(u.hcp || 0, w.cr || 72, w.slope || 113, w.holes || 18)
+        : '-';
+      var d = ing.datum ? new Date(ing.datum).toLocaleDateString('nl-NL') : '-';
+      var statusClass = ing.status === 'ingeschreven' ? 'bg' : (ing.status === 'wachtlijst' ? 'bw' : 'bx');
+      html += '<tr>' +
+        '<td>' + escHtml(u.voor + ' ' + u.ach) + '</td>' +
+        '<td>' + (u.hcp || '-') + '</td>' +
+        '<td>' + sh + '</td>' +
+        '<td>' + d + '</td>' +
+        '<td><span class="badge ' + statusClass + '">' + escHtml(ing.status) + '</span></td>' +
+        '<td>' + (heeftToegang('inschrijvingen') ? '<button class="btn btn-d btn-xs" onclick="adminAfmelden(\'' + ing.id + '\')" title="Verwijderen">&#215;</button>' : '') + '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  container.innerHTML = html;
 }
 
-// Flights in tab — soortgelijk
+// ─── Tab: Flights — directe render in tab-container ───
 function renderFlightsInTab(wId) {
-  setTimeout(function() {
-    var sel = document.getElementById('fl-w');
-    if (sel) sel.value = wId;
-    if (typeof renderFlights === 'function') {
+  var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
+  if(!w) return;
+  var container = document.getElementById('wd-tab-flights');
+  if(!container) return;
+
+  // We maken de DOM-structuur zoals renderFlights die verwacht
+  // Met sortering, knoppen en target-element 'fl-content'
+  // Maar binnen onze tab — let op unieke IDs zou wenselijk zijn
+
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">' +
+    '<div id="fl-info" style="font-size:13px;color:var(--txm)"></div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<select id="fl-sort" style="padding:6px 10px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r);font-family:Inter,sans-serif" onchange="autoFlights()">' +
+        '<option value="snake">Snake (gebalanceerd)</option>' +
+        '<option value="hcp-asc">HCP laag→hoog</option>' +
+        '<option value="hcp-desc">HCP hoog→laag</option>' +
+        '<option value="snake-desc">Snake omgekeerd</option>' +
+        '<option value="random">Willekeurig</option>' +
+        '<option value="naam">Alfabetisch</option>' +
+      '</select>' +
+      '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="autoFlights()">Auto-indeling</button>' +
+      '<button class="wd-btn wd-btn-primary" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="slaFlightsOp(\'' + wId + '\', FLIGHTS[\'' + wId + '\']||[])">Opslaan</button>' +
+    '</div>' +
+  '</div>' +
+  '<div id="fl-content"></div>';
+
+  container.innerHTML = html;
+
+  // Stel verborgen wedstrijd-selector in (renderFlights leest 'fl-w')
+  // We voegen een hidden input toe zodat fl-w bestaat
+  var hiddenInput = document.getElementById('fl-w');
+  if(hiddenInput){
+    hiddenInput.value = wId;
+  } else {
+    // Maak een hidden select aan in onze container
+    var hidden = document.createElement('select');
+    hidden.id = 'fl-w';
+    hidden.style.display = 'none';
+    hidden.innerHTML = '<option value="' + wId + '">x</option>';
+    hidden.value = wId;
+    container.appendChild(hidden);
+  }
+
+  // Nu kunnen we renderFlights aanroepen — die vult fl-content
+  if(typeof renderFlights === 'function'){
+    setTimeout(function(){
       renderFlights();
-      // Vind flights-content (kan meerdere IDs zijn) en kopieer
-      var ourContainer = document.getElementById('wd-tab-flights');
-      var origContent = document.getElementById('fl-content') || document.getElementById('fl-body');
-      if (origContent && ourContainer) {
-        ourContainer.innerHTML = origContent.outerHTML;
-      } else if (ourContainer) {
-        ourContainer.innerHTML = '<p style="color:#8b94a3">Flight-content niet gevonden. Open de oude Flights view om te bewerken.</p>';
-      }
-    }
-  }, 10);
+    }, 10);
+  }
 }
 
-// Scores in tab
+// ─── Tab: Scores — directe render in tab-container ───
 function renderScoresInTab(wId) {
-  setTimeout(function() {
-    var sel = document.getElementById('sc-w');
-    if (sel) sel.value = wId;
-    if (typeof initScoreView === 'function') {
-      initScoreView();
-      var ourContainer = document.getElementById('wd-tab-scores');
-      var origContent = document.getElementById('sc-content');
-      if (origContent && ourContainer) {
-        ourContainer.innerHTML = origContent.outerHTML;
-      } else if (ourContainer) {
-        ourContainer.innerHTML = '<p style="color:#8b94a3">Scores-content niet gevonden.</p>';
-      }
+  var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
+  if(!w) return;
+  var container = document.getElementById('wd-tab-scores');
+  if(!container) return;
+
+  var fase = wedstrijdFase(w);
+
+  // Live leaderboard knop indien live
+  var lbBtn = (fase === 'live' || fase === 'afgerond')
+    ? '<button class="wd-btn wd-btn-dark" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openLiveLeaderboard()">📺 Live LB</button>'
+    : '';
+
+  var rondeSelect = '';
+  if(w.rondes > 1){
+    var opts = '';
+    for(var i=0;i<w.rondes;i++){
+      opts += '<option value="' + i + '">Ronde ' + (i+1) + '</option>';
     }
-  }, 10);
+    rondeSelect = '<select id="sc-ronde" style="padding:6px 10px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r);font-family:Inter,sans-serif" onchange="renderScoreInvoer()">' + opts + '</select>';
+  }
+
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">' +
+    '<div style="font-size:13px;color:#8b94a3">' + (fase === 'live' ? '🔴 Live — scores worden bijgehouden' : (fase === 'afgerond' ? '✓ Wedstrijd afgerond — uitslag definitief' : 'Klaar voor invoer als wedstrijd Live gaat')) + '</div>' +
+    '<div style="display:flex;gap:8px">' + rondeSelect + lbBtn + '</div>' +
+  '</div>' +
+  '<div id="sc-content"></div>';
+
+  container.innerHTML = html;
+
+  // Stel hidden sc-w selector
+  var scw = document.getElementById('sc-w');
+  if(scw){ scw.value = wId; }
+  else {
+    var hidden = document.createElement('select');
+    hidden.id = 'sc-w';
+    hidden.style.display = 'none';
+    hidden.innerHTML = '<option value="' + wId + '">x</option>';
+    hidden.value = wId;
+    container.appendChild(hidden);
+  }
+
+  // Scoreinvoer renderen
+  if(typeof renderScoreInvoer === 'function'){
+    setTimeout(function(){
+      renderScoreInvoer();
+    }, 10);
+  }
 }
 
 // Uitslag tab — definitieve klassement
@@ -10296,18 +10394,18 @@ try {
       <!-- INSCHRIJVINGEN (admin) -->
       <div id="v-inschrijvingen" class="view">
         <div class="g3" style="margin-bottom:1rem">
-          <div class="mc"><div class="ml">Ingeschreven</div><div class="mv" id="ing-c">0</div></div>
-          <div class="mc"><div class="ml">Wachtlijst</div><div class="mv" id="ing-w" style="color:var(--amb)">0</div></div>
-          <div class="mc"><div class="ml">Afgemeld</div><div class="mv" id="ing-a" style="color:var(--txm)">0</div></div>
+          <div class="mc"><div class="ml">Ingeschreven</div><div class="mv" id="old-ing-c">0</div></div>
+          <div class="mc"><div class="ml">Wachtlijst</div><div class="mv" id="old-ing-w" style="color:var(--amb)">0</div></div>
+          <div class="mc"><div class="ml">Afgemeld</div><div class="mv" id="old-ing-a" style="color:var(--txm)">0</div></div>
         </div>
         <div class="card">
           <div class="card-hd">Inschrijvingen beheren
             <div class="card-hd-r"><button class="help-knop" onclick="openHelp('inschrijvingen')">&#63; Help</button>
-              <select id="ing-fw" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="renderInschrijvingen()"><option value="">Alle wedstrijden</option></select>
+              <select id="old-ing-fw" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="renderInschrijvingen()"><option value="">Alle wedstrijden</option></select>
               <button class="btn btn-p btn-xs" onclick="openAdminInschrijfModal()">+ Inschrijven</button>
             </div>
           </div>
-          <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Speler</th><th>Wedstrijd</th><th>HCP</th><th>Speelhandicap</th><th>Datum</th><th>Status</th><th></th></tr></thead><tbody id="ing-body"></tbody></table></div>
+          <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Speler</th><th>Wedstrijd</th><th>HCP</th><th>Speelhandicap</th><th>Datum</th><th>Status</th><th></th></tr></thead><tbody id="old-ing-body"></tbody></table></div>
         </div>
       </div>
 
@@ -10316,8 +10414,8 @@ try {
         <div class="card">
           <div class="card-hd">Flight-indeling
             <div class="card-hd-r"><button class="help-knop" onclick="openHelp('flights')">&#63; Help</button>
-              <select id="fl-w" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="renderFlights()"><option value="">Kies wedstrijd</option></select>
-              <select id="fl-sort" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="autoFlights()">
+              <select id="old-fl-w" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="renderFlights()"><option value="">Kies wedstrijd</option></select>
+              <select id="old-fl-sort" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="autoFlights()">
                 <option value="hcp-asc">HCP laag→hoog</option>
                 <option value="hcp-desc">HCP hoog→laag</option>
                 <option value="snake">Snake (gebalanceerd)</option>
@@ -10329,8 +10427,8 @@ try {
               <button class="btn btn-p btn-xs" onclick="slaFlightsOp(document.getElementById('fl-w').value,FLIGHTS[document.getElementById('fl-w').value]||[])">Opslaan</button>
             </div>
           </div>
-          <div id="fl-info" style="font-size:13px;color:var(--txm);margin-bottom:.75rem"></div>
-          <div id="fl-content"></div>
+          <div id="old-fl-info" style="font-size:13px;color:var(--txm);margin-bottom:.75rem"></div>
+          <div id="old-fl-content"></div>
         </div>
       </div>
 
@@ -10340,11 +10438,11 @@ try {
           <div class="card-hd">Scores &amp; leaderboard
             <div class="card-hd-r"><button class="help-knop" onclick="openHelp('scores')">&#63; Help</button>
               <button class="btn btn-s btn-xs" id="btn-live-lb" onclick="openLiveLeaderboard()" style="display:none">&#127358; Live LB</button>
-              <select id="sc-w" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="initScoreView()"><option value="">Kies wedstrijd</option></select>
-              <select id="sc-ronde" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif;display:none" onchange="renderScoreInvoer()"></select>
+              <select id="old-sc-w" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif" onchange="initScoreView()"><option value="">Kies wedstrijd</option></select>
+              <select id="old-sc-ronde" style="padding:5px 9px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'DM Sans',sans-serif;display:none" onchange="renderScoreInvoer()"></select>
             </div>
           </div>
-          <div id="sc-content"><p style="font-size:13px;color:var(--txm)">Kies een wedstrijd om te beginnen.</p></div>
+          <div id="old-sc-content"><p style="font-size:13px;color:var(--txm)">Kies een wedstrijd om te beginnen.</p></div>
         </div>
       </div>
 
