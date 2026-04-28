@@ -3138,6 +3138,12 @@ function renderWdUitslagTab(w) {
   var ronde = 0;
 
   // Bouw klassement-tabel via bestaande functie
+  // Debug info
+  console.log('[Uitslag] wedstrijd:', w.naam, 'vorm:', w.vorm);
+  console.log('[Uitslag] sps (spelers):', sps.length);
+  console.log('[Uitslag] FLIGHTS[wId]:', (typeof FLIGHTS !== 'undefined' && FLIGHTS[w.id]) ? FLIGHTS[w.id].length + ' flights' : 'GEEN');
+  console.log('[Uitslag] SCORES[wId]:', (typeof SCORES !== 'undefined' && SCORES[w.id]) ? Object.keys(SCORES[w.id]) : 'GEEN');
+
   var leaderboardHtml = buildLeaderboard(w.id, ronde, baan, sps, w);
 
   // Live LB knop voor publiek scherm
