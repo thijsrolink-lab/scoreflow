@@ -7435,24 +7435,10 @@ function renderSpelerKalender(){
 
 // Direct naar scorekaart voor specifieke wedstrijd (vanaf hero)
 function spelerNaarScorekaart(wId) {
-  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
-  if (w && wedstrijdFase(w) === 'afgelast') {
-    var reden = w.afgelast_reden || '';
-    toast('Deze wedstrijd is afgelast.' + (reden ? ' ' + reden : ''), 'err');
-    return;
+  // Ga naar de detail-view op de Scorekaart-tab
+  if (typeof openSpelerWdDetail === 'function') {
+    openSpelerWdDetail(wId, 'scorekaart');
   }
-  if (w && !scorekaartToegankelijk(w)) {
-    toast('Scorekaart nog gesloten — open vanaf 2 uur voor start.');
-    // Gaan we toch? Ja: laat speler zien dat het nog dicht is via de lege state
-  }
-  spNav('scorekaart');
-  setTimeout(function() {
-    var sel = document.getElementById('sk-w');
-    if (sel) {
-      sel.value = wId;
-      if (typeof initScorekaart === 'function') initScorekaart();
-    }
-  }, 100);
 }
 
 function spelerOpenWedstrijd(wId) {
