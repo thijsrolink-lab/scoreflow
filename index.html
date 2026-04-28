@@ -5720,15 +5720,30 @@ function openAdminInschrijfModal(){
 }
 
 function renderInschrijvingen(){
+  // Eerst: als wedstrijd-detail tab-view open staat → render in tab
+  if (typeof _wdDetailState !== 'undefined' && _wdDetailState && _wdDetailState.wId &&
+      typeof renderInschrijvingenInTab === 'function' &&
+      document.getElementById('wd-tab-inschr')) {
+    renderInschrijvingenInTab(_wdDetailState.wId);
+    if (typeof updateAdminBadges === 'function') updateAdminBadges();
+    return;
+  }
+  // Anders: oude view-flow (alleen als oude elementen nog bestaan)
   var el=document.getElementById('ing-fw');
+  var ingC=document.getElementById('ing-c'), ingW=document.getElementById('ing-w'), ingA=document.getElementById('ing-a'), ingBody=document.getElementById('ing-body');
+  if (!ingC || !ingW || !ingA || !ingBody) {
+    // Oude view bestaat niet meer — niets te doen
+    if (typeof updateAdminBadges === 'function') updateAdminBadges();
+    return;
+  }
   var cur=el?el.value:'';
   if(el){el.innerHTML='<option value="">Alle wedstrijden</option>'+WEDSTRIJDEN.map(function(w){return '<option value="'+w.id+'">'+w.naam+'</option>';}).join('');el.value=cur;}
   var wf=el?parseInt(el.value)||0:0;
   var list=INSCHRIJVINGEN.filter(function(i){return !wf||i.wid===wf;});
-  document.getElementById('ing-c').textContent=list.filter(function(i){return i.status==='ingeschreven';}).length;
-  document.getElementById('ing-w').textContent=list.filter(function(i){return i.status==='wachtlijst';}).length;
-  document.getElementById('ing-a').textContent=list.filter(function(i){return i.status==='afgemeld';}).length;
-  document.getElementById('ing-body').innerHTML=list.map(function(i){
+  ingC.textContent=list.filter(function(i){return i.status==='ingeschreven';}).length;
+  ingW.textContent=list.filter(function(i){return i.status==='wachtlijst';}).length;
+  ingA.textContent=list.filter(function(i){return i.status==='afgemeld';}).length;
+  ingBody.innerHTML=list.map(function(i){
     var s=USERS.find(function(x){return x.id===i.sid;}),w=WEDSTRIJDEN.find(function(x){return x.id===i.wid;});
     if(!s||!w)return '';
     var sh=berekenSpeelhandicap(s.hcp,w.slope,w.cr,w.holes===9?36:72,w.hcpperc/100,w.holes);
