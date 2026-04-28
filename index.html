@@ -3362,7 +3362,7 @@ async function dbSaveInschrijving(ing) {
 
 async function dbSaveWedstrijd(w) {
   try {
-    var data = { naam: w.naam, datum: w.datum, tijd: w.tijd || null, baan: w.baan, cr: w.cr, slope: w.slope,
+    var data = { naam: w.naam, datum: w.datum, tijd: w.tijd || null, leider_id: w.leiderId || null, baan: w.baan, cr: w.cr, slope: w.slope,
       holes: w.holes, vorm: w.vorm, rondes: w.rondes, flt: w.flt || 3, status: w.status,
       max_deelnemers: w.max, hcp_max: w.hcpmax, hcp_min: w.hcpmin || 0,
       hcp_perc: w.hcpperc, esc: w.esc, startgeld: w.startgeld,
