@@ -442,6 +442,7 @@ const criticalFields = [
   {form: 'fh',      app: 'holes',         db: 'holes',          label: 'Holes'},
   {form: 'fmax',    app: 'max',           db: 'max_deelnemers', label: 'Max deelnemers'},
   {form: 'fflt',    app: 'flt',           db: 'flt',            label: 'Flight grootte'},
+  {form: 'fleider', app: 'leiderId',      db: 'leider_id',      label: 'Wedstrijdleider'},
   {form: 'fhmax',   app: 'hcpmax',        db: 'hcp_max',        label: 'HCP max'},
   {form: 'fhmin',   app: 'hcpmin',        db: 'hcp_min',        label: 'HCP min'},
   {form: 'fhp',     app: 'hcpperc',       db: 'hcp_perc',       label: 'HCP %'},
