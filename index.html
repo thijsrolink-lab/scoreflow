@@ -2606,7 +2606,7 @@ function renderInschrijvingenInTab(wId) {
   '</div>';
 
   if(heeftToegang('inschrijvingen')){
-    html += '<div style="margin-bottom:1rem"><button class="wd-btn wd-btn-primary" onclick="openAdminInschrijfModal()">+ Speler inschrijven</button></div>';
+    html += '<div style="margin-bottom:1rem"><button class="wd-btn wd-btn-primary" onclick="openAdminInschrijfModalVoorWedstrijd(\'' + escHtml(wId) + '\')">+ Speler inschrijven</button></div>';
   }
 
   // Tabel met alle inschrijvingen voor deze wedstrijd
@@ -2639,58 +2639,119 @@ function renderInschrijvingenInTab(wId) {
 
 // ─── Tab: Flights — directe render in tab-container ───
 function renderFlightsInTab(wId) {
-  if(!document.getElementById('fl-content')) return; // verplaatst naar wd-detail tabs
-
   var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
   if(!w) return;
   var container = document.getElementById('wd-tab-flights');
   if(!container) return;
 
-  // We maken de DOM-structuur zoals renderFlights die verwacht
-  // Met sortering, knoppen en target-element 'fl-content'
-  // Maar binnen onze tab — let op unieke IDs zou wenselijk zijn
+  var sps = INSCHRIJVINGEN
+    .filter(function(i){return i.wid===wId && i.status==='ingeschreven';})
+    .map(function(i){return USERS.find(function(s){return s.id===i.sid;});})
+    .filter(Boolean);
+  var flights = (typeof FLIGHTS !== 'undefined' && FLIGHTS[wId]) ? FLIGHTS[wId] : [];
+  var perFlight = w.flt || 3;
+  var benodigde = Math.ceil(sps.length / perFlight);
 
-  var html = '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">' +
-    '<div id="fl-info" style="font-size:13px;color:var(--txm)"></div>' +
+  // Header met info + acties
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid #f1f4f8">' +
+    '<div style="font-size:14px;color:#425466">' +
+      '<span style="font-weight:600;color:#0c1b2a">' + sps.length + '</span> spelers ingeschreven &middot; ' +
+      '<span style="font-weight:600;color:#0c1b2a">' + perFlight + '</span> per flight &middot; ' +
+      '<span style="font-weight:600;color:#16a34a">' + benodigde + '</span> flights nodig' +
+    '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-      '<select id="fl-sort" style="padding:6px 10px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r);font-family:Inter,sans-serif" onchange="autoFlights()">' +
+      '<select id="fl-sort" style="padding:8px 12px;font-size:14px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif;min-height:40px">' +
         '<option value="snake">Snake (gebalanceerd)</option>' +
         '<option value="hcp-asc">HCP laag→hoog</option>' +
         '<option value="hcp-desc">HCP hoog→laag</option>' +
-        '<option value="snake-desc">Snake omgekeerd</option>' +
         '<option value="random">Willekeurig</option>' +
         '<option value="naam">Alfabetisch</option>' +
       '</select>' +
-      '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="autoFlights()">Auto-indeling</button>' +
-      '<button class="wd-btn wd-btn-primary" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="slaFlightsOp(\'' + wId + '\', FLIGHTS[\'' + wId + '\']||[])">Opslaan</button>' +
+      '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:14px;min-height:40px" onclick="autoFlights()">Auto-indeling</button>' +
+      '<button class="wd-btn wd-btn-primary" style="padding:0.5rem 1rem;font-size:14px;min-height:40px" onclick="slaFlightsOpVoorWedstrijd(\'' + wId + '\')">Opslaan</button>' +
     '</div>' +
-  '</div>' +
-  '<div id="fl-content"></div>';
+  '</div>';
 
-  container.innerHTML = '<input type="hidden" id="fl-w" value="' + escHtml(wId) + '">' + html;
+  // Hidden input voor backwards compat (autoFlights leest fl-w)
+  html = '<input type="hidden" id="fl-w" value="' + escHtml(wId) + '"><span id="fl-info" style="display:none"></span><div id="fl-content" style="display:none"></div>' + html;
 
-  // Stel verborgen wedstrijd-selector in (renderFlights leest 'fl-w')
-  // We voegen een hidden input toe zodat fl-w bestaat
-  var hiddenInput = document.getElementById('fl-w');
-  if(hiddenInput){
-    hiddenInput.value = wId;
+  // Flights weergave
+  if (flights.length === 0) {
+    html += '<div style="text-align:center;padding:3rem 2rem;color:#8b94a3;background:#f8fafa;border-radius:12px"><div style="font-size:32px;margin-bottom:0.75rem">🏌️</div><h3 style="color:#0c1b2a;margin:0 0 0.5rem 0">Nog geen indeling</h3><p style="margin:0 0 1.25rem 0;font-size:14px">Klik op <strong>Auto-indeling</strong> om automatisch flights te maken.</p></div>';
   } else {
-    // Maak een hidden select aan in onze container
-    var hidden = document.createElement('select');
-    hidden.id = 'fl-w';
-    hidden.style.display = 'none';
-    hidden.innerHTML = '<option value="' + wId + '">x</option>';
-    hidden.value = wId;
-    container.appendChild(hidden);
+    html += '<div style="display:grid;gap:1rem">';
+    flights.forEach(function(flight, fi) {
+      var totalMin = fi * 10;
+      var hr = 8 + Math.floor(totalMin / 60);
+      var min = totalMin % 60;
+      var time = String(hr).padStart(2,'0') + ':' + String(min).padStart(2,'0');
+      html += '<div style="background:#f8fafa;border:1px solid #e6eaf0;border-radius:12px;padding:1rem 1.25rem">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">' +
+          '<span style="font-family:Inter,sans-serif;font-weight:700;font-size:15px;color:#0c1b2a">Flight ' + (fi+1) + '</span>' +
+          '<span style="font-size:13px;color:#16a34a;font-weight:600;background:#f0fdf4;padding:3px 10px;border-radius:100px">' + time + '</span>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:6px">' +
+          flight.map(function(sid) {
+            var s = USERS.find(function(x){return x.id===sid;});
+            if (!s) return '';
+            var sh = (typeof berekenSpeelhandicap === 'function')
+              ? berekenSpeelhandicap(s.hcp, w.slope, w.cr, w.holes===9?36:72, (w.hcpperc||100)/100, w.holes)
+              : '-';
+            return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0">' +
+              '<div class="av" style="width:28px;height:28px;font-size:11px;background:#16a34a;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600">' + escHtml(s.voor[0] + s.ach[0]) + '</div>' +
+              '<span style="flex:1;font-size:14px;color:#0c1b2a;font-weight:500">' + escHtml(s.voor + ' ' + s.ach) + '</span>' +
+              '<span style="font-size:12px;color:#8b94a3">HCP ' + s.hcp + '</span>' +
+              '<span style="font-size:11px;background:#f1f4f8;padding:2px 8px;border-radius:6px;color:#425466">SH ' + sh + '</span>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+    });
+    html += '</div>';
   }
 
-  // Nu kunnen we renderFlights aanroepen — die vult fl-content
-  if(typeof renderFlights === 'function'){
-    setTimeout(function(){
-      renderFlights();
-    }, 10);
+  container.innerHTML = html;
+}
+
+// Helper: opslaan vanuit tab (zonder dropdown lookup)
+function slaFlightsOpVoorWedstrijd(wId) {
+  if (typeof FLIGHTS === 'undefined') return;
+  var flights = FLIGHTS[wId] || [];
+  if (typeof slaFlightsOp === 'function') {
+    slaFlightsOp(wId, flights);
+  } else {
+    toast('Opslaan niet beschikbaar.', 'err');
   }
 }
+// Inschrijven binnen wedstrijd-detail context
+function openAdminInschrijfModalVoorWedstrijd(wId) {
+  var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
+  if(!w) { toast('Wedstrijd niet gevonden.', 'err'); return; }
+  // Roep de standaard modal-opener aan
+  if (typeof openAdminInschrijfModal === 'function') {
+    openAdminInschrijfModal();
+    // Voorgeselecteerd op deze wedstrijd
+    var sw = document.getElementById('mi-w');
+    if (sw) {
+      sw.value = wId;
+      // Verberg de wedstrijd-keuze (we zijn al binnen deze wedstrijd)
+      var label = sw.previousElementSibling;
+      if (label && label.tagName === 'LABEL') label.style.display = 'none';
+      sw.style.display = 'none';
+      // Toon expliciet welke wedstrijd
+      var info = document.createElement('div');
+      info.id = 'mi-w-info';
+      info.style.cssText = 'background:#f0fdf4;border:1px solid #bbf7d0;padding:0.6rem 0.85rem;border-radius:8px;margin-bottom:1rem;font-size:13px;color:#166534';
+      info.innerHTML = '<strong>Inschrijven voor:</strong> ' + escHtml(w.naam);
+      // Verwijder eventueel oude info-block
+      var oudeInfo = document.getElementById('mi-w-info');
+      if (oudeInfo) oudeInfo.remove();
+      sw.parentNode.insertBefore(info, sw);
+    }
+  }
+}
+
+
 
 // ─── Tab: Scores — directe render in tab-container ───
 function renderScoresInTab(wId) {
@@ -4281,6 +4342,7 @@ function renderFlightsInit(){
 }
 
 function renderFlights(){
+  if(!document.getElementById('fl-content') || !document.getElementById('fl-w')) return;
   var wId=document.getElementById('fl-w').value;if(!wId)return;
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});
   var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
@@ -4335,6 +4397,12 @@ function autoFlights(){
   renderFlights();
   toast(flights.length+' flights aangemaakt via '+(sort.startsWith('snake')?'snake-indeling':'sortering')+'.');
   slaFlightsOp(wId,flights);
+  // Re-render in tab context als we daar zijn
+  if (document.getElementById('wd-tab-flights') && _wdDetailState && _wdDetailState.wId) {
+    renderFlightsInTab(_wdDetailState.wId);
+  } else if (typeof renderFlights === 'function') {
+    renderFlights();
+  }
 }
 
 async function slaFlightsOp(wId, flights) {
