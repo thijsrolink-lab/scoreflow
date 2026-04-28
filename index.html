@@ -3374,6 +3374,265 @@ async function scrapeSponsorSite() {
     btn.disabled = false;
   }
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// SPONSOR-WIZARD (stap 5) — handlers voor multi-sponsor
+// ═══════════════════════════════════════════════════════════════
+
+// State per wedstrijd in wizard:
+// - hoofdsponsor: van fhsponsor dropdown (1 stuks)
+// - cosponsoren: array sponsorIds
+// - holesponsoren: array {sponsorId, holeNr}
+var _wizCoSponsoren = [];
+var _wizHoleSponsoren = [];
+
+// Genereer dropdown opties met actieve sponsoren
+function sponsorOptiesHtml(geselecteerdId, excludeIds) {
+  excludeIds = excludeIds || [];
+  var opts = '<option value="">— kies —</option>';
+  (SPONSOREN || []).filter(function(s) { return s.status === 'actief' && excludeIds.indexOf(s.id) < 0; })
+    .sort(function(a, b) { return a.naam.localeCompare(b.naam); })
+    .forEach(function(s) {
+      var sel = (s.id === geselecteerdId) ? ' selected' : '';
+      opts += '<option value="' + s.id + '"' + sel + '>' + escHtml(s.naam) + (s.pakketNaam ? ' (' + escHtml(s.pakketNaam) + ')' : '') + '</option>';
+    });
+  return opts;
+}
+
+// Render heel sponsor-wizard step (na 'Volgende' van stap 4)
+function renderSponsorWizardStep() {
+  // Vul hoofdsponsor dropdown
+  vulHoofdsponsorDropdown(_wizHoofdsponsorId || '');
+  // Render co-sponsoren
+  renderCoSponsorList();
+  // Render hole-sponsoren
+  renderHoleSponsorList();
+}
+
+// State variabele voor hoofdsponsor (al in fhsponsor dropdown gevangen, maar voor reload)
+var _wizHoofdsponsorId = null;
+
+function renderCoSponsorList() {
+  var listEl = document.getElementById('cosponsor-list');
+  if (!listEl) return;
+  if (_wizCoSponsoren.length === 0) {
+    listEl.innerHTML = '<div style="color:#8b94a3;font-size:13px;padding:0.5rem 0;font-style:italic">Nog geen co-sponsoren toegevoegd.</div>';
+    return;
+  }
+  listEl.innerHTML = _wizCoSponsoren.map(function(sponsorId, idx) {
+    var s = SPONSOREN.find(function(x) { return x.id === sponsorId; });
+    if (!s) return '';
+    var logoHtml = s.logoUrl
+      ? '<img src="' + escHtml(s.logoUrl) + '" style="height:24px;width:auto;border-radius:3px" onerror="this.style.display=\'none\'"/>'
+      : '<span style="display:inline-block;width:24px;height:24px;background:#f1f4f8;border-radius:3px"></span>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafa;border:1px solid #e6eaf0;border-radius:6px">' +
+      logoHtml +
+      '<span style="flex:1;font-size:14px;color:#0c1b2a">' + escHtml(s.naam) + '</span>' +
+      '<button type="button" class="btn btn-s btn-xs" onclick="verwijderCoSponsor(' + idx + ')" style="color:#dc2626">Verwijder</button>' +
+    '</div>';
+  }).join('');
+}
+
+function koppelCoSponsor() {
+  // Modal-achtige inline UI: vraag welke sponsor
+  // Voor eenvoud: gebruik prompt-achtige select
+  var hsId = document.getElementById('fhsponsor').value;
+  var beschikbaar = (SPONSOREN || []).filter(function(s) {
+    return s.status === 'actief' && s.id !== hsId && _wizCoSponsoren.indexOf(s.id) < 0;
+  });
+  if (beschikbaar.length === 0) {
+    toast('Geen beschikbare sponsoren meer (al gekoppeld of geen actief).', 'err');
+    return;
+  }
+  // Toon picker
+  showSponsorPicker('Co-sponsor toevoegen', beschikbaar, function(sponsorId) {
+    _wizCoSponsoren.push(sponsorId);
+    renderCoSponsorList();
+    toast('Co-sponsor toegevoegd.');
+  });
+}
+
+function verwijderCoSponsor(idx) {
+  _wizCoSponsoren.splice(idx, 1);
+  renderCoSponsorList();
+}
+
+function renderHoleSponsorList() {
+  var listEl = document.getElementById('holesponsor-list');
+  if (!listEl) return;
+  if (_wizHoleSponsoren.length === 0) {
+    listEl.innerHTML = '<div style="color:#8b94a3;font-size:13px;padding:0.5rem 0;font-style:italic">Nog geen hole-sponsoren. Klik + Toevoegen om te starten.</div>';
+    return;
+  }
+  // Sorteer op hole-nr
+  _wizHoleSponsoren.sort(function(a, b) { return (a.holeNr||0) - (b.holeNr||0); });
+  listEl.innerHTML = _wizHoleSponsoren.map(function(item, idx) {
+    var s = SPONSOREN.find(function(x) { return x.id === item.sponsorId; });
+    if (!s) return '';
+    var logoHtml = s.logoUrl
+      ? '<img src="' + escHtml(s.logoUrl) + '" style="height:24px;width:auto;border-radius:3px" onerror="this.style.display=\'none\'"/>'
+      : '<span style="display:inline-block;width:24px;height:24px;background:#f1f4f8;border-radius:3px"></span>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafa;border:1px solid #e6eaf0;border-radius:6px">' +
+      '<span style="background:#16a34a;color:#fff;font-weight:700;font-size:11px;padding:3px 8px;border-radius:4px;min-width:32px;text-align:center">H' + item.holeNr + '</span>' +
+      logoHtml +
+      '<span style="flex:1;font-size:14px;color:#0c1b2a">' + escHtml(s.naam) + '</span>' +
+      '<button type="button" class="btn btn-s btn-xs" onclick="verwijderHoleSponsor(' + idx + ')" style="color:#dc2626">Verwijder</button>' +
+    '</div>';
+  }).join('');
+}
+
+function koppelHoleSponsor() {
+  // Welke holes zijn nog vrij?
+  var holesEl = document.getElementById('fh'); var holes = parseInt((holesEl && holesEl.value) || 18);
+  var bezet = _wizHoleSponsoren.map(function(x) { return x.holeNr; });
+  var vrij = [];
+  for (var i = 1; i <= holes; i++) if (bezet.indexOf(i) < 0) vrij.push(i);
+  if (vrij.length === 0) {
+    toast('Alle holes hebben al een sponsor.', 'err');
+    return;
+  }
+
+  var hsId = document.getElementById('fhsponsor').value;
+  var beschikbaar = (SPONSOREN || []).filter(function(s) { return s.status === 'actief'; });
+  if (beschikbaar.length === 0) {
+    toast('Geen actieve sponsoren beschikbaar.', 'err');
+    return;
+  }
+  showHoleSponsorPicker(beschikbaar, vrij, function(sponsorId, holeNr) {
+    _wizHoleSponsoren.push({ sponsorId: sponsorId, holeNr: holeNr });
+    renderHoleSponsorList();
+    toast('Hole-sponsor toegevoegd.');
+  });
+}
+
+function verwijderHoleSponsor(idx) {
+  _wizHoleSponsoren.splice(idx, 1);
+  renderHoleSponsorList();
+}
+
+// Generieke sponsor-picker modal
+function showSponsorPicker(titel, sponsors, callback) {
+  var modal = document.getElementById('modal-sponsor-picker');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-sponsor-picker';
+    modal.className = 'modal-bg';
+    document.body.appendChild(modal);
+  }
+  var html = '<div class="modal" style="max-width:420px">';
+  html += '<div class="modal-title">' + escHtml(titel) + ' <button class="modal-close" onclick="closeModal(\'modal-sponsor-picker\')">&#215;</button></div>';
+  html += '<div class="field"><label>Kies sponsor</label><select id="picker-sel">';
+  sponsors.forEach(function(s) {
+    html += '<option value="' + s.id + '">' + escHtml(s.naam) + (s.pakketNaam ? ' (' + escHtml(s.pakketNaam) + ')' : '') + '</option>';
+  });
+  html += '</select></div>';
+  html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">';
+  html += '<button class="btn btn-s" onclick="closeModal(\'modal-sponsor-picker\')">Annuleren</button>';
+  html += '<button class="btn btn-p" id="picker-ok">Toevoegen</button>';
+  html += '</div></div>';
+  modal.innerHTML = html;
+  openModal('modal-sponsor-picker');
+  document.getElementById('picker-ok').onclick = function() {
+    var sel = document.getElementById('picker-sel');
+    var id = sel ? sel.value : '';
+    closeModal('modal-sponsor-picker');
+    if (id) callback(id);
+  };
+}
+
+// Hole-sponsor picker (extra holeNr veld)
+function showHoleSponsorPicker(sponsors, vrijeHoles, callback) {
+  var modal = document.getElementById('modal-sponsor-picker');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-sponsor-picker';
+    modal.className = 'modal-bg';
+    document.body.appendChild(modal);
+  }
+  var html = '<div class="modal" style="max-width:420px">';
+  html += '<div class="modal-title">Hole-sponsor toevoegen <button class="modal-close" onclick="closeModal(\'modal-sponsor-picker\')">&#215;</button></div>';
+  html += '<div class="g2">';
+  html += '<div class="field"><label>Hole</label><select id="picker-hole">';
+  vrijeHoles.forEach(function(n) { html += '<option value="' + n + '">Hole ' + n + '</option>'; });
+  html += '</select></div>';
+  html += '<div class="field"><label>Sponsor</label><select id="picker-sel">';
+  sponsors.forEach(function(s) {
+    html += '<option value="' + s.id + '">' + escHtml(s.naam) + '</option>';
+  });
+  html += '</select></div>';
+  html += '</div>';
+  html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">';
+  html += '<button class="btn btn-s" onclick="closeModal(\'modal-sponsor-picker\')">Annuleren</button>';
+  html += '<button class="btn btn-p" id="picker-ok">Toevoegen</button>';
+  html += '</div></div>';
+  modal.innerHTML = html;
+  openModal('modal-sponsor-picker');
+  document.getElementById('picker-ok').onclick = function() {
+    var sel = document.getElementById('picker-sel');
+    var holeSel = document.getElementById('picker-hole');
+    var sId = sel ? sel.value : '';
+    var hN = holeSel ? parseInt(holeSel.value) : null;
+    closeModal('modal-sponsor-picker');
+    if (sId && hN) callback(sId, hN);
+  };
+}
+
+// ─── Sync naar DB: koppel ALLE sponsoren aan wedstrijd ──────────
+async function koppelAlleSponsorenAanWedstrijd(wedstrijdId, hoofdsponsorId, coSponsorenIds, holeSponsoren) {
+  try {
+    // 1. Verwijder alle bestaande koppelingen voor deze wedstrijd
+    await supa('wedstrijd_sponsoren', 'DELETE', null, { wedstrijd_id: 'eq.' + wedstrijdId });
+
+    // 2. Hoofdsponsor
+    if (hoofdsponsorId) {
+      await supa('wedstrijd_sponsoren', 'POST', {
+        wedstrijd_id: wedstrijdId,
+        sponsor_id: hoofdsponsorId,
+        type: 'hoofdsponsor'
+      });
+    }
+    // 3. Co-sponsoren
+    for (var i = 0; i < (coSponsorenIds || []).length; i++) {
+      await supa('wedstrijd_sponsoren', 'POST', {
+        wedstrijd_id: wedstrijdId,
+        sponsor_id: coSponsorenIds[i],
+        type: 'co-sponsor'
+      });
+    }
+    // 4. Hole-sponsoren
+    for (var j = 0; j < (holeSponsoren || []).length; j++) {
+      var hs = holeSponsoren[j];
+      await supa('wedstrijd_sponsoren', 'POST', {
+        wedstrijd_id: wedstrijdId,
+        sponsor_id: hs.sponsorId,
+        type: 'hole-sponsor',
+        hole_nr: hs.holeNr
+      });
+    }
+    // Refresh local cache
+    await laadSponsoren();
+    return true;
+  } catch(e) {
+    console.warn('koppelAlleSponsoren:', e.message);
+    return false;
+  }
+}
+
+// ─── Helpers voor zichtbaarheid ────────────────────────────────
+function coSponsorenVoorWedstrijd(wId) {
+  var koppels = (WEDSTRIJD_SPONSOREN || []).filter(function(k) { return k.wedstrijdId === wId && k.type === 'co-sponsor'; });
+  return koppels.map(function(k) { return SPONSOREN.find(function(s) { return s.id === k.sponsorId; }); }).filter(Boolean);
+}
+
+function holeSponsorenVoorWedstrijd(wId) {
+  var koppels = (WEDSTRIJD_SPONSOREN || []).filter(function(k) { return k.wedstrijdId === wId && k.type === 'hole-sponsor'; });
+  return koppels.map(function(k) {
+    var s = SPONSOREN.find(function(x) { return x.id === k.sponsorId; });
+    return s ? { sponsor: s, holeNr: k.holeNr } : null;
+  }).filter(Boolean);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // WEDSTRIJD DETAIL — unified tabs view
 // ═══════════════════════════════════════════════════════════════
@@ -5088,8 +5347,12 @@ function editW(id){
     sv('fmax', w.max || 72);
     sv('fflt', w.flt || 3);
     vulLeiderDropdown(w.leiderId || '');
+    // Sponsor wizard state laden
     var hsp = hoofdsponsorVoorWedstrijd(w.id);
-    vulHoofdsponsorDropdown(hsp ? hsp.id : '');
+    _wizHoofdsponsorId = hsp ? hsp.id : '';
+    _wizCoSponsoren = coSponsorenVoorWedstrijd(w.id).map(function(s) { return s.id; });
+    _wizHoleSponsoren = holeSponsorenVoorWedstrijd(w.id).map(function(item) { return { sponsorId: item.sponsor.id, holeNr: item.holeNr }; });
+    vulHoofdsponsorDropdown(_wizHoofdsponsorId);
     var fh = document.getElementById('fh'); if(fh) fh.value = w.holes;
     var fhp = document.getElementById('fhp'); if(fhp) fhp.value = w.hcpperc;
     var fesc = document.getElementById('fesc'); if(fesc) fesc.value = w.esc || 'geen';
@@ -5149,9 +5412,10 @@ function updateVormInfo(){
 }
 
 function goStep(n){
-  for(var i=0;i<5;i++)document.getElementById('s'+i).style.display=i===n?'block':'none';
+  for(var i=0;i<6;i++){var el=document.getElementById('s'+i);if(el)el.style.display=i===n?'block':'none';}
   document.querySelectorAll('.stp').forEach(function(s,i){s.className='stp'+(i<n?' done':i===n?' active':'');});
-  if(n===4)buildOv();
+  if(n===4) renderSponsorWizardStep();  // sponsoren laden bij betreden stap
+  if(n===5) buildOv();                   // overzicht (was stap 4)
 }
 
 function resetForm(){
@@ -5162,6 +5426,10 @@ function resetForm(){
     defLeiderId = _currentUser.id;
   }
   vulLeiderDropdown(defLeiderId);
+  // Sponsor wizard state reset
+  _wizCoSponsoren = [];
+  _wizHoleSponsoren = [];
+  _wizHoofdsponsorId = '';
   vulHoofdsponsorDropdown('');
   var now=new Date().toISOString().split('T')[0];
   ['fn','fb','fomschr'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
@@ -5260,10 +5528,11 @@ async function bouwEnSlaWedstrijdOp(status) {
     if (i > -1) Object.assign(WEDSTRIJDEN[i], data);
     dbSaveWedstrijd(data).catch(function(e) { console.warn('dbSaveWedstrijd:', e.message); });
     _editId = null;
-    // Koppel hoofdsponsor (Sprint 1)
+    // Koppel sponsoren (hoofdsponsor + co + hole)
   var sponsorEl = document.getElementById('fhsponsor');
-  if (sponsorEl && typeof koppelHoofdsponsorAanWedstrijd === 'function' && w && w.id) {
-    koppelHoofdsponsorAanWedstrijd(w.id, sponsorEl.value || null);
+  var hoofdId = sponsorEl ? (sponsorEl.value || null) : null;
+  if (typeof koppelAlleSponsorenAanWedstrijd === 'function' && w && w.id) {
+    koppelAlleSponsorenAanWedstrijd(w.id, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || []);
   }
   toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
     adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
@@ -11770,7 +12039,8 @@ try {
           <div class="stp" onclick="goStep(1)">2. Deelnemers</div>
           <div class="stp" onclick="goStep(2)">3. Regels</div>
           <div class="stp" onclick="goStep(3)">4. Categorieën</div>
-          <div class="stp" onclick="goStep(4)">5. Overzicht</div>
+          <div class="stp" onclick="goStep(4)">5. Sponsoren</div>
+          <div class="stp" onclick="goStep(5)">6. Overzicht</div>
         </div>
         <div id="s0">
           <div class="card">
@@ -11839,7 +12109,7 @@ try {
                 <div class="field"><label>Max. deelnemers</label><input id="fmax" type="number" value="72" min="1"/></div>
                 <div class="field"><label>Spelers per flight</label><input id="fflt" type="number" value="3" min="2" max="5"/></div>
               <div class="field"><label>Wedstrijdleider</label><select id="fleider"><option value="">— Geen / nog niet gekozen —</option></select></div>
-              <div class="field"><label>Hoofdsponsor</label><select id="fhsponsor"><option value="">— Geen sponsor —</option></select></div>
+              
               </div>
             </div>
             <div class="blk"><div class="blk-t">Inschrijvingsperiode</div>
@@ -11927,6 +12197,44 @@ try {
           </div>
         </div>
         <div id="s4" style="display:none">
+          <div class="card">
+            <div class="card-hd">Sponsoren <small style="color:#8b94a3;font-weight:400;font-size:12px;margin-left:8px">— optioneel</small></div>
+            <div style="padding:0 1.25rem 1.25rem">
+              <p style="font-size:13px;color:#425466;margin:0 0 1.25rem 0;line-height:1.5">Koppel sponsoren aan deze wedstrijd. Hoofdsponsor verschijnt prominent op de wedstrijd-pagina en leaderboard. Co-sponsoren zijn een rij eronder. Hole-sponsoren krijgen exposure op specifieke holes.</p>
+
+              <!-- Hoofdsponsor -->
+              <div class="field">
+                <label style="font-weight:600;color:#0c1b2a">🥇 Hoofdsponsor</label>
+                <select id="fhsponsor"><option value="">— Geen hoofdsponsor —</option></select>
+                <small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">Maximaal 1 hoofdsponsor per wedstrijd</small>
+              </div>
+
+              <!-- Co-sponsoren -->
+              <div class="field" style="margin-top:1.5rem">
+                <label style="font-weight:600;color:#0c1b2a;display:flex;align-items:center;justify-content:space-between">
+                  <span>🤝 Co-sponsoren</span>
+                  <button type="button" class="btn btn-s btn-xs" onclick="koppelCoSponsor()">+ Toevoegen</button>
+                </label>
+                <div id="cosponsor-list" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+              </div>
+
+              <!-- Hole-sponsoren -->
+              <div class="field" style="margin-top:1.5rem">
+                <label style="font-weight:600;color:#0c1b2a;display:flex;align-items:center;justify-content:space-between">
+                  <span>⛳ Hole-sponsoren</span>
+                  <button type="button" class="btn btn-s btn-xs" onclick="koppelHoleSponsor()">+ Toevoegen</button>
+                </label>
+                <div id="holesponsor-list" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;margin-top:1rem">
+            <button class="btn btn-s" onclick="goStep(3)">← Vorige</button>
+            <button class="btn btn-p" onclick="goStep(5)">Volgende →</button>
+          </div>
+        </div>
+        <div id="s5" style="display:none">
           <div class="card">
             <div class="card-hd">Overzicht &amp; opslaan</div>
             <div id="ov-content"></div>
