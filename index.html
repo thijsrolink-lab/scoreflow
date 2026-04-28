@@ -3281,9 +3281,9 @@ var _adminBcNav=null;
 // AUTH
 // ============================================================
 var ROL_RECHTEN={
-  Superadmin:['dashboard','kalender','wedstrijden','nieuw','competities','spelers','inschrijvingen','flights','scores','admins','notificaties','rapportages','instellingen'],
-  Wedstrijdleider:['dashboard','kalender','wedstrijden','nieuw','competities','inschrijvingen','flights','scores','notificaties','rapportages'],
-  Secretaris:['dashboard','kalender','wedstrijden','spelers','inschrijvingen','notificaties'],
+  Superadmin:['dashboard','kalender','wedstrijden','wddetail','nieuw','competities','spelers','inschrijvingen','flights','scores','admins','notificaties','rapportages','instellingen'],
+  Wedstrijdleider:['dashboard','kalender','wedstrijden','wddetail','nieuw','competities','inschrijvingen','flights','scores','notificaties','rapportages'],
+  Secretaris:['dashboard','kalender','wedstrijden','wddetail','spelers','inschrijvingen','notificaties'],
   Speler:[],
 };
 
@@ -3364,7 +3364,7 @@ var ADMIN_NAV_ITEMS=[
   {id:'nieuw',label:'Nieuwe wedstrijd',rollen:['Superadmin','Wedstrijdleider'],icon:'<circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/>'},
   {sec:'Deelnemers',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
   {id:'spelers',label:'Ledenbestand',rollen:['Superadmin','Secretaris'],icon:'<circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M12 9c1.5.5 3 1.5 3 4"/>'},
-  {sec:'Wedstrijddag',rollen:['Superadmin','Wedstrijdleider']},
+  
   {sec:'Communicatie',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
   {id:'notificaties',label:'Notificaties',rollen:['Superadmin','Wedstrijdleider','Secretaris'],badge:'notif',icon:'<path d="M8 2a5 5 0 0 1 5 5v2l1 2H2l1-2V7a5 5 0 0 1 5-5z"/><path d="M6 13a2 2 0 0 0 4 0"/>'},
   {sec:'Analyse',rollen:['Superadmin','Wedstrijdleider']},
