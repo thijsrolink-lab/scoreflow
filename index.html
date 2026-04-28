@@ -2430,14 +2430,8 @@ function openWdDetail(wId, tab) {
 
 // Smart default: kies tab op basis van fase
 function smartDefaultTab(wId) {
-  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
-  if (!w) return 'info';
-  var fase = wedstrijdFase(w);
-  if (fase === 'concept') return 'info';
-  if (fase === 'gepubliceerd') return 'inschrijvingen';
-  if (fase === 'live') return 'scores';
-  if (fase === 'afgerond') return 'uitslag';
-  if (fase === 'afgelast') return 'info';
+  // Standaard altijd op 'Info' starten — meest algemeen overzicht
+  // Gebruiker switcht zelf naar de juiste tab voor de actie
   return 'info';
 }
 
@@ -2594,8 +2588,6 @@ function renderWdInfoTab(w) {
 
 // ─── Tab: Inschrijvingen — directe render in tab-container ───
 function renderInschrijvingenInTab(wId) {
-  if(!document.getElementById('ing-body')) return; // verplaatst naar wd-detail tabs
-
   var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
   if(!w) return;
   var container = document.getElementById('wd-tab-inschr');
