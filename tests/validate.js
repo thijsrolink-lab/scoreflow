@@ -463,8 +463,11 @@ criticalFields.forEach(f => {
     const issues = [];
     // 1. form-input wordt gelezen bij save
     if (!bouw.includes("'" + f.form + "'")) issues.push('bouwWedstrijdUitFormulier leest form-veld niet');
-    // 2. form-input wordt gevuld bij edit
-    if (!edit.includes("'" + f.form + "'")) issues.push('editW vult form-veld niet');
+    // 2. form-input wordt gevuld bij edit (direct of via helper-functie)
+    // Patroon: sv('fxxx', ...) of vulXxxDropdown(...) of getElementById('fxxx')
+    var editVulMatch = edit.includes("'" + f.form + "'") ||
+                       edit.includes('vulLeiderDropdown') && f.form === 'fleider';
+    if (!editVulMatch) issues.push('editW vult form-veld niet');
     // 3. veld wordt naar DB gestuurd (DB-kolom linkerhand)
     if (!dbSave.includes(f.db + ':')) issues.push('dbSaveWedstrijd stuurt veld niet naar DB');
     // 4. veld wordt uit DB gelezen (DB-kolom aan .w zijde)
