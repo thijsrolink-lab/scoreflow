@@ -98,7 +98,8 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 .g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
 .blk{background:#fafaf8;border-radius:var(--r);padding:.9rem;margin-bottom:.75rem;border:1px solid #e8e8e2}
 .blk-t{font-size:11px;font-weight:500;color:var(--gm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7rem}
-.lr{display:flex;align-items:flex-start;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--surf)}
+.lr{display:flex;align-items:flex-start;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--surf);cursor:pointer;transition:background .15s}
+.lr:hover{background:#f0fdf4}
 .lr:last-child{border-bottom:none}
 .lr-l{flex:1;min-width:0}
 .lr-n{font-weight:500;font-size:14px;color:var(--tx)}
@@ -2004,6 +2005,252 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
   );
 }
 
+
+/* ═══════════════════════════════════════════════
+   WEDSTRIJD DETAIL VIEW — unified tabs
+   Doelgroep: oudere admins → grote knoppen, hoog contrast
+═══════════════════════════════════════════════ */
+
+/* Header met titel, datum, status */
+.wd-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem 1.75rem;
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  margin-bottom: 1.25rem;
+}
+.wd-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8b94a3;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  transition: color .15s;
+}
+.wd-back-link:hover { color: #16a34a; }
+.wd-back-link::before { content: '←'; font-size: 14px; }
+
+.wd-detail-titel {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.1;
+  color: #0c1b2a;
+  margin: 0 0 0.5rem 0;
+}
+.wd-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #425466;
+}
+.wd-detail-meta .meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.wd-detail-meta .meta-item svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.wd-detail-status {
+  flex-shrink: 0;
+}
+
+/* Tabs nav */
+.wd-tabs {
+  display: flex;
+  gap: 4px;
+  background: #f1f4f8;
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+}
+.wd-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #425466;
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.wd-tab:hover {
+  color: #0c1b2a;
+  background: rgba(255,255,255,0.5);
+}
+.wd-tab.active {
+  background: #ffffff;
+  color: #0c1b2a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.wd-tab.active.live::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: #dc2626;
+  border-radius: 50%;
+  animation: liveDotPulse 1.5s infinite;
+}
+.wd-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: #e6eaf0;
+  color: #425466;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 24px;
+  justify-content: center;
+}
+.wd-tab.active .wd-tab-badge {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+/* Tab content area */
+.wd-tab-content {
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  min-height: 300px;
+  margin-bottom: 1.25rem;
+}
+.wd-tab-content:empty {
+  display: none;
+}
+
+/* Action bar onderaan — sticky */
+.wd-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.75rem;
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  position: sticky;
+  bottom: 1rem;
+  margin-bottom: 1rem;
+  z-index: 5;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+}
+.wd-action-bar:empty { display: none; }
+.wd-action-bar-left {
+  display: flex;
+  gap: 8px;
+}
+.wd-action-bar-right {
+  display: flex;
+  gap: 10px;
+}
+.wd-btn {
+  padding: 0.85rem 1.5rem;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px; /* touch-friendly voor oudere doelgroep */
+}
+.wd-btn-primary {
+  background: #16a34a;
+  color: #ffffff;
+}
+.wd-btn-primary:hover { background: #15803d; }
+.wd-btn-dark {
+  background: #0c1b2a;
+  color: #ffffff;
+}
+.wd-btn-dark:hover { background: #1a2a3a; }
+.wd-btn-danger {
+  background: transparent;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.wd-btn-danger:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+.wd-btn-neutral {
+  background: #f1f4f8;
+  color: #425466;
+  border-color: #e6eaf0;
+}
+.wd-btn-neutral:hover {
+  background: #e6eaf0;
+}
+
+/* Mobile: tabs stapelen niet, scrollen wel */
+@media (max-width: 700px) {
+  .wd-detail-header {
+    flex-direction: column;
+    padding: 1.25rem;
+  }
+  .wd-detail-titel {
+    font-size: 24px;
+  }
+  .wd-tabs {
+    gap: 2px;
+  }
+  .wd-tab {
+    padding: 0.75rem 0.6rem;
+    font-size: 13px;
+  }
+  .wd-tab-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    min-width: 18px;
+  }
+  .wd-tab-content {
+    padding: 1rem;
+  }
+  .wd-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .wd-action-bar-left, .wd-action-bar-right {
+    flex-direction: column;
+  }
+  .wd-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
 </style>
 
 <script>
@@ -2166,6 +2413,297 @@ function heractiveerWedstrijd(wId) {
   toast('Wedstrijd heractiveerd.');
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// WEDSTRIJD DETAIL — unified tabs view
+// ═══════════════════════════════════════════════════════════════
+
+var _wdDetailState = { wId: null, tab: 'info' };
+
+// Open detail view voor een wedstrijd
+function openWdDetail(wId, tab) {
+  _wdDetailState.wId = wId;
+  _wdDetailState.tab = tab || smartDefaultTab(wId);
+  adminNav('wddetail');
+  // adminNav doet renderWdDetail() via render hook
+}
+
+// Smart default: kies tab op basis van fase
+function smartDefaultTab(wId) {
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) return 'info';
+  var fase = wedstrijdFase(w);
+  if (fase === 'concept') return 'info';
+  if (fase === 'gepubliceerd') return 'inschrijvingen';
+  if (fase === 'live') return 'scores';
+  if (fase === 'afgerond') return 'uitslag';
+  if (fase === 'afgelast') return 'info';
+  return 'info';
+}
+
+// Render hele detail view
+function renderWdDetail() {
+  var wId = _wdDetailState.wId;
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+
+  if (!w) {
+    document.getElementById('wd-detail-header').innerHTML =
+      '<p style="color:#8b94a3;padding:2rem;text-align:center">Wedstrijd niet gevonden.</p>';
+    document.getElementById('wd-detail-tabs').innerHTML = '';
+    document.getElementById('wd-detail-content').innerHTML = '';
+    document.getElementById('wd-detail-actions').innerHTML = '';
+    return;
+  }
+
+  // ── Header ─────────────────────────────────────────────
+  var d = new Date(w.datum);
+  var dagen = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+  var maanden = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+  var datumStr = dagen[d.getDay()] + ' ' + d.getDate() + ' ' + maanden[d.getMonth()];
+
+  document.getElementById('wd-detail-header').innerHTML =
+    '<div style="flex:1;min-width:0">' +
+      '<button class="wd-back-link" onclick="adminNav(\'wedstrijden\')">Terug naar wedstrijden</button>' +
+      '<h1 class="wd-detail-titel">' + escHtml(w.naam) + '</h1>' +
+      '<div class="wd-detail-meta">' +
+        '<span class="meta-item"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6h11M5.5 2v3M10.5 2v3"/></svg>' + datumStr + '</span>' +
+        '<span class="meta-item"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 4v4l2.5 2.5"/></svg>Start ' + (w.tijd || '08:00') + '</span>' +
+        '<span class="meta-item"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 14s5-4.5 5-8.5A5 5 0 0 0 3 5.5C3 9.5 8 14 8 14z"/><circle cx="8" cy="6" r="1.5"/></svg>' + escHtml(w.baan) + '</span>' +
+        '<span class="meta-item"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 7l3 4 2-3 3 4"/></svg>' + escHtml(w.vorm) + ' &middot; ' + w.holes + ' holes</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="wd-detail-status">' + statusBadge(w) + '</div>';
+
+  // ── Tabs nav ─────────────────────────────────────────
+  var fase = wedstrijdFase(w);
+  var ic = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).length;
+  var maxStr = w.max ? '/' + w.max : '';
+
+  // Score-progress
+  var totaal = ic;
+  var ingevoerd = 0;
+  if (totaal > 0) {
+    var sids = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).map(function(i) { return i.sid; });
+    sids.forEach(function(sid) {
+      var hasScore = SCORES.some(function(s) { return s.wid === w.id && s.sid === sid && s.holes && s.holes.length > 0; });
+      if (hasScore) ingevoerd++;
+    });
+  }
+  var scorePct = totaal > 0 ? Math.round((ingevoerd / totaal) * 100) : 0;
+
+  var tabs = [
+    { id: 'info', label: 'Info' },
+    { id: 'inschrijvingen', label: 'Inschrijvingen', badge: ic + maxStr },
+    { id: 'flights', label: 'Flights' },
+    { id: 'scores', label: 'Scores', badge: scorePct > 0 ? scorePct + '%' : null, isLive: fase === 'live' },
+    { id: 'uitslag', label: 'Uitslag' },
+  ];
+
+  document.getElementById('wd-detail-tabs').innerHTML = tabs.map(function(t) {
+    var activeCls = t.id === _wdDetailState.tab ? ' active' : '';
+    var liveCls = (t.isLive && t.id === _wdDetailState.tab) ? ' live' : '';
+    var badge = t.badge ? '<span class="wd-tab-badge">' + t.badge + '</span>' : '';
+    return '<button class="wd-tab' + activeCls + liveCls + '" onclick="switchWdTab(\'' + t.id + '\')">' +
+      escHtml(t.label) + badge + '</button>';
+  }).join('');
+
+  // ── Tab content ──────────────────────────────────────
+  renderWdTabContent();
+
+  // ── Action bar ───────────────────────────────────────
+  renderWdActions(w);
+}
+
+// Switch naar andere tab
+function switchWdTab(tab) {
+  _wdDetailState.tab = tab;
+  // Update tab classes
+  document.querySelectorAll('.wd-tab').forEach(function(el) {
+    el.classList.remove('active', 'live');
+  });
+  // Mark active
+  var btns = document.querySelectorAll('.wd-tab');
+  var tabIds = ['info','inschrijvingen','flights','scores','uitslag'];
+  var idx = tabIds.indexOf(tab);
+  if (idx >= 0 && btns[idx]) {
+    btns[idx].classList.add('active');
+    var w = WEDSTRIJDEN.find(function(x) { return x.id === _wdDetailState.wId; });
+    if (w && wedstrijdFase(w) === 'live' && tab === 'scores') {
+      btns[idx].classList.add('live');
+    }
+  }
+  renderWdTabContent();
+}
+
+// Render content per tab — hergebruikt bestaande render-functies waar mogelijk
+function renderWdTabContent() {
+  var wId = _wdDetailState.wId;
+  var tab = _wdDetailState.tab;
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  var content = document.getElementById('wd-detail-content');
+
+  if (!w || !content) return;
+
+  if (tab === 'info') {
+    content.innerHTML = renderWdInfoTab(w);
+  } else if (tab === 'inschrijvingen') {
+    content.innerHTML = '<div id="wd-tab-inschr"></div>';
+    // Hergebruik bestaande renderInschrijvingen, redirected naar onze container
+    renderInschrijvingenInTab(wId);
+  } else if (tab === 'flights') {
+    content.innerHTML = '<div id="wd-tab-flights"></div>';
+    renderFlightsInTab(wId);
+  } else if (tab === 'scores') {
+    content.innerHTML = '<div id="wd-tab-scores"></div>';
+    renderScoresInTab(wId);
+  } else if (tab === 'uitslag') {
+    content.innerHTML = renderWdUitslagTab(w);
+  }
+}
+
+// Tab Info: read-only samenvatting + bewerk-knop
+function renderWdInfoTab(w) {
+  var fase = wedstrijdFase(w);
+  var canEdit = fase === 'concept' || fase === 'gepubliceerd';
+  var lockBadge = !canEdit ? '<span style="font-size:12px;color:#8b94a3;margin-left:8px">(beperkt bewerkbaar tijdens ' + fase + ')</span>' : '';
+
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem 2rem">' +
+    '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Naam</h4><p style="font-size:15px;color:#0c1b2a;margin:0;font-weight:500">' + escHtml(w.naam) + '</p></div>' +
+    '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Datum & tijd</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + new Date(w.datum).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' &middot; ' + (w.tijd || '08:00') + '</p></div>' +
+    '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Baan</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + escHtml(w.baan) + '</p></div>' +
+    '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">CR / Slope / Holes</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + w.cr + ' / ' + w.slope + ' / ' + w.holes + '</p></div>' +
+    '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Wedstrijdvorm</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + escHtml(w.vorm) + '</p></div>' +
+    '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Spelers per flight</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + (w.flt || 3) + '</p></div>' +
+    '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Handicap</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + (w.hcpmin || 0) + ' tot ' + (w.hcpmax || 54) + ' &middot; ' + (w.hcpperc || 100) + '%</p></div>' +
+    '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Max. deelnemers</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + (w.max || '-') + '</p></div>' +
+    (w.omschrijving ? '<div style="grid-column:1/-1"><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Omschrijving</h4><p style="font-size:14px;color:#425466;margin:0;line-height:1.5">' + escHtml(w.omschrijving) + '</p></div>' : '') +
+    (w.afgelast_reden ? '<div style="grid-column:1/-1;background:#fef3c7;padding:0.85rem 1rem;border-radius:8px;border:1px solid #fde68a"><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;margin:0 0 0.3rem 0;font-weight:700">Afgelast — reden</h4><p style="font-size:13px;color:#78350f;margin:0">' + escHtml(w.afgelast_reden) + '</p></div>' : '') +
+    '</div>' +
+    (canEdit ? '<div style="margin-top:1.5rem"><button class="wd-btn wd-btn-neutral" onclick="editW(\'' + w.id + '\')">Bewerken</button>' + lockBadge + '</div>' : '<div style="margin-top:1.5rem;padding:0.85rem 1rem;background:#f1f4f8;border-radius:8px;font-size:13px;color:#8b94a3">' + lockBadge.replace(/<[^>]*>/g, '') + '</div>');
+}
+
+// Inschrijvingen in tab: hergebruik renderInschrijvingen door wedstrijd-selector vooraf te zetten
+function renderInschrijvingenInTab(wId) {
+  // Bestaande view heeft #ing-fw selector — we forceren wId
+  // Lazy: laad bestaande view-content in onze container via clone
+  setTimeout(function() {
+    var fwSel = document.getElementById('ing-fw');
+    if (fwSel) fwSel.value = wId;
+    if (typeof renderInschrijvingen === 'function') {
+      // Render in originele plek
+      renderInschrijvingen();
+      // Verplaats body naar onze container
+      var origBody = document.getElementById('ing-body');
+      var ourContainer = document.getElementById('wd-tab-inschr');
+      if (origBody && ourContainer) {
+        ourContainer.innerHTML = origBody.outerHTML;
+      }
+    }
+  }, 10);
+}
+
+// Flights in tab — soortgelijk
+function renderFlightsInTab(wId) {
+  setTimeout(function() {
+    var sel = document.getElementById('fl-w');
+    if (sel) sel.value = wId;
+    if (typeof renderFlights === 'function') {
+      renderFlights();
+      // Vind flights-content (kan meerdere IDs zijn) en kopieer
+      var ourContainer = document.getElementById('wd-tab-flights');
+      var origContent = document.getElementById('fl-content') || document.getElementById('fl-body');
+      if (origContent && ourContainer) {
+        ourContainer.innerHTML = origContent.outerHTML;
+      } else if (ourContainer) {
+        ourContainer.innerHTML = '<p style="color:#8b94a3">Flight-content niet gevonden. Open de oude Flights view om te bewerken.</p>';
+      }
+    }
+  }, 10);
+}
+
+// Scores in tab
+function renderScoresInTab(wId) {
+  setTimeout(function() {
+    var sel = document.getElementById('sc-w');
+    if (sel) sel.value = wId;
+    if (typeof initScoreView === 'function') {
+      initScoreView();
+      var ourContainer = document.getElementById('wd-tab-scores');
+      var origContent = document.getElementById('sc-content');
+      if (origContent && ourContainer) {
+        ourContainer.innerHTML = origContent.outerHTML;
+      } else if (ourContainer) {
+        ourContainer.innerHTML = '<p style="color:#8b94a3">Scores-content niet gevonden.</p>';
+      }
+    }
+  }, 10);
+}
+
+// Uitslag tab — definitieve klassement
+function renderWdUitslagTab(w) {
+  var fase = wedstrijdFase(w);
+  if (fase === 'concept' || fase === 'gepubliceerd') {
+    return '<div style="text-align:center;padding:3rem 2rem;color:#8b94a3"><div style="font-size:32px;margin-bottom:0.75rem">📋</div><h3 style="color:#0c1b2a;margin:0 0 0.5rem 0">Wedstrijd nog niet begonnen</h3><p style="margin:0;font-size:14px">Uitslag verschijnt zodra de wedstrijd Live gaat en spelers scores invoeren.</p></div>';
+  }
+  // Live of afgerond: toon klassement
+  // Hergebruik bestaande klassement-logica indien mogelijk
+  var ingeschreven = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; });
+  if (ingeschreven.length === 0) {
+    return '<p style="color:#8b94a3;padding:2rem;text-align:center">Geen deelnemers.</p>';
+  }
+  // Eenvoudig klassement (placeholder — in volgende stap verfijnen)
+  var rows = ingeschreven.map(function(ing) {
+    var u = USERS.find(function(x) { return x.id === ing.sid; });
+    if (!u) return null;
+    var score = SCORES.find(function(s) { return s.wid === w.id && s.sid === u.id; });
+    var totaal = '-';
+    if (score && score.holes) {
+      // Eenvoudig: tel niet-lege scores
+      var ingev = score.holes.filter(function(h) { return h && h > 0; }).length;
+      totaal = ingev + ' holes';
+    }
+    return { naam: u.voor + ' ' + u.ach, hcp: u.hcp, totaal: totaal };
+  }).filter(Boolean);
+
+  return '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-family:Inter,sans-serif">' +
+    '<thead><tr style="border-bottom:2px solid #e6eaf0"><th style="text-align:left;padding:0.75rem 0.5rem;font-size:12px;text-transform:uppercase;color:#8b94a3;letter-spacing:.05em">#</th><th style="text-align:left;padding:0.75rem 0.5rem;font-size:12px;text-transform:uppercase;color:#8b94a3;letter-spacing:.05em">Speler</th><th style="text-align:right;padding:0.75rem 0.5rem;font-size:12px;text-transform:uppercase;color:#8b94a3;letter-spacing:.05em">HCP</th><th style="text-align:right;padding:0.75rem 0.5rem;font-size:12px;text-transform:uppercase;color:#8b94a3;letter-spacing:.05em">Status</th></tr></thead>' +
+    '<tbody>' + rows.map(function(r, i) {
+      return '<tr style="border-bottom:1px solid #f1f4f8"><td style="padding:0.75rem 0.5rem;color:#8b94a3;font-size:13px">' + (i+1) + '</td><td style="padding:0.75rem 0.5rem;font-size:14px;color:#0c1b2a;font-weight:500">' + escHtml(r.naam) + '</td><td style="text-align:right;padding:0.75rem 0.5rem;font-size:13px;color:#425466">' + r.hcp + '</td><td style="text-align:right;padding:0.75rem 0.5rem;font-size:13px;color:#425466">' + r.totaal + '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    '<p style="font-size:12px;color:#8b94a3;margin-top:1.5rem;text-align:center">Eenvoudig klassement — verfijning volgt.</p>';
+}
+
+// Action bar: lifecycle-knoppen onderaan
+function renderWdActions(w) {
+  var fase = wedstrijdFase(w);
+  var bar = document.getElementById('wd-detail-actions');
+  if (!bar) return;
+
+  var left = '';
+  var right = '';
+
+  // Afgelasten/Heractiveren staan links
+  if (fase === 'concept' || fase === 'gepubliceerd' || fase === 'live') {
+    left = '<button class="wd-btn wd-btn-danger" onclick="afgelastWedstrijd(\'' + w.id + '\')">Wedstrijd afgelasten</button>';
+  } else if (fase === 'afgelast') {
+    left = '<button class="wd-btn wd-btn-primary" onclick="heractiveerWedstrijd(\'' + w.id + '\')">Wedstrijd heractiveren</button>';
+  }
+
+  // Hoofdactie rechts
+  if (fase === 'gepubliceerd') {
+    right = '<button class="wd-btn wd-btn-primary" onclick="startWedstrijd(\'' + w.id + '\')">Start wedstrijd →</button>';
+  } else if (fase === 'live') {
+    right = '<button class="wd-btn wd-btn-dark" onclick="afrondWedstrijd(\'' + w.id + '\')">Wedstrijd afronden →</button>';
+  } else if (fase === 'concept') {
+    right = '<button class="wd-btn wd-btn-neutral" onclick="editW(\'' + w.id + '\')">Eerst publiceren in bewerk-modus</button>';
+  }
+
+  bar.innerHTML =
+    (left ? '<div class="wd-action-bar-left">' + left + '</div>' : '<div></div>') +
+    (right ? '<div class="wd-action-bar-right">' + right + '</div>' : '<div></div>');
+}
+
+
 
 
 
@@ -2826,10 +3364,7 @@ var ADMIN_NAV_ITEMS=[
   {id:'nieuw',label:'Nieuwe wedstrijd',rollen:['Superadmin','Wedstrijdleider'],icon:'<circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/>'},
   {sec:'Deelnemers',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
   {id:'spelers',label:'Ledenbestand',rollen:['Superadmin','Secretaris'],icon:'<circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M12 9c1.5.5 3 1.5 3 4"/>'},
-  {id:'inschrijvingen',label:'Inschrijvingen',rollen:['Superadmin','Wedstrijdleider','Secretaris'],badge:'wl',icon:'<path d="M3 4h10v9H3z"/><path d="M6 4V2M10 4V2M3 8h10"/>'},
   {sec:'Wedstrijddag',rollen:['Superadmin','Wedstrijdleider']},
-  {id:'flights',label:'Flight-indeling',rollen:['Superadmin','Wedstrijdleider'],icon:'<circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/><path d="M4.5 8h2M9.5 8h2"/>'},
-  {id:'scores',label:'Scores & leaderboard',rollen:['Superadmin','Wedstrijdleider'],icon:'<path d="M2 12L6 7l3 4 2-3 3 4"/>'},
   {sec:'Communicatie',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
   {id:'notificaties',label:'Notificaties',rollen:['Superadmin','Wedstrijdleider','Secretaris'],badge:'notif',icon:'<path d="M8 2a5 5 0 0 1 5 5v2l1 2H2l1-2V7a5 5 0 0 1 5-5z"/><path d="M6 13a2 2 0 0 0 4 0"/>'},
   {sec:'Analyse',rollen:['Superadmin','Wedstrijdleider']},
@@ -2839,7 +3374,7 @@ var ADMIN_NAV_ITEMS=[
   {id:'instellingen',label:'Clubinstellingen',rollen:['Superadmin'],icon:'<circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M11.4 4.6l-1.4 1.4M4.6 11.4l-1.4 1.4"/>'},
 ];
 
-var ADMIN_TITLES={dashboard:'Dashboard',kalender:'Wedstrijdkalender',wedstrijden:'Alle wedstrijden',nieuw:'Nieuwe wedstrijd',competities:'Competities',spelers:'Ledenbestand',inschrijvingen:'Inschrijvingen',flights:'Flight-indeling',scores:'Scores & leaderboard',admins:'Admins & rollen',notificaties:'Notificaties',rapportages:'Rapportages',instellingen:'Clubinstellingen'};
+var ADMIN_TITLES={dashboard:'Dashboard',kalender:'Wedstrijdkalender',wedstrijden:'Alle wedstrijden',wddetail:'Wedstrijd',nieuw:'Nieuwe wedstrijd',competities:'Competities',spelers:'Ledenbestand',inschrijvingen:'Inschrijvingen',flights:'Flight-indeling',scores:'Scores & leaderboard',admins:'Admins & rollen',notificaties:'Notificaties',rapportages:'Rapportages',instellingen:'Clubinstellingen'};
 
 var ADMIN_BC={
   nieuw:{parent:'Wedstrijden',nav:'wedstrijden'},
@@ -2921,7 +3456,7 @@ function adminNav(id){
   // Verberg + Wedstrijd knop als geen toegang
   var btnNieuw=document.getElementById('btn-nieuw-w');
   if(btnNieuw)btnNieuw.style.display=heeftToegang('nieuw')?'':'none';
-  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,notificaties:renderNotificaties,rapportages:renderRapportages};
+  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,notificaties:renderNotificaties,rapportages:renderRapportages,wddetail:renderWdDetail};
   if(renders[id])renders[id]();
   if(id==='nieuw'){goStep(0);if(!_editId)resetForm();}
   _adminView=id;
@@ -2987,7 +3522,7 @@ function renderAdminDashboard(){
             (next.tijd ? '<span class="sep">·</span><span>Start ' + escHtml(next.tijd) + '</span>' : '') +
           '</div>' +
         '</div>' +
-        '<button class="btn-hero" onclick="adminNavToW(\'inschrijvingen\',\'' + next.id + '\')">Naar wedstrijd →</button>' +
+        '<button class="btn-hero" onclick="openWdDetail(\'' + next.id + '\')">Naar wedstrijd →</button>' +
       '</div>';
   } else {
     heroHtml = '' +
@@ -3046,7 +3581,7 @@ function renderAdminDashboard(){
         'sluit ' + sluitDatum.getDate() + ' ' + MN[sluitDatum.getMonth()].slice(0,3).toLowerCase() : '';
 
       cardsHtml += '' +
-        '<div class="wed-card' + (isFirst ? ' first' : '') + '" onclick="adminNavToW(\'inschrijvingen\',\'' + w.id + '\')">' +
+        '<div class="wed-card' + (isFirst ? ' first' : '') + '" onclick="openWdDetail(\'' + w.id + '\')">' +
           '<div class="wed-card-head">' +
             '<span class="wed-card-date-text">' + datumLabel + '</span>' +
             (isFirst ? '<span class="wed-card-badge">Eerstvolgende</span>' : '') +
@@ -3161,9 +3696,9 @@ function renderWedstrijden(){
     // Bewerken: mag alleen als niet alles-gelockt (dus concept/gepubliceerd)
     if (kanNieuw) {
       if (fase === 'concept' || fase === 'gepubliceerd') {
-        acts += '<button class="btn btn-s btn-xs" onclick="editW(\'' + w.id + '\')">Bewerken</button>';
+        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();editW(\'' + w.id + '\')">Bewerken</button>';
       } else if (fase === 'live') {
-        acts += '<button class="btn btn-s btn-xs" onclick="editW(\'' + w.id + '\')" title="Beperkt bewerkbaar tijdens live">Bewerken</button>';
+        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();editW(\'' + w.id + '\')" title="Beperkt bewerkbaar tijdens live">Bewerken</button>';
       } else {
         acts += '<button class="btn btn-s btn-xs" disabled title="Wedstrijd is ' + fase + ' — niet meer bewerkbaar" style="opacity:.5;cursor:not-allowed">Bewerken</button>';
       }
@@ -3172,27 +3707,27 @@ function renderWedstrijden(){
     // Lifecycle-acties per fase
     if (kanNieuw) {
       if (fase === 'gepubliceerd') {
-        acts += '<button class="btn btn-s btn-xs" onclick="startWedstrijd(\'' + w.id + '\')" title="Start wedstrijd nu" style="background:#16a34a;color:#fff;border-color:#16a34a">Start</button>';
+        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();startWedstrijd(\'' + w.id + '\')" title="Start wedstrijd nu" style="background:#16a34a;color:#fff;border-color:#16a34a">Start</button>';
       }
       if (fase === 'live') {
-        acts += '<button class="btn btn-s btn-xs" onclick="afrondWedstrijd(\'' + w.id + '\')" title="Wedstrijd afronden" style="background:#0c1b2a;color:#fff;border-color:#0c1b2a">Afronden</button>';
+        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();afrondWedstrijd(\'' + w.id + '\')" title="Wedstrijd afronden" style="background:#0c1b2a;color:#fff;border-color:#0c1b2a">Afronden</button>';
       }
       if (fase === 'afgelast') {
-        acts += '<button class="btn btn-s btn-xs" onclick="heractiveerWedstrijd(\'' + w.id + '\')" title="Wedstrijd opnieuw activeren" style="background:#16a34a;color:#fff;border-color:#16a34a">Heractiveer</button>';
+        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();heractiveerWedstrijd(\'' + w.id + '\')" title="Wedstrijd opnieuw activeren" style="background:#16a34a;color:#fff;border-color:#16a34a">Heractiveer</button>';
       }
     }
 
-    if (heeftToegang('inschrijvingen')) acts += '<button class="btn btn-s btn-xs" onclick="adminNavToW(\'inschrijvingen\',\'' + w.id + '\')">Inschrijvingen</button>';
-    if (heeftToegang('flights')) acts += '<button class="btn btn-s btn-xs" onclick="adminNavToW(\'flights\',\'' + w.id + '\')">Flights</button>';
-    if (heeftToegang('scores')) acts += '<button class="btn btn-s btn-xs" onclick="adminNavToW(\'scores\',\'' + w.id + '\')">Scores</button>';
+    if (heeftToegang('inschrijvingen')) acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();openWdDetail(\'' + w.id + '\')">Inschrijvingen</button>';
+    if (heeftToegang('flights')) acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();adminNavToW(\'flights\',\'' + w.id + '\')">Flights</button>';
+    if (heeftToegang('scores')) acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();adminNavToW(\'scores\',\'' + w.id + '\')">Scores</button>';
 
     // Afgelasten: alleen als nog niet afgerond/afgelast
     if (kanNieuw && fase !== 'afgerond' && fase !== 'afgelast') {
-      acts += '<button class="btn btn-s btn-xs" onclick="afgelastWedstrijd(\'' + w.id + '\')" title="Wedstrijd afgelasten" style="color:#dc2626;border-color:#fecaca">Afgelasten</button>';
+      acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();afgelastWedstrijd(\'' + w.id + '\')" title="Wedstrijd afgelasten" style="color:#dc2626;border-color:#fecaca">Afgelasten</button>';
     }
-    if (kanNieuw) acts += '<button class="btn btn-d btn-xs" onclick="delW(\'' + w.id + '\')">&#215;</button>';
+    if (kanNieuw) acts += '<button class="btn btn-d btn-xs" onclick="event.stopPropagation();delW(\'' + w.id + '\')">&#215;</button>';
 
-    return '<div class="lr">' +
+    return '<div class="lr" onclick="openWdDetail(\'' + w.id + '\')">' +
       '<div class="lr-l">' +
         '<div class="lr-n">' + escHtml(w.naam) + '</div>' +
         '<div class="lr-m">' +
@@ -9138,7 +9673,7 @@ function renderCompeties() {
     var d1 = comp.start ? new Date(comp.start) : null;
     var d2 = comp.eind ? new Date(comp.eind) : null;
 
-    return '<div class="lr">' +
+    return '<div class="lr" onclick="openWdDetail(\'' + w.id + '\')">' +
       '<div class="lr-l">' +
         '<div class="lr-n">'+escHtml(comp.naam)+'</div>' +
         '<div class="lr-m">' +
@@ -9537,6 +10072,21 @@ try {
           <div id="w-list"></div>
         </div>
       </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+           WEDSTRIJD DETAIL VIEW (unified tabs)
+           ═══════════════════════════════════════════════════════ -->
+      <div id="v-wddetail" class="view">
+        <!-- Header -->
+        <div id="wd-detail-header" class="wd-detail-header"></div>
+        <!-- Tabs nav -->
+        <div class="wd-tabs" id="wd-detail-tabs"></div>
+        <!-- Tab content -->
+        <div class="wd-tab-content" id="wd-detail-content"></div>
+        <!-- Action bar onderaan -->
+        <div class="wd-action-bar" id="wd-detail-actions"></div>
+      </div>
+
 
       <!-- NIEUW WEDSTRIJD WIZARD -->
       <div id="v-nieuw" class="view">
