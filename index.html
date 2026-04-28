@@ -3238,20 +3238,61 @@ async function scrapeSponsorSite() {
   btn.textContent = '⏳ Bezig...';
   btn.disabled = true;
 
-  try {
-    // Gebruik allorigins.win als CORS-proxy
-    var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-    var res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error('Proxy gaf status ' + res.status);
-    var data = await res.json();
-    var html = data.contents || '';
-    if (!html) throw new Error('Geen content ontvangen');
+  // Probeer meerdere proxies in volgorde — als eentje faalt, volgende
+  var proxies = [
+    {
+      name: 'corsproxy.io',
+      url: 'https://corsproxy.io/?' + encodeURIComponent(url),
+      parse: function(res) { return res.text(); }
+    },
+    {
+      name: 'allorigins',
+      url: 'https://api.allorigins.win/get?url=' + encodeURIComponent(url),
+      parse: async function(res) { var d = await res.json(); return d.contents || ''; }
+    },
+    {
+      name: 'codetabs',
+      url: 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+      parse: function(res) { return res.text(); }
+    }
+  ];
 
-    // Parse HTML
+  var html = '';
+  var lastErr = null;
+  for (var i = 0; i < proxies.length; i++) {
+    var p = proxies[i];
+    try {
+      console.log('[scrape] Probeer proxy:', p.name);
+      var fetchPromise = fetch(p.url);
+      // Timeout na 8 seconden
+      var timeoutPromise = new Promise(function(_, rej) { setTimeout(function() { rej(new Error('Timeout')); }, 8000); });
+      var res = await Promise.race([fetchPromise, timeoutPromise]);
+      if (!res.ok) throw new Error('Status ' + res.status);
+      html = await p.parse(res);
+      if (html && html.length > 100) {
+        console.log('[scrape] Proxy', p.name, 'gaf', html.length, 'chars');
+        break;
+      }
+      lastErr = new Error('Lege response');
+    } catch(e) {
+      console.warn('[scrape] Proxy', p.name, 'gefaald:', e.message);
+      lastErr = e;
+      html = '';
+    }
+  }
+
+  if (!html) {
+    btn.textContent = origLabel;
+    btn.disabled = false;
+    var msg = lastErr ? lastErr.message : 'Onbekende fout';
+    toast('Ophalen mislukt (' + msg + '). Vul handmatig in of probeer een andere URL.', 'err');
+    return;
+  }
+
+  try {
     var parser = new DOMParser();
     var doc = parser.parseFromString(html, 'text/html');
 
-    // Helper: meta-content ophalen
     function metaContent(selectors) {
       for (var i = 0; i < selectors.length; i++) {
         var el = doc.querySelector(selectors[i]);
@@ -3260,7 +3301,6 @@ async function scrapeSponsorSite() {
       return '';
     }
 
-    // Naam: og:site_name → og:title → <title>
     var naam = metaContent([
       'meta[property="og:site_name"]',
       'meta[property="og:title"]',
@@ -3271,13 +3311,11 @@ async function scrapeSponsorSite() {
       if (titleEl) naam = titleEl.textContent.trim().split('|')[0].split('-')[0].trim();
     }
 
-    // Beschrijving: og:description → meta description
     var beschrijving = metaContent([
       'meta[property="og:description"]',
       'meta[name="description"]'
     ]);
 
-    // Logo: og:image → apple-touch-icon → grootste icon → favicon
     var logoUrl = metaContent([
       'meta[property="og:image"]',
       'meta[name="twitter:image"]'
@@ -3291,7 +3329,6 @@ async function scrapeSponsorSite() {
       if (iconEl) logoUrl = iconEl.getAttribute('href');
     }
 
-    // Maak relatieve URLs absoluut
     if (logoUrl && !/^https?:\/\//i.test(logoUrl) && !/^data:/i.test(logoUrl)) {
       try {
         var base = new URL(url);
@@ -3299,7 +3336,14 @@ async function scrapeSponsorSite() {
       } catch(e) { /* laat staan */ }
     }
 
-    // Vul velden — alleen als leeg (admin kan al iets ingetikt hebben)
+    // Fallback voor logo: Google's favicon-service (werkt altijd, geen CORS)
+    if (!logoUrl) {
+      try {
+        var domain = new URL(url).hostname;
+        logoUrl = 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=128';
+      } catch(e) { /* skip */ }
+    }
+
     var aangepast = [];
     var naamEl = document.getElementById('msp-naam');
     if (naamEl && !naamEl.value.trim() && naam) {
@@ -3323,19 +3367,13 @@ async function scrapeSponsorSite() {
       toast('✓ Opgehaald: ' + aangepast.join(', ') + '. Pas zo nodig aan.');
     }
   } catch(e) {
-    console.warn('Scrape mislukt:', e);
-    toast('Ophalen mislukt: ' + e.message + '. Vul handmatig in.', 'err');
+    console.warn('Parse mislukt:', e);
+    toast('Parsing mislukt: ' + e.message, 'err');
   } finally {
     btn.textContent = origLabel;
     btn.disabled = false;
   }
 }
-
-
-
-
-
-
 // ═══════════════════════════════════════════════════════════════
 // WEDSTRIJD DETAIL — unified tabs view
 // ═══════════════════════════════════════════════════════════════
