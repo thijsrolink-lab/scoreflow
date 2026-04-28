@@ -2413,6 +2413,46 @@ function heractiveerWedstrijd(wId) {
   toast('Wedstrijd heractiveerd.');
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
+// Diagnose-helper voor in console: window.diagnose()
+window.diagnose = function() {
+  console.log('═══════════════════════════════════════');
+  console.log('USERS:', USERS.length);
+  console.log('WEDSTRIJDEN:', WEDSTRIJDEN.length);
+  console.log('INSCHRIJVINGEN totaal:', (INSCHRIJVINGEN || []).length);
+  console.log('FLIGHTS keys:', Object.keys(FLIGHTS || {}).length);
+  console.log('SCORES keys:', Object.keys(SCORES || {}).length);
+  console.log('───────────────────────────────────────');
+  WEDSTRIJDEN.forEach(function(w) {
+    var ings = (INSCHRIJVINGEN || []).filter(function(i) { return i.wid === w.id; });
+    var ingeschreven = ings.filter(function(i) { return i.status === 'ingeschreven'; });
+    var flightsW = (FLIGHTS && FLIGHTS[w.id]) ? FLIGHTS[w.id] : [];
+    var scoresW = (SCORES && SCORES[w.id]) ? SCORES[w.id] : {};
+    var totaalScores = 0;
+    Object.keys(scoresW).forEach(function(r) {
+      Object.keys(scoresW[r]).forEach(function(sid) {
+        var arr = scoresW[r][sid];
+        if (Array.isArray(arr)) totaalScores += arr.filter(function(v) { return v !== '' && v != null; }).length;
+      });
+    });
+    console.log(w.naam + ' [' + w.status + ']: ' +
+      ingeschreven.length + ' ingeschreven (' + ings.length + ' totaal), ' +
+      flightsW.length + ' flights, ' + totaalScores + ' scores');
+  });
+  console.log('═══════════════════════════════════════');
+  console.log('Run window.herlaad() om opnieuw te laden van DB');
+};
+
+// Force-reload helper
+window.herlaad = async function() {
+  if (typeof laadAlleData === 'function') {
+    console.log('🔄 Herladen...');
+    await laadAlleData();
+    console.log('✓ Klaar — run diagnose() opnieuw');
+    if (typeof window.diagnose === 'function') window.diagnose();
+  }
+};
+
+
 // ═══════════════════════════════════════════════════════════════
 // TAKEN ENGINE — auto-detected slimme suggesties per wedstrijd
 // ═══════════════════════════════════════════════════════════════
