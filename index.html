@@ -2479,13 +2479,23 @@ function renderWdDetail() {
   var ic = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).length;
   var maxStr = w.max ? '/' + w.max : '';
 
-  // Score-progress
+  // Score-progress: SCORES is object met structuur SCORES[wId][ronde][sid] = ['4','5',...]
   var totaal = ic;
   var ingevoerd = 0;
-  if (totaal > 0) {
+  if (totaal > 0 && typeof SCORES !== 'undefined' && SCORES[w.id]) {
     var sids = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).map(function(i) { return i.sid; });
     sids.forEach(function(sid) {
-      var hasScore = SCORES.some(function(s) { return s.wid === w.id && s.sid === sid && s.holes && s.holes.length > 0; });
+      var hasScore = false;
+      var rondes = SCORES[w.id] || {};
+      for (var r in rondes) {
+        var arr = rondes[r] && rondes[r][sid];
+        if (Array.isArray(arr)) {
+          for (var i = 0; i < arr.length; i++) {
+            if (arr[i] !== '' && arr[i] !== null && arr[i] !== undefined) { hasScore = true; break; }
+          }
+        }
+        if (hasScore) break;
+      }
       if (hasScore) ingevoerd++;
     });
   }
@@ -2655,12 +2665,17 @@ function renderWdUitslagTab(w) {
   var rows = ingeschreven.map(function(ing) {
     var u = USERS.find(function(x) { return x.id === ing.sid; });
     if (!u) return null;
-    var score = SCORES.find(function(s) { return s.wid === w.id && s.sid === u.id; });
     var totaal = '-';
-    if (score && score.holes) {
-      // Eenvoudig: tel niet-lege scores
-      var ingev = score.holes.filter(function(h) { return h && h > 0; }).length;
-      totaal = ingev + ' holes';
+    if (typeof SCORES !== 'undefined' && SCORES[w.id]) {
+      var rondes = SCORES[w.id];
+      var ingev = 0;
+      for (var r in rondes) {
+        var arr = rondes[r] && rondes[r][u.id];
+        if (Array.isArray(arr)) {
+          arr.forEach(function(v) { if (v !== '' && v !== null && v !== undefined) ingev++; });
+        }
+      }
+      if (ingev > 0) totaal = ingev + ' holes';
     }
     return { naam: u.voor + ' ' + u.ach, hcp: u.hcp, totaal: totaal };
   }).filter(Boolean);
