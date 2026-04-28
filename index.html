@@ -2515,6 +2515,9 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 
 <script>
 // ═══════════════ GLOBAL STATE (vooraan gedefinieerd) ═══════════════
+var SPONSOREN = [];
+var WEDSTRIJD_SPONSOREN = [];
+var _editSponsorId = null;
 var COMPETITIES = [];
 var BERICHTEN = [];  // systeem notificaties
 
@@ -2959,6 +2962,265 @@ function renderMijnTaken() {
   content.innerHTML = html;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SPONSOR-MODULE — Sprint 1
+// ═══════════════════════════════════════════════════════════════
+
+// ─── Sync helpers ───────────────────────────────────────────────
+
+function dbSponsorNaarApp(s) {
+  return {
+    id: s.id,
+    naam: s.naam || '',
+    logoUrl: s.logo_url || '',
+    website: s.website || '',
+    contactNaam: s.contact_naam || '',
+    contactEmail: s.contact_email || '',
+    contactTel: s.contact_tel || '',
+    status: s.status || 'actief',
+    pakketNaam: s.pakket_naam || '',
+    jaarbedrag: s.jaarbedrag || 0,
+    periodeStart: s.periode_start || '',
+    periodeEind: s.periode_eind || '',
+    notitie: s.notitie || ''
+  };
+}
+
+async function dbSaveSponsor(sp) {
+  try {
+    var data = {
+      naam: sp.naam,
+      logo_url: sp.logoUrl || null,
+      website: sp.website || null,
+      contact_naam: sp.contactNaam || null,
+      contact_email: sp.contactEmail || null,
+      contact_tel: sp.contactTel || null,
+      status: sp.status || 'actief',
+      pakket_naam: sp.pakketNaam || null,
+      jaarbedrag: sp.jaarbedrag || null,
+      periode_start: sp.periodeStart || null,
+      periode_eind: sp.periodeEind || null,
+      notitie: sp.notitie || null,
+      bijgewerkt_op: new Date().toISOString()
+    };
+    if (sp.id && String(sp.id).includes('-')) {
+      await supa('sponsoren', 'PATCH', data, { id: 'eq.' + sp.id });
+      return sp;
+    } else {
+      var res = await supa('sponsoren', 'POST', data);
+      return res && res[0] ? dbSponsorNaarApp(res[0]) : sp;
+    }
+  } catch(e) { console.warn('dbSaveSponsor:', e.message); toast('Opslaan mislukt: ' + e.message, 'err'); return null; }
+}
+
+async function dbDeleteSponsor(id) {
+  try {
+    await supa('sponsoren', 'DELETE', null, { id: 'eq.' + id });
+    return true;
+  } catch(e) { console.warn('dbDeleteSponsor:', e.message); return false; }
+}
+
+async function laadSponsoren() {
+  try {
+    var sps = await supa('sponsoren', 'GET', null, { select: '*', order: 'naam.asc' });
+    SPONSOREN = (sps || []).map(dbSponsorNaarApp);
+    var ws = await supa('wedstrijd_sponsoren', 'GET', null, { select: '*' });
+    WEDSTRIJD_SPONSOREN = (ws || []).map(function(r) {
+      return { id: r.id, wedstrijdId: r.wedstrijd_id, sponsorId: r.sponsor_id, type: r.type || 'hoofdsponsor', holeNr: r.hole_nr || null };
+    });
+    return true;
+  } catch(e) { console.warn('laadSponsoren:', e.message); return false; }
+}
+
+// ─── Helpers ────────────────────────────────────────────────────
+
+// Vind hoofdsponsor van een wedstrijd (1 stuks)
+function hoofdsponsorVoorWedstrijd(wId) {
+  var koppel = (WEDSTRIJD_SPONSOREN || []).find(function(k) { return k.wedstrijdId === wId && k.type === 'hoofdsponsor'; });
+  if (!koppel) return null;
+  return SPONSOREN.find(function(s) { return s.id === koppel.sponsorId; }) || null;
+}
+
+// Alle sponsoren voor wedstrijd (eventueel meerdere)
+function sponsorenVoorWedstrijd(wId) {
+  var koppels = (WEDSTRIJD_SPONSOREN || []).filter(function(k) { return k.wedstrijdId === wId; });
+  return koppels.map(function(k) {
+    var sp = SPONSOREN.find(function(s) { return s.id === k.sponsorId; });
+    return sp ? { sponsor: sp, type: k.type, holeNr: k.holeNr } : null;
+  }).filter(Boolean);
+}
+
+// Koppel hoofdsponsor aan wedstrijd (verwijder oude eerst)
+async function koppelHoofdsponsorAanWedstrijd(wedstrijdId, sponsorId) {
+  try {
+    // Verwijder bestaande hoofdsponsor-koppeling voor deze wedstrijd
+    await supa('wedstrijd_sponsoren', 'DELETE', null, {
+      wedstrijd_id: 'eq.' + wedstrijdId,
+      type: 'eq.hoofdsponsor'
+    });
+    // Voeg nieuwe toe (als sponsorId niet leeg is)
+    if (sponsorId) {
+      await supa('wedstrijd_sponsoren', 'POST', {
+        wedstrijd_id: wedstrijdId,
+        sponsor_id: sponsorId,
+        type: 'hoofdsponsor'
+      });
+    }
+    // Refresh lokale array
+    await laadSponsoren();
+    return true;
+  } catch(e) { console.warn('koppelHoofdsponsor:', e.message); return false; }
+}
+
+// ─── Render: sponsoren overzicht ───────────────────────────────
+
+function renderSponsoren() {
+  var statsEl = document.getElementById('sponsoren-stats');
+  var listEl = document.getElementById('sponsoren-list');
+  if (!statsEl || !listEl) return;
+
+  var actief = SPONSOREN.filter(function(s) { return s.status === 'actief'; });
+  var totaalBedrag = actief.reduce(function(sum, s) { return sum + (parseFloat(s.jaarbedrag) || 0); }, 0);
+  var verloopBinnenkort = actief.filter(function(s) {
+    if (!s.periodeEind) return false;
+    var dagen = (new Date(s.periodeEind) - Date.now()) / (1000 * 60 * 60 * 24);
+    return dagen > 0 && dagen < 60;
+  });
+
+  // Stats cards
+  statsEl.innerHTML =
+    '<div class="mc" style="flex:1;min-width:140px"><div class="ml">Actieve sponsoren</div><div class="mv">' + actief.length + '</div></div>' +
+    '<div class="mc" style="flex:1;min-width:140px"><div class="ml">Jaaromzet</div><div class="mv" style="color:#16a34a">€' + totaalBedrag.toLocaleString('nl-NL') + '</div></div>' +
+    '<div class="mc" style="flex:1;min-width:140px"><div class="ml">Verlopen &lt;60 dagen</div><div class="mv" style="color:' + (verloopBinnenkort.length > 0 ? '#a16207' : '#8b94a3') + '">' + verloopBinnenkort.length + '</div></div>';
+
+  // Lijst
+  if (SPONSOREN.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#8b94a3"><div style="font-size:32px;margin-bottom:0.75rem">💎</div><h3 style="color:#0c1b2a;margin:0 0 0.5rem 0;font-family:Inter,sans-serif">Nog geen sponsoren</h3><p style="margin:0 0 1.25rem 0;font-size:14px">Voeg je eerste sponsor toe en koppel ze aan een wedstrijd voor zichtbaarheid.</p><button class="btn btn-p" onclick="openSponsorModal()">+ Eerste sponsor toevoegen</button></div>';
+    return;
+  }
+
+  // Tabel
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+    '<th style="width:50px"></th>' +
+    '<th>Naam</th>' +
+    '<th>Pakket</th>' +
+    '<th>Status</th>' +
+    '<th>Periode</th>' +
+    '<th style="text-align:right">Jaarbedrag</th>' +
+    '<th>Wedstrijden</th>' +
+    '<th></th>' +
+    '</tr></thead><tbody>';
+
+  SPONSOREN.forEach(function(s) {
+    var aantalWedstrijden = (WEDSTRIJD_SPONSOREN || []).filter(function(k) { return k.sponsorId === s.id; }).length;
+    var statusKleur = s.status === 'actief' ? 'bg' : (s.status === 'gepauzeerd' ? 'bw' : 'bx');
+    var logoHtml = s.logoUrl
+      ? '<img src="' + escHtml(s.logoUrl) + '" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#f8fafa;border:1px solid #e6eaf0;padding:3px" onerror="this.style.display=\'none\'"/>'
+      : '<div style="width:40px;height:40px;border-radius:6px;background:#f1f4f8;display:flex;align-items:center;justify-content:center;font-size:11px;color:#8b94a3;font-weight:600">' + escHtml((s.naam[0] || '?')) + '</div>';
+    var periode = '';
+    if (s.periodeStart && s.periodeEind) {
+      var ps = new Date(s.periodeStart).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: '2-digit' });
+      var pe = new Date(s.periodeEind).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: '2-digit' });
+      periode = ps + ' — ' + pe;
+    }
+    html += '<tr>' +
+      '<td>' + logoHtml + '</td>' +
+      '<td><div style="font-weight:500">' + escHtml(s.naam) + '</div>' +
+      (s.contactNaam ? '<div style="font-size:11px;color:#8b94a3">' + escHtml(s.contactNaam) + '</div>' : '') +
+      '</td>' +
+      '<td>' + (s.pakketNaam ? '<span class="badge bx">' + escHtml(s.pakketNaam) + '</span>' : '<span style="color:#8b94a3">—</span>') + '</td>' +
+      '<td><span class="badge ' + statusKleur + '">' + escHtml(s.status) + '</span></td>' +
+      '<td style="font-size:12px;color:#425466">' + escHtml(periode) + '</td>' +
+      '<td style="text-align:right;font-weight:500">' + (s.jaarbedrag ? '€' + parseFloat(s.jaarbedrag).toLocaleString('nl-NL') : '—') + '</td>' +
+      '<td style="text-align:center">' + (aantalWedstrijden > 0 ? '<span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600">' + aantalWedstrijden + '</span>' : '<span style="color:#8b94a3">—</span>') + '</td>' +
+      '<td><button class="btn btn-s btn-xs" onclick="openSponsorModal(\'' + s.id + '\')">Bewerken</button></td>' +
+    '</tr>';
+  });
+  html += '</tbody></table></div>';
+  listEl.innerHTML = html;
+}
+
+// ─── Modal handlers ────────────────────────────────────────────
+
+function openSponsorModal(sponsorId) {
+  _editSponsorId = sponsorId || null;
+  var titel = sponsorId ? 'Sponsor bewerken' : 'Nieuwe sponsor';
+  document.getElementById('modal-sponsor-titel').innerHTML = escHtml(titel) + ' <button class="modal-close" onclick="closeModal(\'modal-sponsor\')">&#215;</button>';
+
+  // Reset velden
+  ['msp-naam','msp-logo','msp-website','msp-cont-naam','msp-cont-email','msp-cont-tel','msp-bedrag','msp-start','msp-eind','msp-notitie'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('msp-pakket').value = '';
+  document.getElementById('msp-status').value = 'actief';
+
+  // Vul met bestaande data als bewerken
+  if (sponsorId) {
+    var s = SPONSOREN.find(function(x) { return x.id === sponsorId; });
+    if (s) {
+      document.getElementById('msp-naam').value = s.naam || '';
+      document.getElementById('msp-logo').value = s.logoUrl || '';
+      document.getElementById('msp-website').value = s.website || '';
+      document.getElementById('msp-cont-naam').value = s.contactNaam || '';
+      document.getElementById('msp-cont-email').value = s.contactEmail || '';
+      document.getElementById('msp-cont-tel').value = s.contactTel || '';
+      document.getElementById('msp-bedrag').value = s.jaarbedrag || '';
+      document.getElementById('msp-start').value = s.periodeStart || '';
+      document.getElementById('msp-eind').value = s.periodeEind || '';
+      document.getElementById('msp-notitie').value = s.notitie || '';
+      document.getElementById('msp-pakket').value = s.pakketNaam || '';
+      document.getElementById('msp-status').value = s.status || 'actief';
+    }
+    document.getElementById('msp-delete-btn').style.display = '';
+  } else {
+    document.getElementById('msp-delete-btn').style.display = 'none';
+  }
+  openModal('modal-sponsor');
+}
+
+async function opslaanSponsor() {
+  var naam = document.getElementById('msp-naam').value.trim();
+  if (!naam) { toast('Vul een naam in.', 'err'); return; }
+
+  var sp = {
+    id: _editSponsorId,
+    naam: naam,
+    logoUrl: document.getElementById('msp-logo').value.trim(),
+    website: document.getElementById('msp-website').value.trim(),
+    contactNaam: document.getElementById('msp-cont-naam').value.trim(),
+    contactEmail: document.getElementById('msp-cont-email').value.trim(),
+    contactTel: document.getElementById('msp-cont-tel').value.trim(),
+    pakketNaam: document.getElementById('msp-pakket').value,
+    jaarbedrag: parseFloat(document.getElementById('msp-bedrag').value) || 0,
+    periodeStart: document.getElementById('msp-start').value || null,
+    periodeEind: document.getElementById('msp-eind').value || null,
+    status: document.getElementById('msp-status').value || 'actief',
+    notitie: document.getElementById('msp-notitie').value.trim()
+  };
+
+  var saved = await dbSaveSponsor(sp);
+  if (saved) {
+    await laadSponsoren();
+    renderSponsoren();
+    closeModal('modal-sponsor');
+    toast(_editSponsorId ? 'Sponsor bijgewerkt' : 'Sponsor toegevoegd');
+  }
+}
+
+async function verwijderSponsor() {
+  if (!_editSponsorId) return;
+  if (!confirm('Weet je zeker dat je deze sponsor wilt verwijderen? Bestaande koppelingen aan wedstrijden worden ook verwijderd.')) return;
+  var ok = await dbDeleteSponsor(_editSponsorId);
+  if (ok) {
+    await laadSponsoren();
+    renderSponsoren();
+    closeModal('modal-sponsor');
+    toast('Sponsor verwijderd');
+  }
+}
+
+
+
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -3129,6 +3391,12 @@ function renderWdInfoTab(w) {
     '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Handicap</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + (w.hcpmin || 0) + ' tot ' + (w.hcpmax || 54) + ' &middot; ' + (w.hcpperc || 100) + '%</p></div>' +
     '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Max. deelnemers</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + (w.max || '-') + '</p></div>' +
     '<div><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Wedstrijdleider</h4><p style="font-size:15px;color:#0c1b2a;margin:0">' + (leiderNaam(w) ? escHtml(leiderNaam(w)) : '<span style="color:#a16207;font-style:italic">Nog niet gekozen</span>') + '</p></div>' +
+    (function() {
+      var hsp = (typeof hoofdsponsorVoorWedstrijd === 'function') ? hoofdsponsorVoorWedstrijd(w.id) : null;
+      if (!hsp) return '';
+      var logo = hsp.logoUrl ? '<img src="' + escHtml(hsp.logoUrl) + '" style="height:28px;width:auto;vertical-align:middle;margin-right:8px;border-radius:4px" onerror="this.style.display=\'none\'"/>' : '';
+      return '<div style="grid-column:1/-1;background:linear-gradient(135deg,#fefce8,#fef3c7);padding:0.85rem 1rem;border-radius:8px;border:1px solid #fde68a;display:flex;align-items:center;gap:8px"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700">Hoofdsponsor</span>' + logo + '<span style="font-size:15px;color:#0c1b2a;font-weight:600">' + escHtml(hsp.naam) + '</span>' + (hsp.website ? '<a href="' + escHtml(hsp.website) + '" target="_blank" style="font-size:12px;color:#0c1b2a;margin-left:auto;text-decoration:underline">Website →</a>' : '') + '</div>';
+    })() +
     (w.omschrijving ? '<div style="grid-column:1/-1"><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Omschrijving</h4><p style="font-size:14px;color:#425466;margin:0;line-height:1.5">' + escHtml(w.omschrijving) + '</p></div>' : '') +
     (w.afgelast_reden ? '<div style="grid-column:1/-1;background:#fef3c7;padding:0.85rem 1rem;border-radius:8px;border:1px solid #fde68a"><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;margin:0 0 0.3rem 0;font-weight:700">Afgelast — reden</h4><p style="font-size:13px;color:#78350f;margin:0">' + escHtml(w.afgelast_reden) + '</p></div>' : '') +
     '</div>' +
@@ -3440,6 +3708,13 @@ function renderWdUitslagTab(w) {
   // Bouw klassement-tabel via bestaande functie
   var leaderboardHtml = buildLeaderboard(w.id, ronde, baan, sps, w);
 
+  // Sponsor-banner onder leaderboard (Sprint 1 zichtbaarheid)
+  var hsp_lb = (typeof hoofdsponsorVoorWedstrijd === 'function') ? hoofdsponsorVoorWedstrijd(w.id) : null;
+  if (hsp_lb) {
+    var logoBanner = hsp_lb.logoUrl ? '<img src="' + escHtml(hsp_lb.logoUrl) + '" style="height:36px;width:auto;border-radius:4px" onerror="this.style.display=\'none\'"/>' : '';
+    leaderboardHtml += '<div style="margin-top:1rem;padding:0.85rem 1.25rem;background:linear-gradient(135deg,#fefce8,#fef3c7);border:1px solid #fde68a;border-radius:10px;display:flex;align-items:center;gap:12px;justify-content:center"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700">Powered by</span>' + logoBanner + '<span style="font-size:16px;color:#0c1b2a;font-weight:600;font-family:Inter,sans-serif">' + escHtml(hsp_lb.naam) + '</span></div>';
+  }
+
   // Live LB knop voor publiek scherm
   var lbBtn = '';
   if (typeof openLiveLeaderboard === 'function' && (fase === 'live' || fase === 'afgerond')) {
@@ -3662,6 +3937,11 @@ async function laadAlleData() {
     USERS        = (gbs  || []).map(dbGebruikerNaarApp);
     WEDSTRIJDEN  = (ws   || []).map(dbWedstrijdNaarApp);
     INSCHRIJVINGEN=(ings || []).map(dbIngNaarApp);
+
+    // Sponsoren laden (Sprint 1 toevoeging)
+    if (typeof laadSponsoren === 'function') {
+      try { await laadSponsoren(); } catch(e) { console.warn('Sponsoren laden mislukt:', e.message); }
+    }
 
     // Flights reconstrueren: { wid: [[sid1, sid2, ...], [sid3, sid4, ...]] }
     FLIGHTS = {};
@@ -4078,7 +4358,7 @@ var _adminBcNav=null;
 // AUTH
 // ============================================================
 var ROL_RECHTEN={
-  Superadmin:['dashboard','kalender','wedstrijden','wddetail','mijntaken','nieuw','competities','spelers','inschrijvingen','flights','scores','admins','notificaties','rapportages','instellingen'],
+  Superadmin:['dashboard','kalender','wedstrijden','wddetail','mijntaken','sponsoren','nieuw','competities','spelers','inschrijvingen','flights','scores','admins','notificaties','rapportages','instellingen'],
   Wedstrijdleider:['dashboard','kalender','wedstrijden','wddetail','mijntaken','nieuw','competities','inschrijvingen','flights','scores','notificaties','rapportages'],
   Secretaris:['dashboard','kalender','wedstrijden','wddetail','spelers','inschrijvingen','notificaties'],
   Speler:[],
@@ -4167,12 +4447,13 @@ var ADMIN_NAV_ITEMS=[
   {id:'notificaties',label:'Notificaties',rollen:['Superadmin','Wedstrijdleider','Secretaris'],badge:'notif',icon:'<path d="M8 2a5 5 0 0 1 5 5v2l1 2H2l1-2V7a5 5 0 0 1 5-5z"/><path d="M6 13a2 2 0 0 0 4 0"/>'},
   {sec:'Analyse',rollen:['Superadmin','Wedstrijdleider']},
   {id:'rapportages',label:'Rapportages',rollen:['Superadmin','Wedstrijdleider'],icon:'<rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 10V8M8 10V6M11 10V4"/>'},
+  {id:'sponsoren',label:'Sponsoren',rollen:['Superadmin'],icon:'<path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4.5 2-7L2 9h7z"/>'},
   {sec:'Beheer',rollen:['Superadmin']},
   {id:'admins',label:'Admins & rollen',rollen:['Superadmin'],icon:'<circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/><path d="M14 8l1.5 1.5L18 7"/>'},
   {id:'instellingen',label:'Clubinstellingen',rollen:['Superadmin'],icon:'<circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M11.4 4.6l-1.4 1.4M4.6 11.4l-1.4 1.4"/>'},
 ];
 
-var ADMIN_TITLES={dashboard:'Dashboard',kalender:'Wedstrijdkalender',wedstrijden:'Alle wedstrijden',wddetail:'Wedstrijd',mijntaken:'Mijn taken',nieuw:'Nieuwe wedstrijd',competities:'Competities',spelers:'Ledenbestand',inschrijvingen:'Inschrijvingen',flights:'Flight-indeling',scores:'Scores & leaderboard',admins:'Admins & rollen',notificaties:'Notificaties',rapportages:'Rapportages',instellingen:'Clubinstellingen'};
+var ADMIN_TITLES={dashboard:'Dashboard',kalender:'Wedstrijdkalender',wedstrijden:'Alle wedstrijden',wddetail:'Wedstrijd',mijntaken:'Mijn taken',sponsoren:'Sponsoren',nieuw:'Nieuwe wedstrijd',competities:'Competities',spelers:'Ledenbestand',inschrijvingen:'Inschrijvingen',flights:'Flight-indeling',scores:'Scores & leaderboard',admins:'Admins & rollen',notificaties:'Notificaties',rapportages:'Rapportages',instellingen:'Clubinstellingen'};
 
 var ADMIN_BC={
   nieuw:{parent:'Wedstrijden',nav:'wedstrijden'},
@@ -4247,6 +4528,21 @@ function vulLeiderDropdown(huidigeLeiderId) {
   sel.innerHTML = opts;
   if (huidigeLeiderId) sel.value = huidigeLeiderId;
 }
+
+// Vul hoofdsponsor-dropdown in wedstrijd-formulier
+function vulHoofdsponsorDropdown(huidigeSponsorId) {
+  var sel = document.getElementById('fhsponsor');
+  if (!sel) return;
+  var actief = (SPONSOREN || []).filter(function(s) { return s.status === 'actief'; });
+  actief.sort(function(a, b) { return a.naam.localeCompare(b.naam); });
+  var opts = '<option value="">— Geen sponsor —</option>';
+  actief.forEach(function(s) {
+    opts += '<option value="' + s.id + '">' + escHtml(s.naam) + (s.pakketNaam ? ' (' + escHtml(s.pakketNaam) + ')' : '') + '</option>';
+  });
+  sel.innerHTML = opts;
+  if (huidigeSponsorId) sel.value = huidigeSponsorId;
+}
+
 // Geeft leesbare naam van wedstrijdleider, of '' als niemand gekozen
 function leiderNaam(w) {
   if (!w || !w.leiderId || !USERS) return '';
@@ -4283,7 +4579,7 @@ function adminNav(id){
   // Verberg + Wedstrijd knop als geen toegang
   var btnNieuw=document.getElementById('btn-nieuw-w');
   if(btnNieuw)btnNieuw.style.display=heeftToegang('nieuw')?'':'none';
-  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,notificaties:renderNotificaties,rapportages:renderRapportages,wddetail:renderWdDetail,mijntaken:renderMijnTaken};
+  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,notificaties:renderNotificaties,rapportages:renderRapportages,wddetail:renderWdDetail,mijntaken:renderMijnTaken,sponsoren:renderSponsoren};
   if(renders[id])renders[id]();
   if(id==='nieuw'){goStep(0);if(!_editId)resetForm();}
   _adminView=id;
@@ -4641,6 +4937,8 @@ function editW(id){
     sv('fmax', w.max || 72);
     sv('fflt', w.flt || 3);
     vulLeiderDropdown(w.leiderId || '');
+    var hsp = hoofdsponsorVoorWedstrijd(w.id);
+    vulHoofdsponsorDropdown(hsp ? hsp.id : '');
     var fh = document.getElementById('fh'); if(fh) fh.value = w.holes;
     var fhp = document.getElementById('fhp'); if(fhp) fhp.value = w.hcpperc;
     var fesc = document.getElementById('fesc'); if(fesc) fesc.value = w.esc || 'geen';
@@ -4713,6 +5011,7 @@ function resetForm(){
     defLeiderId = _currentUser.id;
   }
   vulLeiderDropdown(defLeiderId);
+  vulHoofdsponsorDropdown('');
   var now=new Date().toISOString().split('T')[0];
   ['fn','fb','fomschr'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   if(document.getElementById('fd'))document.getElementById('fd').value=now;
@@ -4810,7 +5109,12 @@ async function bouwEnSlaWedstrijdOp(status) {
     if (i > -1) Object.assign(WEDSTRIJDEN[i], data);
     dbSaveWedstrijd(data).catch(function(e) { console.warn('dbSaveWedstrijd:', e.message); });
     _editId = null;
-    toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
+    // Koppel hoofdsponsor (Sprint 1)
+  var sponsorEl = document.getElementById('fhsponsor');
+  if (sponsorEl && typeof koppelHoofdsponsorAanWedstrijd === 'function' && w && w.id) {
+    koppelHoofdsponsorAanWedstrijd(w.id, sponsorEl.value || null);
+  }
+  toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
     adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
     return;
   }
@@ -9247,7 +9551,12 @@ function gwOpslaan() {
       g.holes = w.holes; g.startgeld = w.startgeld; g.omschrijving = w.omschrijving;
       g.deelnemers = w.deelnemers;
     }
-    toast('Wedstrijd bijgewerkt!');
+    // Koppel hoofdsponsor (Sprint 1)
+  var sponsorEl = document.getElementById('fhsponsor');
+  if (sponsorEl && typeof koppelHoofdsponsorAanWedstrijd === 'function') {
+    koppelHoofdsponsorAanWedstrijd(w.id, sponsorEl.value || null);
+  }
+  toast('Wedstrijd bijgewerkt!');
   } else {
     // Nieuw
     var nieuw = {
@@ -11285,6 +11594,22 @@ try {
         <div id="v-mijntaken-list"></div>
       </div>
 
+      <!-- ═══════════════════════════════════════════════════════
+           SPONSOREN VIEW (Sprint 1)
+           ═══════════════════════════════════════════════════════ -->
+      <div id="v-sponsoren" class="view">
+        <div class="card">
+          <div class="card-hd">Sponsoren
+            <div class="card-hd-r">
+              <button class="btn btn-p btn-sm" onclick="openSponsorModal()">+ Sponsor toevoegen</button>
+            </div>
+          </div>
+          <div id="sponsoren-stats" style="display:flex;gap:1rem;flex-wrap:wrap;padding:1rem 1.25rem 0.5rem"></div>
+          <div id="sponsoren-list" style="padding:0.5rem 1.25rem 1.25rem"></div>
+        </div>
+      </div>
+
+
 
 
       <!-- NIEUW WEDSTRIJD WIZARD -->
@@ -11363,6 +11688,7 @@ try {
                 <div class="field"><label>Max. deelnemers</label><input id="fmax" type="number" value="72" min="1"/></div>
                 <div class="field"><label>Spelers per flight</label><input id="fflt" type="number" value="3" min="2" max="5"/></div>
               <div class="field"><label>Wedstrijdleider</label><select id="fleider"><option value="">— Geen / nog niet gekozen —</option></select></div>
+              <div class="field"><label>Hoofdsponsor</label><select id="fhsponsor"><option value="">— Geen sponsor —</option></select></div>
               </div>
             </div>
             <div class="blk"><div class="blk-t">Inschrijvingsperiode</div>
@@ -11814,6 +12140,42 @@ try {
 </div>
 
 <!-- Snel aanmaken modal -->
+<div class="modal-bg" id="modal-sponsor">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title" id="modal-sponsor-titel">Nieuwe sponsor <button class="modal-close" onclick="closeModal('modal-sponsor')">&#215;</button></div>
+    <div class="g2">
+      <div class="field"><label>Naam *</label><input id="msp-naam" type="text" placeholder="Bavaria"/></div>
+      <div class="field"><label>Pakket</label><select id="msp-pakket"><option value="">— kies —</option><option>Goud</option><option>Zilver</option><option>Brons</option><option>Hole-sponsor</option><option>Vrij</option></select></div>
+    </div>
+    <div class="field"><label>Logo URL</label><input id="msp-logo" type="text" placeholder="https://...logo.png"/><small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">Plak voor nu een URL. Upload-functie volgt later.</small></div>
+    <div class="field"><label>Website</label><input id="msp-website" type="text" placeholder="https://bavaria.nl"/></div>
+    <div class="g2">
+      <div class="field"><label>Contactpersoon</label><input id="msp-cont-naam" type="text" placeholder="Jan Janssen"/></div>
+      <div class="field"><label>Contact e-mail</label><input id="msp-cont-email" type="email" placeholder="jan@bavaria.nl"/></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Contact telefoon</label><input id="msp-cont-tel" type="text" placeholder="06-12345678"/></div>
+      <div class="field"><label>Jaarbedrag (€)</label><input id="msp-bedrag" type="number" min="0" step="100" placeholder="1500"/></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Periode start</label><input id="msp-start" type="date"/></div>
+      <div class="field"><label>Periode eind</label><input id="msp-eind" type="date"/></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Status</label><select id="msp-status"><option value="actief">Actief</option><option value="gepauzeerd">Gepauzeerd</option><option value="gearchiveerd">Gearchiveerd</option></select></div>
+      <div class="field"></div>
+    </div>
+    <div class="field"><label>Notitie (intern)</label><textarea id="msp-notitie" rows="2" placeholder="Bijv. contractdetails, bijzonderheden..." style="width:100%;padding:8px 12px;border:1px solid var(--bd);border-radius:var(--r);font-family:inherit;font-size:13px"></textarea></div>
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:1rem">
+      <button class="btn btn-d btn-sm" id="msp-delete-btn" onclick="verwijderSponsor()" style="display:none">Verwijderen</button>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-s" onclick="closeModal('modal-sponsor')">Annuleren</button>
+        <button class="btn btn-p" onclick="opslaanSponsor()">Opslaan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-snel">
   <div class="modal" style="max-width:420px">
     <div class="modal-title">Snel aanmaken <button class="modal-close" onclick="closeModal('modal-stnel');closeModal('modal-snel')">&#215;</button></div>
