@@ -7333,7 +7333,7 @@ function renderSpelerKalender(){
                 '<span class="sp-hero-live-dot"></span>' +
                 'Live leaderboard</button>';
             }
-            html += '<button class="sp-hero-btn secondary" onclick="spNav(\'startlijst\')">' +
+            html += '<button class="sp-hero-btn secondary" onclick="openSpelerWdDetail(\'' + next.id + '\', \'mijnstart\')">' +
               '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' +
               'Mijn start</button>';
             html += '</div>';
@@ -11608,7 +11608,7 @@ try {
       <div class="sp-nav-item on" data-spview="kalender" onclick="spNav('kalender',this)">Wedstrijden</div>
       <div class="sp-nav-item" data-spview="groep" onclick="spNav('groep',this)" id="sp-nav-groep">Groepswedstrijd</div>
       <div class="sp-nav-item" data-spview="scorekaart" onclick="spNav('scorekaart',this)">Scorekaart</div>
-      <div class="sp-nav-item" data-spview="startlijst" onclick="spNav('startlijst',this)">Mijn start</div>
+      
       <div class="sp-nav-item" data-spview="inschrijvingen" onclick="spNav('inschrijvingen',this)">Inschrijvingen</div>
       <div class="sp-nav-item" data-spview="scores" onclick="spNav('scores',this)">Uitslagen</div>
       <div class="sp-nav-item" data-spview="ranglijst" onclick="spNav('ranglijst',this)">Ranglijst</div>
