@@ -3138,43 +3138,7 @@ function renderWdUitslagTab(w) {
   var ronde = 0;
 
   // Bouw klassement-tabel via bestaande functie
-  // Debug info zichtbaar in UI
-  var debugInfo = '';
-  var flightsArr = (typeof FLIGHTS !== 'undefined' && FLIGHTS[w.id]) ? FLIGHTS[w.id] : [];
-  var scoresObj = (typeof SCORES !== 'undefined' && SCORES[w.id]) ? SCORES[w.id] : {};
-  var scoresPerSpeler = {};
-  if (scoresObj[0]) {
-    Object.keys(scoresObj[0]).forEach(function(sid) {
-      var arr = scoresObj[0][sid];
-      var ingev = Array.isArray(arr) ? arr.filter(function(v){return v!=='' && v!=null;}).length : 0;
-      scoresPerSpeler[sid] = ingev;
-    });
-  }
-  // Diagnose ALLE inschrijvingen voor deze wedstrijd, ook andere statussen
-  var alleIngs = (INSCHRIJVINGEN || []).filter(function(i){return i.wid===w.id;});
-  var statTeller = {};
-  alleIngs.forEach(function(i){
-    statTeller[i.status||'(leeg)'] = (statTeller[i.status||'(leeg)'] || 0) + 1;
-  });
-  debugInfo = '<details style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-family:monospace;font-size:12px" open><summary style="cursor:pointer;font-weight:600">🔍 Diagnose-info</summary>' +
-    '<div style="margin-top:0.5rem">' +
-    '<b>Wedstrijd id:</b> ' + escHtml(w.id) + '<br>' +
-    '<b>Wedstrijd:</b> ' + escHtml(w.naam) + ' (' + escHtml(w.vorm) + ')<br>' +
-    '<b>WEDSTRIJDEN.length:</b> ' + WEDSTRIJDEN.length + '<br>' +
-    '<b>USERS.length:</b> ' + USERS.length + '<br>' +
-    '<b>INSCHRIJVINGEN totaal in app:</b> ' + (INSCHRIJVINGEN||[]).length + '<br>' +
-    '<b>Inschrijvingen voor deze wedstrijd (alle statussen):</b> ' + alleIngs.length + '<br>' +
-    '<b>Per status:</b> ' + JSON.stringify(statTeller) + '<br>' +
-    '<b>Spelers (sps) na filter ingeschreven+USER:</b> ' + sps.length + '<br>' +
-    '<b>Flights gevonden:</b> ' + flightsArr.length + '<br>' +
-    '<b>Spelers per flight:</b> [' + flightsArr.map(function(f){return f.length;}).join(', ') + ']<br>' +
-    '<b>Spelers met scores in DB:</b> ' + Object.keys(scoresPerSpeler).length + '<br>' +
-    '<b>Score-counts (eerste 15):</b> ' + Object.values(scoresPerSpeler).slice(0,15).join(',') + (Object.keys(scoresPerSpeler).length > 15 ? '...' : '') + '<br>' +
-    '</div></details>';
-  console.log('[Uitslag] debug:', { wedstrijd:w.naam, vorm:w.vorm, sps:sps.length, flights:flightsArr.length, scoresKeys:Object.keys(scoresObj) });
-
   var leaderboardHtml = buildLeaderboard(w.id, ronde, baan, sps, w);
-  leaderboardHtml = debugInfo + leaderboardHtml;
 
   // Live LB knop voor publiek scherm
   var lbBtn = '';
