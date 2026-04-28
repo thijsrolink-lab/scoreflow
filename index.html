@@ -3013,7 +3013,7 @@ function renderScoresInTab(wId) {
 
   // Live leaderboard knop indien live
   var lbBtn = (fase === 'live' || fase === 'afgerond')
-    ? '<button class="wd-btn wd-btn-dark" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openLiveLeaderboard()">📺 Live LB</button>'
+    ? '<button class="wd-btn wd-btn-dark" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openLiveLeaderboard(\'' + w.id + '\')">📺 Live LB</button>'
     : '';
 
   var rondeSelect = '';
@@ -3143,7 +3143,7 @@ function renderWdUitslagTab(w) {
   // Live LB knop voor publiek scherm
   var lbBtn = '';
   if (typeof openLiveLeaderboard === 'function' && (fase === 'live' || fase === 'afgerond')) {
-    lbBtn = '<div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openLiveLeaderboard()">📺 Open op groot scherm</button></div>';
+    lbBtn = '<div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openLiveLeaderboard(\'' + w.id + '\')">📺 Open op groot scherm</button></div>';
   }
 
   // Multi-ronde rondeselector
@@ -8014,8 +8014,17 @@ var _lbInterval = null;
 var _lbRefillTimeout = null;
 var _lbTerugNaar = null;
 
-function openLiveLeaderboard() {
-  var wId = document.getElementById('sc-w').value;
+function openLiveLeaderboard(forceWId) {
+  var wId = forceWId;
+  // Probeer eerst de sc-w dropdown (oude scores-view)
+  if (!wId) {
+    var scw = document.getElementById('sc-w');
+    if (scw && scw.value) wId = scw.value;
+  }
+  // Anders: gebruik wedstrijd-detail context (nieuwe tab-view)
+  if (!wId && typeof _wdDetailState !== 'undefined' && _wdDetailState && _wdDetailState.wId) {
+    wId = _wdDetailState.wId;
+  }
   if (!wId) { toast('Kies eerst een wedstrijd.', 'err'); return; }
   _lbWId = wId;
   _lbTerugNaar = _currentUser ? (_currentUser.rol === 'Speler' ? 'speler' : 'admin') : 'login';
