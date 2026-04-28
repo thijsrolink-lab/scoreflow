@@ -7941,8 +7941,7 @@ function renderSpScorekaartTab(w, fase) {
   // Trick: we zetten een hidden sk-w input en sp-scorekaart-content placeholder,
   // dan roepen we initScorekaart() aan, en verplaatsen het resultaat
   return '<input type="hidden" id="sk-w" value="' + escHtml(w.id) + '">' +
-    '<div id="sp-scorekaart-content" class="sp-scorekaart-tab-content"></div>' +
-    '<script>setTimeout(function(){if(typeof initScorekaart===\'function\')initScorekaart();},10);<' + '/script>';
+    '<div id="sp-scorekaart-content" class="sp-scorekaart-tab-content"></div>';
 }
 
 // ─── Tab: Leaderboard ──────────────────────────
