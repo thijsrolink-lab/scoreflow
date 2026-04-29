@@ -7422,15 +7422,10 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
 }
 // ── Speler ziet team scorekaart van eigen flight (Texas Scramble) ──
 function renderSpelerTeamScorekaart(wId, w, baan, u) {
-  console.log('[TeamScorekaart] start — wId:', wId, 'user:', u && u.email);
   var container = document.getElementById('sp-scorekaart-content');
-  if (!container) {
-    console.warn('[TeamScorekaart] sp-scorekaart-content niet gevonden!');
-    return;
-  }
+  if (!container) return;
 
   var flights = FLIGHTS[wId] || [];
-  console.log('[TeamScorekaart] flights:', flights.length, 'baan:', baan && baan.holes, 'parTotaal:', baan && baan.parTotaal);
   var mijnFlightIdx = -1;
   flights.forEach(function(f, idx) {
     if (f.indexOf(u.id) >= 0) mijnFlightIdx = idx;
@@ -8636,29 +8631,20 @@ function renderSpWdTabContent(w, fase) {
   if (tab === 'info') contentEl.innerHTML = renderSpInfoTab(w, fase);
   else if (tab === 'mijnstart') contentEl.innerHTML = renderSpMijnStartTab(w, fase);
   else if (tab === 'scorekaart') {
-    console.log('[ScorekaartTab] BEFORE render - w.id:', w.id, 'type:', typeof w.id);
-    var skHtml = renderSpScorekaartTab(w, fase);
-    contentEl.innerHTML = skHtml;
-    console.log('[ScorekaartTab] HTML preview:', skHtml.substring(0, 250));
-    console.log('[ScorekaartTab] fase:', fase, 'vorm:', w.vorm, 'wId:', w.id);
-    console.log('[ScorekaartTab] HTML lengte:', skHtml.length);
+    contentEl.innerHTML = renderSpScorekaartTab(w, fase);
     // Trigger initScorekaart na korte delay zodat DOM zeker is bijgewerkt
     setTimeout(function() {
       var skw = document.getElementById('sk-w');
       var skc = document.getElementById('sp-scorekaart-content');
-      console.log('[ScorekaartTab] sk-w element:', !!skw, 'value:', skw ? skw.value : 'n/a');
-      console.log('[ScorekaartTab] sp-scorekaart-content element:', !!skc);
-      if (skw && typeof initScorekaart === 'function') {
-        console.log('[ScorekaartTab] Roep initScorekaart aan...');
+      // Zet wId expliciet op de hidden input (robuust tegen escape-issues)
+      if (skw) skw.value = w.id;
+      if (skw && skc && typeof initScorekaart === 'function') {
         try {
           initScorekaart();
-          console.log('[ScorekaartTab] initScorekaart klaar. Content lengte:', skc ? skc.innerHTML.length : 0);
         } catch(e) {
-          console.error('[ScorekaartTab] initScorekaart crash:', e);
-          if (skc) skc.innerHTML = '<div style="padding:1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b">Fout: ' + e.message + '</div>';
+          console.error('[Scorekaart] crash:', e);
+          skc.innerHTML = '<div style="padding:1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b"><strong>Fout bij rendering:</strong><br>' + escHtml(e.message) + '</div>';
         }
-      } else {
-        console.warn('[ScorekaartTab] sk-w of initScorekaart niet beschikbaar');
       }
     }, 50);
   }
@@ -9031,14 +9017,7 @@ function initScorekaart() {
 
   // Texas Scramble: team scorekaart
   if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
-    console.log('[initScorekaart] Texas Scramble path — wId:', wId);
-    try {
-      renderSpelerTeamScorekaart(wId, w, baan, u);
-    } catch(e) {
-      console.error('[initScorekaart] renderSpelerTeamScorekaart crash:', e);
-      var skc = document.getElementById('sp-scorekaart-content');
-      if (skc) skc.innerHTML = '<div style="padding:1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b"><strong>Fout bij rendering:</strong><br>' + escHtml(e.message) + '<br><br><small>' + escHtml(e.stack || '') + '</small></div>';
-    }
+    renderSpelerTeamScorekaart(wId, w, baan, u);
     return;
   }
 
