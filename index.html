@@ -3583,6 +3583,8 @@ function openWdBeheer(wId) {
       document.getElementById('mwb-drivemax').value = w.driveMax != null ? w.driveMax : 5;
     }
   }
+  var mwbBlind = document.getElementById('mwb-blind');
+  if (mwbBlind) mwbBlind.value = w.blindHoles || 0;
 
   // Hoofdsponsor dropdown
   var hsSel = document.getElementById('mwb-hsponsor');
@@ -3619,13 +3621,16 @@ async function opslaanWdBeheer() {
     w.driveMin = dminEl ? parseInt(dminEl.value) : null;
     w.driveMax = dmaxEl ? parseInt(dmaxEl.value) : null;
   }
+  var mwbBlind2 = document.getElementById('mwb-blind');
+  w.blindHoles = mwbBlind2 ? parseInt(mwbBlind2.value) || 0 : 0;
 
   // Save naar DB
   try {
     var data = {
       leider_id: w.leiderId || null,
       drive_min: w.driveMin != null ? w.driveMin : null,
-      drive_max: w.driveMax != null ? w.driveMax : null
+      drive_max: w.driveMax != null ? w.driveMax : null,
+      blind_holes: w.blindHoles || 0
     };
     await supa('wedstrijden', 'PATCH', data, { id: 'eq.' + wId });
 
@@ -4458,7 +4463,8 @@ function dbWedstrijdNaarApp(w) {
     omschrijving: w.omschrijving, kleur: w.kleur || 'ceg',
     afgelast_reden: w.afgelast_reden || '',
     driveMin: w.drive_min != null ? w.drive_min : null,
-    driveMax: w.drive_max != null ? w.drive_max : null,};
+    driveMax: w.drive_max != null ? w.drive_max : null,
+    blindHoles: w.blind_holes || 0,};
 }
 function dbIngNaarApp(i) {
   return { id: i.id, wid: i.wid, sid: i.sid,
@@ -4568,7 +4574,8 @@ async function dbSaveWedstrijd(w) {
       skins_pot: w.skinsPot || 0, inschrijf_open: w.inschrijfOpen,
       inschrijf_sluit: w.inschrijfSluit, omschrijving: w.omschrijving, kleur: w.kleur, afgelast_reden: w.afgelast_reden || null,
       drive_min: w.driveMin != null ? w.driveMin : null,
-      drive_max: w.driveMax != null ? w.driveMax : null,};
+      drive_max: w.driveMax != null ? w.driveMax : null,
+      blind_holes: w.blindHoles || 0,};
     if (w.id && String(w.id).includes('-')) {
       await supa('wedstrijden', 'PATCH', data, { id: 'eq.' + w.id });
     } else {
@@ -5525,6 +5532,8 @@ function editW(id){
     var fdrivemax2 = document.getElementById('fdrivemax');
     if (fdrivemin2) fdrivemin2.value = (w.driveMin != null ? w.driveMin : 4);
     if (fdrivemax2) fdrivemax2.value = (w.driveMax != null ? w.driveMax : 5);
+    var fblindEdit = document.getElementById('fblind');
+    if (fblindEdit) fblindEdit.value = (w.blindHoles || 0);
     if (typeof showHideDriveQuota === 'function') showHideDriveQuota();
     var fh = document.getElementById('fh'); if(fh) fh.value = w.holes;
     var fhp = document.getElementById('fhp'); if(fhp) fhp.value = w.hcpperc;
@@ -5603,6 +5612,8 @@ function resetForm(){
   var fdrivemin = document.getElementById('fdrivemin');
   var fdrivemax = document.getElementById('fdrivemax');
   if (fdrivemin) fdrivemin.value = 4;
+  var fblind = document.getElementById('fblind');
+  if (fblind) fblind.value = 0;
   if (fdrivemax) fdrivemax.value = 5;
   if (typeof showHideDriveQuota === 'function') showHideDriveQuota();
   // Sponsor wizard state reset
@@ -5686,6 +5697,9 @@ function bouwWedstrijdUitFormulier(status) {
     omschrijving: document.getElementById('fomschr').value || '',
     inschrijfOpen: document.getElementById('fop').value || '',
     inschrijfSluit: document.getElementById('fsluit').value || '',
+    blindHoles: parseInt((document.getElementById('fblind') || {}).value || 0) || 0,
+    driveMin: parseInt((document.getElementById('fdrivemin') || {}).value) || null,
+    driveMax: parseInt((document.getElementById('fdrivemax') || {}).value) || null,
   };
 }
 
@@ -7537,6 +7551,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
       scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][spelers[0].id]);
     }
     scores = scores || Array(baan.holes).fill('');
+    scores = filterScoresVoorBlind(scores, w);
     var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
 
     return {
@@ -7552,7 +7567,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
 
   rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
 
-  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Texas Scramble leaderboard — gesorteerd op netto score per team</div>';
+  var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Texas Scramble leaderboard — gesorteerd op netto score per team</div>';
   html += '<table class="tbl"><thead><tr>' +
     '<th style="width:32px">#</th><th>Team</th><th>SH</th><th>Netto</th><th>Bruto</th><th>+/- par</th><th>Gespeeld</th>' +
     '</tr></thead><tbody>';
@@ -7593,6 +7608,7 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
       scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][spelers[0].id]);
     }
     scores = scores || Array(baan.holes).fill('');
+    scores = filterScoresVoorBlind(scores, w);
     var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
 
     // Ben ik in dit team?
@@ -8316,13 +8332,14 @@ function buildLeaderboard(wId,ronde,baan,sps,w){
   var rows=sps.map(function(s){
     var sh=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
     var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
+    sc = filterScoresVoorBlind(sc, w);
     var sp=berekenStrokeplay(sc,baan,sh,w.esc||'geen');
     var sf=berekenStableford(sc,baan,sh);
     return{naam:s.voor+' '+s.ach,sh:sh,netto:sp.netto,bruto:sp.bruto,nettoVsPar:sp.nettoVsPar,sfPts:sf.punten,gespeeld:sp.gespeeld,has:sp.gespeeld>0};
   });
   if(w.vorm==='Stableford')rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.sfPts-a.sfPts;});
   else rows.sort(function(a,b){return !a.has?1:!b.has?-1:a.netto-b.netto;});
-  var html='<table class="tbl"><thead><tr><th style="width:32px">#</th><th>Speler</th><th>SH</th>';
+  var html=blindHint(w)+'<table class="tbl"><thead><tr><th style="width:32px">#</th><th>Speler</th><th>SH</th>';
   if(w.vorm==='Stableford')html+='<th>Punten</th><th>Gespeeld</th>';
   else html+='<th>Netto</th><th>Bruto</th><th>+/- par</th><th>Gespeeld</th>';
   html+='</tr></thead><tbody>';
@@ -10170,6 +10187,33 @@ function gwKopieerCode(code) {
   } else {
     toast('Code: ' + code);
   }
+}
+
+
+// ─── Blind holes helpers ──────────────────────────────
+function zichtbareHoles(w) {
+  var totaal = w.holes || 18;
+  var blind = parseInt(w.blindHoles) || 0;
+  if (blind <= 0) return totaal;
+  if (_currentUser && (_currentUser.rol === 'Superadmin' || _currentUser.rol === 'Wedstrijdleider' || _currentUser.rol === 'Secretaris')) return totaal;
+  if (w.status === 'afgerond') return totaal;
+  return Math.max(0, totaal - blind);
+}
+
+function filterScoresVoorBlind(scores, w) {
+  var zichtbaar = zichtbareHoles(w);
+  var totaal = w.holes || 18;
+  if (zichtbaar >= totaal) return scores;
+  var nieuw = scores.slice(0, zichtbaar);
+  for (var i = zichtbaar; i < totaal; i++) nieuw.push('');
+  return nieuw;
+}
+
+function blindHint(w) {
+  var z = zichtbareHoles(w);
+  var t = w.holes || 18;
+  if (z >= t) return '';
+  return '<div style="padding:0.6rem 0.85rem;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin:0 0 0.5rem 0;font-size:12px;color:#92400e;font-weight:500">🔒 Hole ' + (z + 1) + '–' + t + ' verborgen — zichtbaar na afronding</div>';
 }
 
 function escHtml(s) {
@@ -12669,6 +12713,37 @@ try {
             <div class="blk"><div class="blk-t">Startmethode</div>
               <div class="field"><div class="tg"><button class="tgb on" onclick="tSingle(this,'sm')">Shotgun start</button><button class="tgb" onclick="tSingle(this,'sm')">Sequentieel</button><button class="tgb" onclick="tSingle(this,'sm')">Split tee (1&amp;10)</button></div></div>
               <div class="g2"><div class="field"><label>Interval flights (min)</label><input type="number" value="10" min="5" max="20" id="fint"/></div></div>
+
+              <!-- Blind holes: optioneel, alle vormen -->
+              <div class="field" style="margin-top:1rem">
+                <label>Verberg laatste X holes op leaderboard (live)</label>
+                <select id="fblind">
+                  <option value="0">Uit — alle scores zichtbaar</option>
+                  <option value="1">Laatste 1 hole verborgen</option>
+                  <option value="2">Laatste 2 holes verborgen</option>
+                  <option value="3">Laatste 3 holes verborgen</option>
+                  <option value="4">Laatste 4 holes verborgen</option>
+                  <option value="5">Laatste 5 holes verborgen</option>
+                </select>
+                <small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">Wedstrijdleider/admin ziet altijd alles. Na afronding zichtbaar voor iedereen.</small>
+              </div>
+
+              <!-- Drive-quota: alleen Texas Scramble -->
+              <div id="drive-quota-fields" style="display:none">
+                <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:1.25rem 0 0.5rem 0">Drive-quota (Texas Scramble)</h4>
+                <div class="g2">
+                  <div class="field">
+                    <label>Min. drives per speler</label>
+                    <input id="fdrivemin" type="number" min="0" max="18" value="4"/>
+                    <small style="color:#8b94a3;font-size:11px">0 = geen minimum</small>
+                  </div>
+                  <div class="field">
+                    <label>Max. drives per speler</label>
+                    <input id="fdrivemax" type="number" min="1" max="18" value="5"/>
+                    <small style="color:#8b94a3;font-size:11px">Bv. 5 = 4 verplicht + 1 vrije keuze</small>
+                  </div>
+                </div>
+              </div>
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end">
               <button class="btn btn-s" onclick="goStep(1)">&#8592; Terug</button>
@@ -13108,6 +13183,19 @@ try {
         <div class="field"><label>Min. drives per speler</label><input id="mwb-drivemin" type="number" min="0" max="18" value="4"/></div>
         <div class="field"><label>Max. drives per speler</label><input id="mwb-drivemax" type="number" min="1" max="18" value="5"/></div>
       </div>
+    </div>
+
+    <div class="field" style="border-top:1px solid #e6eaf0;padding-top:1rem;margin-top:1rem">
+      <label>Verberg laatste X holes op leaderboard (live)</label>
+      <select id="mwb-blind">
+        <option value="0">Uit</option>
+        <option value="1">1 hole</option>
+        <option value="2">2 holes</option>
+        <option value="3">3 holes</option>
+        <option value="4">4 holes</option>
+        <option value="5">5 holes</option>
+      </select>
+      <small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">Wedstrijdleider ziet altijd alles. Na afronding zichtbaar voor iedereen.</small>
     </div>
 
     <div style="border-top:1px solid #e6eaf0;padding-top:1rem;margin-top:1rem">
