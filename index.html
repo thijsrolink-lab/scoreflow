@@ -3924,7 +3924,7 @@ function renderWdInfoTab(w) {
     (w.omschrijving ? '<div style="grid-column:1/-1"><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.4rem 0;font-weight:600">Omschrijving</h4><p style="font-size:14px;color:#425466;margin:0;line-height:1.5">' + escHtml(w.omschrijving) + '</p></div>' : '') +
     (w.afgelast_reden ? '<div style="grid-column:1/-1;background:#fef3c7;padding:0.85rem 1rem;border-radius:8px;border:1px solid #fde68a"><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#92400e;margin:0 0 0.3rem 0;font-weight:700">Afgelast — reden</h4><p style="font-size:13px;color:#78350f;margin:0">' + escHtml(w.afgelast_reden) + '</p></div>' : '') +
     '</div>' +
-    (canEdit ? '<div style="margin-top:1.5rem"><button class="wd-btn wd-btn-neutral" onclick="editW(\'' + w.id + '\')">Bewerken</button>' + lockBadge + '</div>' : '<div style="margin-top:1.5rem;padding:0.85rem 1rem;background:#f1f4f8;border-radius:8px;font-size:13px;color:#8b94a3">' + lockBadge.replace(/<[^>]*>/g, '') + '</div>');
+    (canEdit ? '<div style="margin-top:1.5rem"><button class="wd-btn wd-btn-neutral" onclick="editW(\'' + w.id + '\')">Bewerken</button> <button class="wd-btn wd-btn-neutral" onclick="openWdBeheer(\'' + w.id + '\')">Beheer</button>' + lockBadge + '</div>' : '<div style="margin-top:1.5rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="wd-btn wd-btn-neutral" onclick="openWdBeheer(\'' + w.id + '\')">Beheer</button><span style="padding:0.5rem 0.85rem;background:#f1f4f8;border-radius:8px;font-size:13px;color:#8b94a3">' + lockBadge.replace(/<[^>]*>/g, '') + '</span></div>');
 }
 
 // ─── Tab: Inschrijvingen — directe render in tab-container ───
