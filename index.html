@@ -8636,8 +8636,10 @@ function renderSpWdTabContent(w, fase) {
   if (tab === 'info') contentEl.innerHTML = renderSpInfoTab(w, fase);
   else if (tab === 'mijnstart') contentEl.innerHTML = renderSpMijnStartTab(w, fase);
   else if (tab === 'scorekaart') {
+    console.log('[ScorekaartTab] BEFORE render - w.id:', w.id, 'type:', typeof w.id);
     var skHtml = renderSpScorekaartTab(w, fase);
     contentEl.innerHTML = skHtml;
+    console.log('[ScorekaartTab] HTML preview:', skHtml.substring(0, 250));
     console.log('[ScorekaartTab] fase:', fase, 'vorm:', w.vorm, 'wId:', w.id);
     console.log('[ScorekaartTab] HTML lengte:', skHtml.length);
     // Trigger initScorekaart na korte delay zodat DOM zeker is bijgewerkt
