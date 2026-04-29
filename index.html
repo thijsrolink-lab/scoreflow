@@ -7420,6 +7420,90 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   });
   return html + '</tbody></table>';
 }
+
+
+// ─── Compacte team leaderboard (mobiel/speler) ────────────────
+function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
+  var flights = FLIGHTS[wId] || [];
+  if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
+
+  var perc = (w.hcpperc || 100) / 100;
+  var rows = flights.map(function(flightSids, fi) {
+    var spelers = flightSids.map(function(sid) {
+      return sps.find(function(s) { return s.id === sid; });
+    }).filter(Boolean);
+    if (!spelers.length) return null;
+
+    var teamHcp = teamHandicapScramble(spelers, perc);
+    var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
+    var teamKey = 'team-' + fi;
+    var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
+    if (!scores && spelers.length > 0) {
+      scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][spelers[0].id]);
+    }
+    scores = scores || Array(baan.holes).fill('');
+    var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
+
+    // Ben ik in dit team?
+    var isMij = _currentUser && spelers.some(function(s) { return s.id === _currentUser.id; });
+
+    return {
+      flight: fi + 1,
+      spelers: spelers,
+      teamSh: teamSh,
+      netto: sp.netto, bruto: sp.bruto,
+      nettoVsPar: sp.nettoVsPar,
+      gespeeld: sp.gespeeld,
+      has: sp.gespeeld > 0,
+      isMij: isMij
+    };
+  }).filter(Boolean);
+
+  rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+
+  var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+  rows.forEach(function(r, i) {
+    var p = i+1;
+    var posKleur = p===1 ? 'background:#fef3c7;color:#92400e' :
+                   p===2 ? 'background:#e5e7eb;color:#374151' :
+                   p===3 ? 'background:#fed7aa;color:#9a3412' :
+                           'background:#f1f4f8;color:#6b7280';
+    var mijHighlight = r.isMij ? 'background:#f0fdf4;border-color:#86efac' : 'background:#fff;border-color:#e6eaf0';
+    var teamShort = r.spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', ');
+
+    html += '<div style="' + mijHighlight + ';border:1px solid;border-radius:10px;padding:0.65rem 0.85rem;display:flex;align-items:center;gap:0.65rem">';
+    // Positie
+    html += '<div style="' + posKleur + ';width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">' + p + '</div>';
+
+    // Team info (links)
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#16a34a;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1">FLIGHT ' + r.flight;
+    if (r.isMij) html += '<span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-size:9px">JIJ</span>';
+    html += '</div>';
+    html += '<div style="font-size:13px;color:#0c1b2a;font-weight:500;line-height:1.25;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(teamShort) + '</div>';
+    html += '<div style="font-size:11px;color:#8b94a3;margin-top:1px">SH ' + r.teamSh + ' &middot; ' + r.gespeeld + '/' + baan.holes + ' holes</div>';
+    html += '</div>';
+
+    // Score (rechts)
+    html += '<div style="text-align:right;flex-shrink:0">';
+    if (r.has) {
+      var nvpStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : (r.nettoVsPar < 0 ? r.nettoVsPar : 'E');
+      var nvpKleur = r.nettoVsPar < 0 ? '#16a34a' : r.nettoVsPar > 0 ? '#dc2626' : '#6b7280';
+      html += '<div style="font-size:22px;font-weight:700;color:#16a34a;line-height:1;font-family:Inter,sans-serif">' + r.netto + '</div>';
+      html += '<div style="font-size:11px;color:' + nvpKleur + ';font-weight:600;line-height:1.2;margin-top:2px">' + nvpStr + '</div>';
+    } else {
+      html += '<div style="font-size:22px;color:#cbd5e1;line-height:1">—</div>';
+      html += '<div style="font-size:11px;color:#cbd5e1;margin-top:2px">nog geen</div>';
+    }
+    html += '</div>';
+
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div style="font-size:11px;color:#8b94a3;text-align:center;margin-top:0.75rem">Gesorteerd op netto score</div>';
+  return html;
+}
+
 // ── Speler ziet team scorekaart van eigen flight (Texas Scramble) ──
 function renderSpelerTeamScorekaart(wId, w, baan, u) {
   var container = document.getElementById('sp-scorekaart-content');
@@ -8837,7 +8921,6 @@ function renderSpLeaderboardTab(w, fase) {
     return '<div class="sp-wd-empty"><div class="icon">⛳</div><h3>Nog geen scores</h3><p>Het leaderboard wordt zichtbaar zodra spelers scores invoeren.</p></div>';
   }
 
-  // Hergebruik buildLeaderboard
   if (typeof buildLeaderboard !== 'function' || typeof getBaan !== 'function') {
     return '<div class="sp-wd-empty"><h3>Klassement niet beschikbaar</h3></div>';
   }
@@ -8855,7 +8938,13 @@ function renderSpLeaderboardTab(w, fase) {
       '<span style="width:7px;height:7px;background:#dc2626;border-radius:50%;animation:liveDotPulse 1.5s infinite"></span>' +
       '<span style="font-size:13px;color:#991b1b;font-weight:600">Live - wordt bijgewerkt</span></div>';
   }
-  html += '<div class="sp-wd-card" style="padding:0;overflow:hidden">' + buildLeaderboard(w.id, 0, baan, sps, w) + '</div>';
+
+  // Texas Scramble: compacte mobile-vriendelijke versie
+  if ((w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') && typeof buildTeamLeaderboardCompact === 'function') {
+    html += buildTeamLeaderboardCompact(w.id, 0, baan, sps, w);
+  } else {
+    html += '<div class="sp-wd-card" style="padding:0;overflow:hidden">' + buildLeaderboard(w.id, 0, baan, sps, w) + '</div>';
+  }
   return html;
 }
 
