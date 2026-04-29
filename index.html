@@ -2504,6 +2504,10 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 // ═══════════════ GLOBAL STATE (vooraan gedefinieerd) ═══════════════
 var SPONSOREN = [];
 var WEDSTRIJD_SPONSOREN = [];
+// Drive-quota: drives per hole per flight
+// Structuur: TEAM_DRIVES[wId][flightNr] = [sid_hole1, sid_hole2, ...] (1-based hole)
+var TEAM_DRIVES = {};
+
 var _editSponsorId = null;
 var COMPETITIES = [];
 var BERICHTEN = [];  // systeem notificaties
@@ -4338,8 +4342,9 @@ function dbWedstrijdNaarApp(w) {
     startgeld: w.startgeld, skinsPot: w.skins_pot,
     inschrijfOpen: w.inschrijf_open, inschrijfSluit: w.inschrijf_sluit,
     omschrijving: w.omschrijving, kleur: w.kleur || 'ceg',
-    afgelast_reden: w.afgelast_reden || ''
-  };
+    afgelast_reden: w.afgelast_reden || '',
+    driveMin: w.drive_min != null ? w.drive_min : null,
+    driveMax: w.drive_max != null ? w.drive_max : null,};
 }
 function dbIngNaarApp(i) {
   return { id: i.id, wid: i.wid, sid: i.sid,
@@ -4366,6 +4371,11 @@ async function laadAlleData() {
     // Competities laden
     if (typeof laadCompetities === 'function') {
       try { await laadCompetities(); } catch(e) { console.warn('Competities laden mislukt:', e.message); }
+    }
+
+    // Team drives laden
+    if (typeof laadTeamDrives === 'function') {
+      try { await laadTeamDrives(); } catch(e) { console.warn('Drives laden mislukt:', e.message); }
     }
 
     // Flights reconstrueren: { wid: [[sid1, sid2, ...], [sid3, sid4, ...]] }
@@ -4442,7 +4452,9 @@ async function dbSaveWedstrijd(w) {
       max_deelnemers: w.max, hcp_max: w.hcpmax, hcp_min: w.hcpmin || 0,
       hcp_perc: w.hcpperc, esc: w.esc, startgeld: w.startgeld,
       skins_pot: w.skinsPot || 0, inschrijf_open: w.inschrijfOpen,
-      inschrijf_sluit: w.inschrijfSluit, omschrijving: w.omschrijving, kleur: w.kleur, afgelast_reden: w.afgelast_reden || null };
+      inschrijf_sluit: w.inschrijfSluit, omschrijving: w.omschrijving, kleur: w.kleur, afgelast_reden: w.afgelast_reden || null,
+      drive_min: w.driveMin != null ? w.driveMin : null,
+      drive_max: w.driveMax != null ? w.driveMax : null,};
     if (w.id && String(w.id).includes('-')) {
       await supa('wedstrijden', 'PATCH', data, { id: 'eq.' + w.id });
     } else {
@@ -4984,6 +4996,16 @@ function vulHoofdsponsorDropdown(huidigeSponsorId) {
   if (huidigeSponsorId) sel.value = huidigeSponsorId;
 }
 
+// Toon/verberg drive-quota velden gebaseerd op vorm
+function showHideDriveQuota() {
+  var vormEl = document.getElementById('fsg');
+  var div = document.getElementById('drive-quota-fields');
+  if (!vormEl || !div) return;
+  var isTS = vormEl.value === 'Texas Scramble' || vormEl.value === 'Scramble';
+  div.style.display = isTS ? '' : 'none';
+}
+
+
 // Geeft leesbare naam van wedstrijdleider, of '' als niemand gekozen
 function leiderNaam(w) {
   if (!w || !w.leiderId || !USERS) return '';
@@ -5384,6 +5406,12 @@ function editW(id){
     _wizCoSponsoren = coSponsorenVoorWedstrijd(w.id).map(function(s) { return s.id; });
     _wizHoleSponsoren = holeSponsorenVoorWedstrijd(w.id).map(function(item) { return { sponsorId: item.sponsor.id, holeNr: item.holeNr }; });
     vulHoofdsponsorDropdown(_wizHoofdsponsorId);
+    // Laad drive-quota
+    var fdrivemin2 = document.getElementById('fdrivemin');
+    var fdrivemax2 = document.getElementById('fdrivemax');
+    if (fdrivemin2) fdrivemin2.value = (w.driveMin != null ? w.driveMin : 4);
+    if (fdrivemax2) fdrivemax2.value = (w.driveMax != null ? w.driveMax : 5);
+    if (typeof showHideDriveQuota === 'function') showHideDriveQuota();
     var fh = document.getElementById('fh'); if(fh) fh.value = w.holes;
     var fhp = document.getElementById('fhp'); if(fhp) fhp.value = w.hcpperc;
     var fesc = document.getElementById('fesc'); if(fesc) fesc.value = w.esc || 'geen';
@@ -5457,6 +5485,12 @@ function resetForm(){
     defLeiderId = _currentUser.id;
   }
   vulLeiderDropdown(defLeiderId);
+  // Reset drive-quota velden
+  var fdrivemin = document.getElementById('fdrivemin');
+  var fdrivemax = document.getElementById('fdrivemax');
+  if (fdrivemin) fdrivemin.value = 4;
+  if (fdrivemax) fdrivemax.value = 5;
+  if (typeof showHideDriveQuota === 'function') showHideDriveQuota();
   // Sponsor wizard state reset
   _wizCoSponsoren = [];
   _wizHoleSponsoren = [];
@@ -7565,11 +7599,46 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
   html +=   '</div>';
   html += '</div>';
 
-  // Hole rijen via helper
+  // Drive-quota tellers (alleen als ingesteld)
+  var heeftDriveQuota = w.driveMin != null && w.driveMax != null;
+  if (heeftDriveQuota) {
+    var driveCounts = telDrivesPerSpeler(wId, mijnFlightIdx);
+    html += '<div style="background:var(--gl);border:1px solid var(--lime);border-radius:var(--r);padding:.6rem .85rem;margin-bottom:.75rem;font-size:11px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px">';
+    html += '<div style="text-transform:uppercase;letter-spacing:.05em;color:var(--g);font-weight:700">Drive-quota</div>';
+    html += '<div style="color:var(--txm);font-size:10px">Min ' + w.driveMin + ' · Max ' + w.driveMax + ' per speler</div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    spelers.forEach(function(s) {
+      var c = driveCounts[s.id] || 0;
+      var ok = c >= w.driveMin && c <= w.driveMax;
+      var teLaag = c < w.driveMin;
+      var teHoog = c > w.driveMax;
+      var bg = ok ? '#dcfce7' : (teHoog ? '#fee2e2' : '#fef3c7');
+      var fg = ok ? '#16a34a' : (teHoog ? '#dc2626' : '#a16207');
+      html += '<span style="background:' + bg + ';color:' + fg + ';padding:3px 8px;border-radius:6px;font-weight:600">' +
+        escHtml(s.voor[0] + '. ' + s.ach) + ' ' + c + '/' + w.driveMax + '</span>';
+    });
+    html += '</div>';
+    html += '</div>';
+  }
+
+  // Hole rijen via helper — met getHoleExtra voor driver-dropdown
+  var driverDropdownExtra = heeftDriveQuota ? function(holeIdx) {
+    var currentDriver = (TEAM_DRIVES[wId] && TEAM_DRIVES[wId][mijnFlightIdx]) ? TEAM_DRIVES[wId][mijnFlightIdx][holeIdx] : null;
+    var opts = '<option value="">— Drive —</option>';
+    spelers.forEach(function(s) {
+      var sel = (s.id === currentDriver) ? ' selected' : '';
+      opts += '<option value="' + s.id + '"' + sel + '>' + escHtml(s.voor[0] + '. ' + s.ach) + '</option>';
+    });
+    return '<select class="drive-sel" data-wid="' + wId + '" data-flight="' + mijnFlightIdx + '" data-hole="' + (holeIdx + 1) + '" onchange="updateDriver(this)" style="font-size:11px;padding:3px 6px;border:1px solid var(--bd);border-radius:4px;background:#fff;width:100%;font-family:inherit">' + opts + '</select>';
+  } : null;
+
   html += bouwSpelerHoleRijen({
     scores: scores,
     baan: baan,
-    onchangeAttr: 'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);"'
+    onchangeAttr: 'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);"',
+    getHoleExtra: driverDropdownExtra
   });
 
   // Info
@@ -7654,6 +7723,68 @@ async function refreshTeamScores(wId, callback) {
     console.warn('refreshTeamScores:', e.message);
   }
 }
+
+// ─── Drive-quota: sync helpers ──────────────────────────────────
+async function laadTeamDrives() {
+  try {
+    var ds = await supa('team_drives', 'GET', null, { select: '*' });
+    TEAM_DRIVES = {};
+    (ds || []).forEach(function(d) {
+      if (!TEAM_DRIVES[d.wid]) TEAM_DRIVES[d.wid] = {};
+      if (!TEAM_DRIVES[d.wid][d.flight_nr]) TEAM_DRIVES[d.wid][d.flight_nr] = Array(18).fill(null);
+      TEAM_DRIVES[d.wid][d.flight_nr][d.hole - 1] = d.driver_sid;
+    });
+    return true;
+  } catch(e) { console.warn('laadTeamDrives:', e.message); return false; }
+}
+
+async function dbSaveTeamDrive(wId, flightNr, hole, driverSid) {
+  try {
+    // Upsert via DELETE+INSERT (UNIQUE constraint op wid+flight+ronde+hole)
+    await supa('team_drives', 'DELETE', null, {
+      wid: 'eq.' + wId,
+      flight_nr: 'eq.' + flightNr,
+      ronde: 'eq.0',
+      hole: 'eq.' + hole
+    });
+    if (driverSid) {
+      await supa('team_drives', 'POST', {
+        wid: wId,
+        flight_nr: flightNr,
+        ronde: 0,
+        hole: hole,
+        driver_sid: driverSid
+      });
+    }
+    // Lokaal bijwerken
+    if (!TEAM_DRIVES[wId]) TEAM_DRIVES[wId] = {};
+    if (!TEAM_DRIVES[wId][flightNr]) TEAM_DRIVES[wId][flightNr] = Array(18).fill(null);
+    TEAM_DRIVES[wId][flightNr][hole - 1] = driverSid || null;
+    return true;
+  } catch(e) { console.warn('dbSaveTeamDrive:', e.message); return false; }
+}
+
+// Helper: tel drives per speler
+function telDrivesPerSpeler(wId, flightNr) {
+  var drives = (TEAM_DRIVES[wId] && TEAM_DRIVES[wId][flightNr]) || [];
+  var counts = {};
+  drives.forEach(function(sid) {
+    if (sid) counts[sid] = (counts[sid] || 0) + 1;
+  });
+  return counts;
+}
+
+// Onchange handler vanaf scorekaart driver-select
+async function updateDriver(sel) {
+  var wId = sel.getAttribute('data-wid');
+  var flightNr = parseInt(sel.getAttribute('data-flight'));
+  var hole = parseInt(sel.getAttribute('data-hole'));
+  var driverSid = sel.value || null;
+  await dbSaveTeamDrive(wId, flightNr, hole, driverSid);
+  // Re-render om counters bij te werken
+  if (typeof initScorekaart === 'function') initScorekaart();
+}
+
 // ═══════════════════════════════════════════════════════════
 // SPELER SCOREKAART UI v2 — uniforme layout voor alle spelvormen
 // Gebruikt door: individueel, team, matchplay
@@ -7772,6 +7903,13 @@ function bouwSpelerHoleRijen(opts) {
       'data-hole="' + i + '" ' + onchangeAttr + ' onfocus="this.select()"/>';
 
     html += '</div>';
+
+    // Extra rij voor drive-dropdown indien getHoleExtra
+    if (opts.getHoleExtra) {
+      html += '<div style="margin-top:-2px;padding:0 1rem;font-size:11px">';
+      html += opts.getHoleExtra(i);
+      html += '</div>';
+    }
   }
   html += '</div>';
 
