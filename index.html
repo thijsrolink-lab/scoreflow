@@ -8631,20 +8631,35 @@ function renderSpWdTabContent(w, fase) {
   if (tab === 'info') contentEl.innerHTML = renderSpInfoTab(w, fase);
   else if (tab === 'mijnstart') contentEl.innerHTML = renderSpMijnStartTab(w, fase);
   else if (tab === 'scorekaart') {
-    contentEl.innerHTML = renderSpScorekaartTab(w, fase);
-    // Trigger initScorekaart na korte delay zodat DOM zeker is bijgewerkt
+    console.log('[Sk] === START scorekaart tab ===');
+    console.log('[Sk] w:', w);
+    console.log('[Sk] w.id:', w.id, 'type:', typeof w.id);
+    console.log('[Sk] w.vorm:', w.vorm);
+    console.log('[Sk] fase:', fase);
+    var skHtml = renderSpScorekaartTab(w, fase);
+    console.log('[Sk] renderSpScorekaartTab returned:', skHtml.substring(0, 300));
+    contentEl.innerHTML = skHtml;
     setTimeout(function() {
       var skw = document.getElementById('sk-w');
       var skc = document.getElementById('sp-scorekaart-content');
-      // Zet wId expliciet op de hidden input (robuust tegen escape-issues)
-      if (skw) skw.value = w.id;
+      console.log('[Sk] sk-w exists?', !!skw);
+      console.log('[Sk] sp-scorekaart-content exists?', !!skc);
+      if (skw) {
+        skw.value = w.id;
+        console.log('[Sk] sk-w.value gezet op:', skw.value);
+      }
+      console.log('[Sk] initScorekaart bestaat?', typeof initScorekaart);
       if (skw && skc && typeof initScorekaart === 'function') {
+        console.log('[Sk] roep initScorekaart aan...');
         try {
           initScorekaart();
+          console.log('[Sk] initScorekaart klaar. Content lengte:', skc.innerHTML.length);
         } catch(e) {
-          console.error('[Scorekaart] crash:', e);
-          skc.innerHTML = '<div style="padding:1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b"><strong>Fout bij rendering:</strong><br>' + escHtml(e.message) + '</div>';
+          console.error('[Sk] CRASH:', e);
+          skc.innerHTML = '<div style="padding:1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b"><strong>Fout:</strong><br>' + escHtml(e.message) + '<br><pre style="font-size:10px;margin-top:8px">' + escHtml(e.stack || '') + '</pre></div>';
         }
+      } else {
+        console.warn('[Sk] vereisten niet aanwezig');
       }
     }, 50);
   }
@@ -9015,11 +9030,15 @@ function initScorekaart() {
     return;
   }
 
+  console.log('[initScorekaart] w.vorm:', w && w.vorm, 'u:', u && u.email);
   // Texas Scramble: team scorekaart
   if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
+    console.log('[initScorekaart] Texas pad — flights[wId]:', FLIGHTS[wId] ? FLIGHTS[wId].length : 'GEEN');
     renderSpelerTeamScorekaart(wId, w, baan, u);
+    console.log('[initScorekaart] Texas pad done. content length:', (document.getElementById('sp-scorekaart-content') || {}).innerHTML);
     return;
   }
+  console.log('[initScorekaart] reguliere scorekaart pad');
 
   // Matchplay: up/down/even met tegenstander
   if (w.vorm === 'Matchplay') {
