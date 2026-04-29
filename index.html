@@ -7546,29 +7546,20 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
 
   var html = '';
 
-  // Score blok
-  html += '<div style="background:linear-gradient(135deg,#162f22,#2a6040);border-radius:var(--rl);padding:1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
-  html += '<div>';
-  html += '<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em">Flight ' + (mijnFlightIdx+1) + ' — Team score</div>';
-  html += '<div style="font-family:Playfair Display,serif;font-size:28px;font-weight:700;color:#fff;margin-top:2px">' +
-    (strokeplay.gespeeld > 0 ? strokeplay.netto : '—') + '</div>';
-  html += '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Netto · Bruto ' +
-    (strokeplay.gespeeld > 0 ? strokeplay.bruto : '—') +
-    ' · Team SH ' + teamSh + ' · ' + strokeplay.gespeeld + '/' + baan.holes + '</div>';
-  html += '</div>';
-  html += '<div style="text-align:right">';
-  html += '<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em">Stableford</div>';
-  html += '<div style="font-family:Playfair Display,serif;font-size:22px;font-weight:700;color:#fff">' + stableford.punten + '</div>';
-  html += '<div style="font-size:11px;color:rgba(255,255,255,.5)">punten</div>';
-  html += '</div>';
-  html += '</div>';
-
-  // Team info
-  html += '<div style="background:var(--surf);border-radius:var(--r);padding:.75rem;margin-bottom:1rem;font-size:12px">';
-  html += '<div style="color:var(--txm);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Team samenstelling</div>';
-  html += '<div style="font-weight:500">' + escHtml(teamNaam) + '</div>';
-  html += '<div style="color:var(--txm);margin-top:3px">HCPs: ' +
-    spelers.map(function(s) { return s.hcp; }).join(' / ') + '</div>';
+  // Compact score+team blok (alles op 2 regels)
+  var nettoTxt = (strokeplay.gespeeld > 0 ? strokeplay.netto : '—');
+  var brutoTxt = (strokeplay.gespeeld > 0 ? strokeplay.bruto : '—');
+  var teamNamesShort = spelers.map(function(s){return s.voor[0]+'. '+s.ach;}).join(' · ');
+  var hcpsStr = spelers.map(function(s){return s.hcp;}).join('/');
+  html += '<div style="background:var(--surf);border:1px solid var(--bd);border-radius:var(--r);padding:.6rem .85rem;margin-bottom:.75rem;font-size:12px">';
+  html +=   '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">';
+  html +=     '<div style="font-weight:600;color:var(--g)">Flight ' + (mijnFlightIdx+1) + '</div>';
+  html +=     '<div style="color:var(--txm);font-size:11px">Bruto <strong style="color:var(--tx)">' + brutoTxt + '</strong> · Netto <strong style="color:var(--tx)">' + nettoTxt + '</strong> · Stableford <strong style="color:var(--tx)">' + stableford.punten + '</strong> · ' + strokeplay.gespeeld + '/' + baan.holes + '</div>';
+  html +=   '</div>';
+  html +=   '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:3px;flex-wrap:wrap">';
+  html +=     '<div style="color:var(--txm);font-size:11px">' + escHtml(teamNamesShort) + '</div>';
+  html +=     '<div style="color:var(--txh);font-size:10px">HCP ' + hcpsStr + ' · Team SH ' + teamSh + '</div>';
+  html +=   '</div>';
   html += '</div>';
 
   // Hole rijen via helper
