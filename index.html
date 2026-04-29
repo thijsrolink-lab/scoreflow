@@ -8631,11 +8631,29 @@ function renderSpWdTabContent(w, fase) {
   if (tab === 'info') contentEl.innerHTML = renderSpInfoTab(w, fase);
   else if (tab === 'mijnstart') contentEl.innerHTML = renderSpMijnStartTab(w, fase);
   else if (tab === 'scorekaart') {
-    contentEl.innerHTML = renderSpScorekaartTab(w, fase);
-    // Trigger initScorekaart als de echte scorekaart-content placeholder bestaat
-    if (document.getElementById('sk-w') && typeof initScorekaart === 'function') {
-      setTimeout(function() { initScorekaart(); }, 10);
-    }
+    var skHtml = renderSpScorekaartTab(w, fase);
+    contentEl.innerHTML = skHtml;
+    console.log('[ScorekaartTab] fase:', fase, 'vorm:', w.vorm, 'wId:', w.id);
+    console.log('[ScorekaartTab] HTML lengte:', skHtml.length);
+    // Trigger initScorekaart na korte delay zodat DOM zeker is bijgewerkt
+    setTimeout(function() {
+      var skw = document.getElementById('sk-w');
+      var skc = document.getElementById('sp-scorekaart-content');
+      console.log('[ScorekaartTab] sk-w element:', !!skw, 'value:', skw ? skw.value : 'n/a');
+      console.log('[ScorekaartTab] sp-scorekaart-content element:', !!skc);
+      if (skw && typeof initScorekaart === 'function') {
+        console.log('[ScorekaartTab] Roep initScorekaart aan...');
+        try {
+          initScorekaart();
+          console.log('[ScorekaartTab] initScorekaart klaar. Content lengte:', skc ? skc.innerHTML.length : 0);
+        } catch(e) {
+          console.error('[ScorekaartTab] initScorekaart crash:', e);
+          if (skc) skc.innerHTML = '<div style="padding:1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b">Fout: ' + e.message + '</div>';
+        }
+      } else {
+        console.warn('[ScorekaartTab] sk-w of initScorekaart niet beschikbaar');
+      }
+    }, 50);
   }
   else if (tab === 'leaderboard') contentEl.innerHTML = renderSpLeaderboardTab(w, fase);
   else if (tab === 'mijnscores') contentEl.innerHTML = renderSpMijnScoresTab(w, fase);
