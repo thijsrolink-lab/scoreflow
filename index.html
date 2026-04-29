@@ -3547,6 +3547,120 @@ function showHoleSponsorPicker(sponsors, vrijeHoles, callback) {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════
+// WEDSTRIJD-BEHEER modal — voor velden die tijdens lopende wedstrijd
+// aangepast mogen worden (leider, drive-quota, hoofdsponsor)
+// ═══════════════════════════════════════════════════════════════
+
+var _wdBeheerId = null;
+
+function openWdBeheer(wId) {
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) return;
+  _wdBeheerId = wId;
+  document.getElementById('modal-wd-beheer-titel').innerHTML = 'Beheer: ' + escHtml(w.naam) + ' <button class="modal-close" onclick="closeModal(\'modal-wd-beheer\')">&#215;</button>';
+
+  // Vul leider-dropdown
+  var leiderSel = document.getElementById('mwb-leider');
+  if (leiderSel) {
+    var leiderOpts = '<option value="">— Geen / nog niet gekozen —</option>';
+    USERS.filter(function(u){return u.rol === 'Superadmin' || u.rol === 'Wedstrijdleider' || u.rol === 'Secretaris';})
+      .sort(function(a,b){return (a.voor+' '+a.ach).localeCompare(b.voor+' '+b.ach);})
+      .forEach(function(u){
+        leiderOpts += '<option value="' + u.id + '">' + escHtml(u.voor + ' ' + u.ach) + ' (' + u.rol + ')</option>';
+      });
+    leiderSel.innerHTML = leiderOpts;
+    leiderSel.value = w.leiderId || '';
+  }
+
+  // Drive-quota velden alleen tonen bij Texas Scramble
+  var dq = document.getElementById('mwb-drive-quota');
+  if (dq) {
+    var isTS = w.vorm === 'Texas Scramble' || w.vorm === 'Scramble';
+    dq.style.display = isTS ? '' : 'none';
+    if (isTS) {
+      document.getElementById('mwb-drivemin').value = w.driveMin != null ? w.driveMin : 4;
+      document.getElementById('mwb-drivemax').value = w.driveMax != null ? w.driveMax : 5;
+    }
+  }
+
+  // Hoofdsponsor dropdown
+  var hsSel = document.getElementById('mwb-hsponsor');
+  if (hsSel) {
+    var hsOpts = '<option value="">— Geen hoofdsponsor —</option>';
+    (SPONSOREN || []).filter(function(s){return s.status === 'actief';})
+      .sort(function(a,b){return a.naam.localeCompare(b.naam);})
+      .forEach(function(s){
+        hsOpts += '<option value="' + s.id + '">' + escHtml(s.naam) + (s.pakketNaam ? ' (' + escHtml(s.pakketNaam) + ')' : '') + '</option>';
+      });
+    hsSel.innerHTML = hsOpts;
+    var huidigeHs = (typeof hoofdsponsorVoorWedstrijd === 'function') ? hoofdsponsorVoorWedstrijd(w.id) : null;
+    hsSel.value = huidigeHs ? huidigeHs.id : '';
+  }
+
+  openModal('modal-wd-beheer');
+}
+
+async function opslaanWdBeheer() {
+  var wId = _wdBeheerId;
+  if (!wId) return;
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) return;
+
+  var leiderSel = document.getElementById('mwb-leider');
+  var dminEl = document.getElementById('mwb-drivemin');
+  var dmaxEl = document.getElementById('mwb-drivemax');
+  var hsSel = document.getElementById('mwb-hsponsor');
+
+  // Update wedstrijd-object
+  w.leiderId = leiderSel ? (leiderSel.value || null) : null;
+  var isTS = w.vorm === 'Texas Scramble' || w.vorm === 'Scramble';
+  if (isTS) {
+    w.driveMin = dminEl ? parseInt(dminEl.value) : null;
+    w.driveMax = dmaxEl ? parseInt(dmaxEl.value) : null;
+  }
+
+  // Save naar DB
+  try {
+    var data = {
+      leider_id: w.leiderId || null,
+      drive_min: w.driveMin != null ? w.driveMin : null,
+      drive_max: w.driveMax != null ? w.driveMax : null
+    };
+    await supa('wedstrijden', 'PATCH', data, { id: 'eq.' + wId });
+
+    // Update hoofdsponsor-koppeling
+    if (hsSel && typeof koppelHoofdsponsorAanWedstrijd2 === 'function') {
+      await koppelHoofdsponsorAanWedstrijd2(wId, hsSel.value || null);
+    } else if (hsSel) {
+      // Inline: verwijder oude hoofdsponsor + voeg nieuwe toe
+      await supa('wedstrijd_sponsoren', 'DELETE', null, {
+        wedstrijd_id: 'eq.' + wId,
+        type: 'eq.hoofdsponsor'
+      });
+      if (hsSel.value) {
+        await supa('wedstrijd_sponsoren', 'POST', {
+          wedstrijd_id: wId,
+          sponsor_id: hsSel.value,
+          type: 'hoofdsponsor'
+        });
+      }
+      await laadSponsoren();
+    }
+
+    closeModal('modal-wd-beheer');
+    toast('Wedstrijd bijgewerkt');
+
+    // Re-render detail-view
+    if (typeof renderWdDetail === 'function') renderWdDetail();
+  } catch(e) {
+    console.warn('opslaanWdBeheer:', e.message);
+    toast('Opslaan mislukt: ' + e.message, 'err');
+  }
+}
+
+
+
 // ─── Sync naar DB: koppel ALLE sponsoren aan wedstrijd ──────────
 async function koppelAlleSponsorenAanWedstrijd(wedstrijdId, hoofdsponsorId, coSponsorenIds, holeSponsoren) {
   try {
@@ -12978,6 +13092,40 @@ try {
 </div>
 
 <!-- Snel aanmaken modal -->
+<div class="modal-bg" id="modal-wd-beheer">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title" id="modal-wd-beheer-titel">Beheer wedstrijd <button class="modal-close" onclick="closeModal('modal-wd-beheer')">&#215;</button></div>
+    <p style="font-size:12px;color:#8b94a3;margin:0 0 1rem 0">Velden die je tijdens een lopende wedstrijd kunt aanpassen.</p>
+
+    <div class="field">
+      <label>Wedstrijdleider</label>
+      <select id="mwb-leider"><option value="">— Geen / nog niet gekozen —</option></select>
+    </div>
+
+    <div id="mwb-drive-quota" style="display:none;border-top:1px solid #e6eaf0;padding-top:1rem;margin-top:1rem">
+      <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.5rem 0">Drive-quota (Texas Scramble)</h4>
+      <div class="g2">
+        <div class="field"><label>Min. drives per speler</label><input id="mwb-drivemin" type="number" min="0" max="18" value="4"/></div>
+        <div class="field"><label>Max. drives per speler</label><input id="mwb-drivemax" type="number" min="1" max="18" value="5"/></div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #e6eaf0;padding-top:1rem;margin-top:1rem">
+      <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.5rem 0">Sponsoren</h4>
+      <div class="field">
+        <label>Hoofdsponsor</label>
+        <select id="mwb-hsponsor"><option value="">— Geen hoofdsponsor —</option></select>
+      </div>
+      <div style="font-size:11px;color:#8b94a3;margin-top:8px">Co-sponsoren en hole-sponsoren beheer je via de wizard (alleen bij wedstrijd zonder scores).</div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem">
+      <button class="btn btn-s" onclick="closeModal('modal-wd-beheer')">Annuleren</button>
+      <button class="btn btn-p" onclick="opslaanWdBeheer()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-sponsor">
   <div class="modal" style="max-width:520px">
     <div class="modal-title" id="modal-sponsor-titel">Nieuwe sponsor <button class="modal-close" onclick="closeModal('modal-sponsor')">&#215;</button></div>
