@@ -7496,10 +7496,85 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
 
   // Info
   html += '<div style="font-size:12px;color:var(--txm);margin-top:.75rem;padding:.6rem .75rem;background:var(--gl);border-radius:var(--r);border-left:3px solid var(--lime)">';
-  html += '💡 Texas Scramble: elk teamlid kan de scores invullen. Alle wijzigingen zijn direct zichtbaar voor teamgenoten en op het live leaderboard.';
+  html += '💡 Texas Scramble: elk teamlid kan scores invullen. Wijzigingen worden direct opgeslagen en automatisch ververst (om de 15 sec).';
   html += '</div>';
 
+  // Sponsor-blok onderaan scorekaart (voor team-Texas Scramble)
+  if (typeof hoofdsponsorVoorWedstrijd === 'function') {
+    var sphsp = hoofdsponsorVoorWedstrijd(wId);
+    var spco = (typeof coSponsorenVoorWedstrijd === 'function') ? coSponsorenVoorWedstrijd(wId) : [];
+    if (sphsp || spco.length > 0) {
+      html += '<div style="margin-top:1rem;padding:0.85rem 1rem;background:linear-gradient(135deg,#fefce8,#fef3c7);border:1px solid #fde68a;border-radius:8px;text-align:center">';
+      if (sphsp) {
+        var lhsp = sphsp.logoUrl ? '<img src="' + escHtml(sphsp.logoUrl) + '" style="height:28px;width:auto;border-radius:3px;vertical-align:middle" onerror="this.style.display=\'none\'"/>' : '';
+        html += '<div style="display:flex;align-items:center;gap:8px;justify-content:center;font-size:11px"><span style="text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:700">Sponsor</span>' + lhsp + '<span style="font-weight:600;color:#0c1b2a;font-size:13px">' + escHtml(sphsp.naam) + '</span></div>';
+      }
+      if (spco.length > 0) {
+        html += '<div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;margin-top:' + (sphsp ? '0.5rem' : '0') + '">';
+        spco.forEach(function(s) {
+          var l = s.logoUrl ? '<img src="' + escHtml(s.logoUrl) + '" style="height:18px;width:auto;border-radius:2px" onerror="this.style.display=\'none\'"/>' : '';
+          html += '<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#0c1b2a">' + l + escHtml(s.naam) + '</span>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+  }
+
   container.innerHTML = html;
+
+  // Auto-refresh: poll DB elke 15s om scores van teamleden te syncen
+  if (typeof _teamScoreRefreshTimer !== 'undefined' && _teamScoreRefreshTimer) {
+    clearInterval(_teamScoreRefreshTimer);
+  }
+  _teamScoreRefreshTimer = setInterval(function() {
+    // Stop als we niet meer op scorekaart-tab staan
+    if (!document.getElementById('sp-scorekaart-content')) {
+      clearInterval(_teamScoreRefreshTimer);
+      _teamScoreRefreshTimer = null;
+      return;
+    }
+    // Haal alleen scores op (lichte query)
+    if (typeof refreshTeamScores === 'function') {
+      refreshTeamScores(wId, function() {
+        // Re-render alleen als data daadwerkelijk veranderd is
+        var oldScores = SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][teamKey];
+        var oldStr = oldScores ? oldScores.join(',') : '';
+        // Re-render zonder focus te verliezen
+        var activeEl = document.activeElement;
+        var activeId = activeEl ? activeEl.id : null;
+        renderSpelerTeamScorekaart(wId, w, baan, u);
+        if (activeId) {
+          var restore = document.getElementById(activeId);
+          if (restore) restore.focus();
+        }
+      });
+    }
+  }, 15000);
+}
+
+// Globale timer state
+var _teamScoreRefreshTimer = null;
+
+// Lichte score-refresh: haal alleen de scores op voor 1 wedstrijd
+async function refreshTeamScores(wId, callback) {
+  try {
+    var scs = await supa('scores', 'GET', null, {
+      select: '*',
+      wid: 'eq.' + wId
+    });
+    if (!Array.isArray(scs)) return callback && callback();
+    if (!SCORES[wId]) SCORES[wId] = {};
+    scs.forEach(function(s) {
+      var r = s.ronde || 0;
+      if (!SCORES[wId][r]) SCORES[wId][r] = {};
+      if (!SCORES[wId][r][s.sid]) SCORES[wId][r][s.sid] = Array(18).fill('');
+      SCORES[wId][r][s.sid][s.hole - 1] = s.score;
+    });
+    if (callback) callback();
+  } catch(e) {
+    console.warn('refreshTeamScores:', e.message);
+  }
 }
 // ═══════════════════════════════════════════════════════════
 // SPELER SCOREKAART UI v2 — uniforme layout voor alle spelvormen
