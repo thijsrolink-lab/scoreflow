@@ -5158,6 +5158,14 @@ function toggleNegenKeuze() {
   if (!fh || !nf) return;
   nf.style.display = (parseInt(fh.value) === 9) ? '' : 'none';
 }
+// Toggle 'welke 9' veld in groepswedstrijd-wizard
+function gwToggleNegen() {
+  var sel = document.getElementById('gw-holes');
+  var div = document.getElementById('gw-negen-keuze');
+  if (!sel || !div) return;
+  div.style.display = (parseInt(sel.value) === 9) ? '' : 'none';
+}
+
 
 // Toon/verberg drive-quota velden gebaseerd op vorm
 function showHideDriveQuota() {
@@ -10150,7 +10158,7 @@ function gwGenereerCode() {
 // Huidige wizard state
 var _gwWizard = {
   stap: 0,
-  naam: '', datum: '', baan: '', vorm: 'Stableford', holes: 18,
+  naam: '', datum: '', baan: '', vorm: 'Stableford', holes: 18, welkeNegen: 'uit',
   startgeld: 0, omschrijving: '',
   deelnemers: [], // [{uid, naam, hcp, isGast, isOrganisator}]
   gwId: null // als we bewerken
@@ -10276,7 +10284,7 @@ function gwNieuwWizard() {
   _gwWizard = {
     stap: 0, gwId: null,
     naam: '', datum: datum.toISOString().split('T')[0],
-    baan: '', vorm: 'Stableford', holes: 18, startgeld: 0, omschrijving: '',
+    baan: '', vorm: 'Stableford', holes: 18, welkeNegen: 'uit', startgeld: 0, omschrijving: '',
     deelnemers: [{ uid: _currentUser.id, naam: _currentUser.voor + ' ' + _currentUser.ach, hcp: _currentUser.hcp, isGast: false, isOrganisator: true }]
   };
   spNav('groep-detail', null);
@@ -10332,9 +10340,10 @@ function gwStap0() {
       return '<button class="tgb' + (w.vorm === v ? ' on' : '') + '" data-gwvorm="' + v + '" onclick="gwKiesVorm(this)">' + v + '</button>';
     }).join('') + '</div></div>' +
     '<div class="g2">' +
-    '<div class="field"><label>Holes</label><select id="gw-holes"><option value="18"' + (w.holes===18?' selected':'') + '>18 holes</option><option value="9"' + (w.holes===9?' selected':'') + '>9 holes</option></select></div>' +
+    '<div class="field"><label>Holes</label><select id="gw-holes" onchange="gwToggleNegen()"><option value="18"' + (w.holes===18?' selected':'') + '>18 holes</option><option value="9"' + (w.holes===9?' selected':'') + '>9 holes</option></select></div>' +
     '<div class="field"><label>Startgeld per persoon (€)</label><input id="gw-geld" type="number" min="0" step="0.5" value="' + w.startgeld + '" placeholder="0"/></div>' +
     '</div>' +
+    '<div class="field" id="gw-negen-keuze" style="display:' + (w.holes === 9 ? '' : 'none') + '"><label>Welke 9 holes</label><select id="gw-negen"><option value="uit"' + ((w.welkeNegen||'uit')==='uit'?' selected':'') + '>Eerste 9 (UIT, holes 1-9)</option><option value="in"' + (w.welkeNegen==='in'?' selected':'') + '>Tweede 9 (IN, holes 10-18)</option></select></div>' +
     '<div class="field"><label>Omschrijving (optioneel)</label><textarea id="gw-omschr" placeholder="Korte beschrijving voor de deelnemers...">' + escHtml(w.omschrijving) + '</textarea></div>' +
     '<div style="display:flex;justify-content:flex-end;margin-top:.75rem">' +
     '<button class="btn btn-p" onclick="gwStap0Opslaan()">Volgende &#8594;</button></div>' +
@@ -10353,6 +10362,8 @@ function gwStap0Opslaan() {
   _gwWizard.naam = naam;
   _gwWizard.datum = document.getElementById('gw-datum').value || _gwWizard.datum;
   _gwWizard.baan = document.getElementById('gw-baan').value || '';
+  var negenEl = document.getElementById('gw-negen');
+  _gwWizard.welkeNegen = negenEl ? negenEl.value : 'uit';
   _gwWizard.holes = parseInt(document.getElementById('gw-holes').value) || 18;
   _gwWizard.startgeld = parseFloat(document.getElementById('gw-geld').value) || 0;
   _gwWizard.omschrijving = document.getElementById('gw-omschr').value || '';
