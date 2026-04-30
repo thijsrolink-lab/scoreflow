@@ -10343,19 +10343,24 @@ function gwStap1() {
 
 function gwZoek(q) {
   var el = document.getElementById('gw-zoek-results');
+  if (!el) return;
   if (!q || q.length < 2) { el.style.display = 'none'; return; }
   q = q.toLowerCase();
   var al = _gwWizard.deelnemers.map(function(d) { return d.uid; });
   var res = USERS.filter(function(u) {
-    return u.rol === 'Speler' &&
-      ((u.voor + ' ' + u.ach).toLowerCase().indexOf(q) >= 0 || u.lid.toLowerCase().indexOf(q) >= 0);
-  }).slice(0, 6);
-  if (!res.length) { el.innerHTML = '<div class="speler-zoek-item" style="color:var(--txm)">Geen resultaten</div>'; el.style.display = ''; return; }
+    if (u.rol !== 'Speler') return false;
+    var naam = (u.voor + ' ' + u.ach).toLowerCase();
+    var lid = (u.lid || '').toLowerCase();
+    var email = (u.email || '').toLowerCase();
+    return naam.indexOf(q) >= 0 || lid.indexOf(q) >= 0 || email.indexOf(q) >= 0;
+  }).slice(0, 8);
+  if (!res.length) { el.innerHTML = '<div class="speler-zoek-item" style="color:var(--txm);padding:8px 12px">Geen resultaten voor "' + escHtml(q) + '"</div>'; el.style.display = ''; return; }
   el.innerHTML = res.map(function(s) {
     var isAl = al.indexOf(s.id) >= 0;
-    return '<div class="speler-zoek-item' + (isAl ? ' al-toegevoegd' : '') + '" onclick="' + (isAl ? '' : 'gwVoegLidToe(' + s.id + ')') + '">' +
-      '<div class="av" style="width:24px;height:24px;font-size:10px;background:var(--gl);color:var(--g)">' + s.voor[0] + s.ach[0] + '</div>' +
-      '<div><div style="font-size:13px">' + escHtml(s.voor + ' ' + s.ach) + '</div><div style="font-size:11px;color:var(--txm)">HCP ' + s.hcp.toFixed(1) + ' &middot; ' + s.lid + '</div></div>' +
+    var sidEsc = escHtml(String(s.id)).replace(/'/g, "\\'");
+    return '<div class="speler-zoek-item' + (isAl ? ' al-toegevoegd' : '') + '" onclick="' + (isAl ? '' : "gwVoegLidToe('" + sidEsc + "')") + '">' +
+      '<div class="av" style="width:24px;height:24px;font-size:10px;background:var(--gl);color:var(--g)">' + escHtml(s.voor[0] + s.ach[0]) + '</div>' +
+      '<div><div style="font-size:13px">' + escHtml(s.voor + ' ' + s.ach) + '</div><div style="font-size:11px;color:var(--txm)">HCP ' + (s.hcp != null ? s.hcp.toFixed(1) : '?') + (s.lid ? ' &middot; ' + escHtml(s.lid) : '') + '</div></div>' +
       (isAl ? '<span style="font-size:11px;color:var(--txh);margin-left:auto">Al toegevoegd</span>' : '') +
       '</div>';
   }).join('');
