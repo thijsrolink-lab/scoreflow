@@ -4212,7 +4212,7 @@ function renderWdUitslagTab(w) {
     return '<p style="color:#8b94a3;padding:2rem;text-align:center">Klassement-functies niet beschikbaar.</p>';
   }
 
-  var baan = getBaan(w.holes);
+  var baan = getBaan(w.holes, null, null, w.welkeNegen);
   baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
 
@@ -4464,7 +4464,8 @@ function dbWedstrijdNaarApp(w) {
     afgelast_reden: w.afgelast_reden || '',
     driveMin: w.drive_min != null ? w.drive_min : null,
     driveMax: w.drive_max != null ? w.drive_max : null,
-    blindHoles: w.blind_holes || 0,};
+    blindHoles: w.blind_holes || 0,
+    welkeNegen: w.welke_negen || 'uit',};
 }
 function dbIngNaarApp(i) {
   return { id: i.id, wid: i.wid, sid: i.sid,
@@ -4575,7 +4576,8 @@ async function dbSaveWedstrijd(w) {
       inschrijf_sluit: w.inschrijfSluit, omschrijving: w.omschrijving, kleur: w.kleur, afgelast_reden: w.afgelast_reden || null,
       drive_min: w.driveMin != null ? w.driveMin : null,
       drive_max: w.driveMax != null ? w.driveMax : null,
-      blind_holes: w.blindHoles || 0,};
+      blind_holes: w.blindHoles || 0,
+      welke_negen: w.welkeNegen || 'uit',};
     if (w.id && String(w.id).includes('-')) {
       await supa('wedstrijden', 'PATCH', data, { id: 'eq.' + w.id });
     } else {
@@ -4660,9 +4662,35 @@ var BAAN_18 = {
     oranje: [194,193,167,109,321,162,250,264,247, 309,103,332, 92,241, 73,210,249,206]   // 3722m
   }
 };
-var BAAN_9={holes:9,par:[4,3,5,4,4,3,5,4,4],si:[4,9,2,6,1,8,3,7,5]};
+// Voor 9-holes wedstrijden: pak juiste helft van BAAN_18 (De Hooge)
+function getBaan9(welkeNegen) {
+  var w = welkeNegen === 'in' ? 9 : 0;  // start-offset (0=UIT, 9=IN)
+  return {
+    naam: BAAN_18.naam + ' (' + (welkeNegen === 'in' ? 'IN, hole 10-18' : 'UIT, hole 1-9') + ')',
+    holes: 9,
+    par: BAAN_18.par.slice(w, w+9),
+    si: BAAN_18.si.slice(w, w+9),
+    welkeNegen: welkeNegen || 'uit'
+  };
+}
+// Backward compat: oude verzonnen BAAN_9 voor wedstrijden zonder welkeNegen
+var BAAN_9 = {holes:9, par:BAAN_18.par.slice(0,9), si:BAAN_18.si.slice(0,9)};
 
-function getBaan(holes,cPar,cSI){var b=holes===9?BAAN_9:BAAN_18;return{holes:b.holes,par:cPar||b.par,si:cSI||b.si,parTotaal:(cPar||b.par).reduce(function(a,x){return a+x;},0)};}
+function getBaan(holes, cPar, cSI, welkeNegen) {
+  var b;
+  if (holes === 9) {
+    b = (typeof getBaan9 === 'function') ? getBaan9(welkeNegen) : BAAN_9;
+  } else {
+    b = BAAN_18;
+  }
+  return {
+    holes: b.holes,
+    par: cPar || b.par,
+    si: cSI || b.si,
+    parTotaal: (cPar || b.par).reduce(function(a, x) { return a + x; }, 0),
+    welkeNegen: b.welkeNegen
+  };
+}
 function berekenSpeelhandicap(ega,slope,cr,par,perc,holes){slope=slope||113;cr=cr||72;par=par||72;perc=perc||1.0;holes=holes||18;var sh=Math.round(ega*(slope/113)+(cr-par));sh=Math.round(sh*perc);if(holes===9)sh=Math.round(sh/2);return sh;}
 function extraSlagenPerHole(sh,si){return si.map(function(s){return Math.floor(sh/si.length)+(Math.abs(sh)%si.length>=s?Math.sign(sh)||0:0);});}
 // Korte alias — gebruikt in berekenMatchplay, berekenSkins etc.
@@ -5117,6 +5145,15 @@ function vulHoofdsponsorDropdown(huidigeSponsorId) {
   if (huidigeSponsorId) sel.value = huidigeSponsorId;
 }
 
+
+// Toggle 'welke 9 holes' veld in wizard
+function toggleNegenKeuze() {
+  var fh = document.getElementById('fh');
+  var nf = document.getElementById('negen-keuze-field');
+  if (!fh || !nf) return;
+  nf.style.display = (parseInt(fh.value) === 9) ? '' : 'none';
+}
+
 // Toon/verberg drive-quota velden gebaseerd op vorm
 function showHideDriveQuota() {
   var vormEl = document.getElementById('fsg');
@@ -5534,6 +5571,9 @@ function editW(id){
     if (fdrivemax2) fdrivemax2.value = (w.driveMax != null ? w.driveMax : 5);
     var fblindEdit = document.getElementById('fblind');
     if (fblindEdit) fblindEdit.value = (w.blindHoles || 0);
+    var fnegenEdit = document.getElementById('fnegen');
+    if (fnegenEdit) fnegenEdit.value = w.welkeNegen || 'uit';
+    if (typeof toggleNegenKeuze === 'function') toggleNegenKeuze();
     if (typeof showHideDriveQuota === 'function') showHideDriveQuota();
     var fh = document.getElementById('fh'); if(fh) fh.value = w.holes;
     var fhp = document.getElementById('fhp'); if(fhp) fhp.value = w.hcpperc;
@@ -5614,6 +5654,9 @@ function resetForm(){
   if (fdrivemin) fdrivemin.value = 4;
   var fblind = document.getElementById('fblind');
   if (fblind) fblind.value = 0;
+  var fnegen = document.getElementById('fnegen');
+  if (fnegen) fnegen.value = 'uit';
+  if (typeof toggleNegenKeuze === 'function') toggleNegenKeuze();
   if (fdrivemax) fdrivemax.value = 5;
   if (typeof showHideDriveQuota === 'function') showHideDriveQuota();
   // Sponsor wizard state reset
@@ -5700,6 +5743,7 @@ function bouwWedstrijdUitFormulier(status) {
     blindHoles: parseInt((document.getElementById('fblind') || {}).value || 0) || 0,
     driveMin: parseInt((document.getElementById('fdrivemin') || {}).value) || null,
     driveMax: parseInt((document.getElementById('fdrivemax') || {}).value) || null,
+    welkeNegen: (document.getElementById('fnegen') || {}).value || 'uit',
   };
 }
 
@@ -6071,7 +6115,7 @@ function renderScoreInvoer() {
   var wId = document.getElementById('sc-w').value; if (!wId) return;
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; }); if (!w) return;
   var ronde = getRonde();
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
   var sps = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; })
     .map(function(i) { return USERS.find(function(s) { return s.id === i.sid; }); }).filter(Boolean);
@@ -6280,7 +6324,7 @@ function fsScore(inp, wId, ronde, key, idx, par, ex) {
 
   var w = WEDSTRIJDEN.find(function(x){return x.id==wId;});
   if (!w) return;
-  var baan = getBaan(w.holes); baan.slope=w.slope; baan.cr=w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope=w.slope; baan.cr=w.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   // Zoek teamhandicap
   var parts = key.replace('fs-','').split('-');
@@ -6978,7 +7022,7 @@ function chScore(inp,wId,ronde,key,idx,par,ex){
   SCORES[wId][ronde][key][idx]=inp.value;
   inp.className='csk-inp'+(inp.value?' '+sklas(inp.value,par,ex):'');
   var w=WEDSTRIJDEN.find(function(x){return x.id==wId;});if(!w)return;
-  var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+  var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
   var parts=key.replace('ch-','').split('-');
   var spA=USERS.find(function(x){return x.id==parts[0];})||{hcp:18};
   var spB=USERS.find(function(x){return x.id==parts[1];})||{hcp:18};
@@ -7005,7 +7049,7 @@ function omPuntenSchaal(positie, aantalDeelnemers) {
 
 function berekenOrderOfMerit(wId) {
   var w = WEDSTRIJDEN.find(function(x){return x.id===wId;}); if(!w)return;
-  var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+  var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
   var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
   var ronde=0;
   var rows=sps.map(function(s){
@@ -7120,7 +7164,7 @@ function hiddenToggle(wId,hole,btn){
   else{SCORES[wId]['hidden'].push(hole);btn.className='btn btn-p btn-xs';}
   // Herrender
   var el=document.getElementById('stab-hh');
-  if(el){var wId2=document.getElementById('sc-w').value;var w=WEDSTRIJDEN.find(function(x){return x.id===wId2;});if(w){var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId2&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);el.innerHTML=uiHiddenHoles(wId2,0,baan,sps,w);}}
+  if(el){var wId2=document.getElementById('sc-w').value;var w=WEDSTRIJDEN.find(function(x){return x.id===wId2;});if(w){var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId2&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);el.innerHTML=uiHiddenHoles(wId2,0,baan,sps,w);}}
 }
 
 // ── 14. Stokkenroof ──────────────────────────────────────────
@@ -7465,7 +7509,7 @@ function updateTeamScore(inp) {
   // Live kleur update
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (w) {
-    var baan = getBaan(w.holes);
+    var baan = getBaan(w.holes, null, null, w.welkeNegen);
     var par = baan.par[hole];
     inp.classList.remove('sc-eagle','sc-birdie','sc-bogey','sc-double');
     if (val !== '') {
@@ -8301,7 +8345,7 @@ function switchTab(tab){
     var wId=document.getElementById('sc-w').value;
     var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});
     if(w){
-      var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+      var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
       var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
       var el2=document.getElementById('stab-lb');if(el2)el2.innerHTML=buildLeaderboard(wId,getRonde(),baan,sps,w);
     }
@@ -8315,7 +8359,7 @@ function updateScore(inp){
   SCORES[wId][ronde][sid][hi]=inp.value;
   inp.className='sc-inp sc-'+scoreKlasse(inp.value,par,ex);
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});
-  var baan=getBaan(w.holes);baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+  var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
   var s=USERS.find(function(x){return x.id===sid;});
   var sh=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
   var sc=SCORES[wId][ronde][sid];
@@ -8744,7 +8788,7 @@ function renderSpelerScores(){
   var html='';
   mijnIng.forEach(function(ing){
     var w=WEDSTRIJDEN.find(function(x){return x.id===ing.wid;});if(!w)return;
-    var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+    var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
     var sh=berekenSpeelhandicap(u.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
     var sc=(SCORES[w.id]&&SCORES[w.id][0]&&SCORES[w.id][0][u.id])||null;
     if(!sc)return;
@@ -8781,7 +8825,7 @@ function renderRanglijst(){
   var wId=document.getElementById('rang-w').value;
   if(!wId){document.getElementById('sp-rang-content').innerHTML='<p style="font-size:13px;color:var(--txm)">Kies een wedstrijd om de ranglijst te bekijken.</p>';return;}
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});if(!w){return;}
-  var baan=getBaan(w.holes);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
+  var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
   var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
 
   // Texas Scramble: team leaderboard in plaats van per speler
@@ -9191,7 +9235,7 @@ function renderSpLeaderboardTab(w, fase) {
     .filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; })
     .map(function(i) { return USERS.find(function(u) { return u.id === i.sid; }); })
     .filter(Boolean);
-  var baan = getBaan(w.holes);
+  var baan = getBaan(w.holes, null, null, w.welkeNegen);
   baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
 
@@ -9235,7 +9279,7 @@ function renderSpMijnScoresTab(w, fase) {
   if (typeof getBaan !== 'function' || typeof berekenStrokeplay !== 'function' || typeof berekenStableford !== 'function' || typeof berekenSpeelhandicap !== 'function') {
     return '<div class="sp-wd-empty"><h3>Berekening niet beschikbaar</h3></div>';
   }
-  var baan = getBaan(w.holes);
+  var baan = getBaan(w.holes, null, null, w.welkeNegen);
   baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
   var sh = berekenSpeelhandicap(_currentUser.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
@@ -9355,7 +9399,7 @@ function initScorekaart() {
       '</div>';
     return;
   }
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var shv = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
 
@@ -9431,7 +9475,7 @@ function spEclNieuweRonde(wId) {
   SCORES[wId][ri] = {};
   var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
   var u = _currentUser;
-  var baan = getBaan(w.holes); baan.slope=w.slope; baan.cr=w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope=w.slope; baan.cr=w.cr;
   baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
   var shv = berekenSpeelhandicap(u.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
   spEclecticScorekaart(wId, w, baan, shv, u);
@@ -9443,7 +9487,7 @@ function spEclTabSwitch(wId, tab, el) {
   if (el) el.classList.add('on');
   var w = WEDSTRIJDEN.find(function(x){return x.id===wId;});
   var u = _currentUser;
-  var baan = getBaan(w.holes); baan.slope=w.slope; baan.cr=w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope=w.slope; baan.cr=w.cr;
   baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
   var shv = berekenSpeelhandicap(u.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
   var content = document.getElementById('sp-ecl-content');
@@ -9633,7 +9677,7 @@ function renderScorekaart(w, baan, sh, u) {
 function skGaNaarHole(i) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === _skWId; });
   var u = _currentUser;
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var sh = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
   _skActiefHole = i;
   renderScorekaart(w, baan, sh, u);
@@ -9642,7 +9686,7 @@ function skGaNaarHole(i) {
 function skAanpassen(delta) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === _skWId; });
   var u = _currentUser;
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var sh = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
   var hi = _skActiefHole; var par = baan.par[hi];
   var huidig = parseInt(_skScores[hi]) || par;
@@ -9655,7 +9699,7 @@ function skAanpassen(delta) {
 function skVolgende() {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === _skWId; });
   var u = _currentUser;
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var sh = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, w.hcpperc/100, w.holes);
   if (_skActiefHole < baan.holes - 1) _skActiefHole++;
   renderScorekaart(w, baan, sh, u);
@@ -9856,7 +9900,7 @@ function renderLiveLeaderboard() {
   document.getElementById('lb-w-naam').textContent = w.naam;
   document.getElementById('lb-w-info').textContent = w.vorm + ' · ' + w.holes + ' holes · ' + new Date(w.datum).getDate() + ' ' + MN[new Date(w.datum).getMonth()];
   document.getElementById('lb-update-time').textContent = 'Bijgewerkt: ' + new Date().toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var sps = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; }).map(function(i) { return USERS.find(function(s) { return s.id === i.sid; }); }).filter(Boolean);
   // Texas Scramble: team leaderboard in plaats van individueel
   if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
@@ -10859,7 +10903,7 @@ function cskInput(inp) {
   if (w) {
     var sp = USERS.find(function(x) { return x.id === sid; });
     if (sp) {
-      var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
+      var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr;
       baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
       var shv = berekenSpeelhandicap(sp.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
       var sc = SCORES[wId][r][sid];
@@ -10882,7 +10926,7 @@ function renderEclecticView(wId) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w || w.vorm !== 'Eclectic') return '<p style="color:var(--txm)">Geen eclectische wedstrijd geselecteerd.</p>';
 
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var sps = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; })
     .map(function(i) { return USERS.find(function(s) { return s.id === i.sid; }); }).filter(Boolean);
@@ -10936,7 +10980,7 @@ function eclRondeToevoegen(wId) {
 function eclTabSwitch(wId, tab) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w) return;
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var sps = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; })
     .map(function(i) { return USERS.find(function(s) { return s.id === i.sid; }); }).filter(Boolean);
@@ -11078,7 +11122,7 @@ function switchScoreTab(tab) {
   var wId = document.getElementById('sc-w').value;
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w) return;
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var sps = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; })
     .map(function(i) { return USERS.find(function(s) { return s.id === i.sid; }); }).filter(Boolean);
@@ -11121,7 +11165,7 @@ function renderSpelerScorekaart(wId) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w) return '<p style="color:var(--txm)">Wedstrijd niet gevonden.</p>';
 
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var shv = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
   var ex = extraSlagenPerHole(shv, baan.si);
@@ -11233,7 +11277,7 @@ function spCskInput(inp, wId) {
   // Update totalen
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w) return;
-  var baan = getBaan(w.holes); baan.slope = w.slope; baan.cr = w.cr;
+  var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
   var shv = berekenSpeelhandicap(u.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100)/100, w.holes);
   var sc = SCORES[wId][0][u.id];
@@ -12338,7 +12382,7 @@ function renderOomKlassement(comp, ws, baan) {
   var puntenTotaal = {};
 
   ws.forEach(function(w) {
-    var wBaan = getBaan(w.holes); wBaan.slope=w.slope; wBaan.cr=w.cr;
+    var wBaan = getBaan(w.holes, null, null, w.welkeNegen); wBaan.slope=w.slope; wBaan.cr=w.cr;
     wBaan.parTotaal=wBaan.par.reduce(function(a,b){return a+b;},0);
     var sps = INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';})
       .map(function(i){return USERS.find(function(u){return u.id===i.sid;});}).filter(Boolean);
@@ -12615,7 +12659,8 @@ try {
             <div class="g3">
               <div class="field"><label>Course rating</label><input id="fcr" type="number" step="0.1" placeholder="72.1"/></div>
               <div class="field"><label>Slope rating</label><input id="fsl" type="number" placeholder="131"/></div>
-              <div class="field"><label>Holes</label><select id="fh"><option value="18">18 holes</option><option value="9">9 holes</option></select></div>
+              <div class="field"><label>Holes</label><select id="fh" onchange="toggleNegenKeuze()"><option value="18">18 holes</option><option value="9">9 holes</option></select></div>
+              <div class="field" id="negen-keuze-field" style="display:none"><label>Welke 9 holes</label><select id="fnegen"><option value="uit">Eerste 9 (UIT, holes 1-9)</option><option value="in">Tweede 9 (IN, holes 10-18)</option></select></div>
             </div>
             <div class="field"><label>Wedstrijdvorm</label>
               <div class="tg" id="vorm-tg">
