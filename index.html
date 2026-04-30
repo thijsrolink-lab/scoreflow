@@ -4499,6 +4499,11 @@ async function laadAlleData() {
       try { await laadTeamDrives(); } catch(e) { console.warn('Drives laden mislukt:', e.message); }
     }
 
+    // Groepswedstrijden laden
+    if (typeof laadGroepswedstrijden === 'function') {
+      try { await laadGroepswedstrijden(); } catch(e) { console.warn('Groepswedstrijden laden mislukt:', e.message); }
+    }
+
     // Flights reconstrueren: { wid: [[sid1, sid2, ...], [sid3, sid4, ...]] }
     FLIGHTS = {};
     (fls || []).forEach(function(f) {
@@ -10482,33 +10487,41 @@ function gwTerug() {
   renderGroepOverzicht();
 }
 
-function gwOpslaan() {
+async function gwOpslaan() {
   var w = _gwWizard;
   if (w.gwId) {
-    // Update
+    // Update bestaande
     var g = GROEPSWEDSTRIJDEN.find(function(x) { return x.id === w.gwId; });
     if (g) {
       g.naam = w.naam; g.datum = w.datum; g.baan = w.baan; g.vorm = w.vorm;
-      g.holes = w.holes; g.startgeld = w.startgeld; g.omschrijving = w.omschrijving;
+      g.holes = w.holes; g.welkeNegen = w.welkeNegen || 'uit';
+      g.startgeld = w.startgeld; g.omschrijving = w.omschrijving;
       g.deelnemers = w.deelnemers;
+      // Save naar DB
+      await dbSaveGroepswedstrijd(g);
     }
-    // Koppel sponsoren (hoofdsponsor + co + hole)
-  var sponsorEl = document.getElementById('fhsponsor');
-  var hoofdId = sponsorEl ? (sponsorEl.value || null) : null;
-  if (typeof koppelAlleSponsorenAanWedstrijd === 'function' && w && w.id) {
-    koppelAlleSponsorenAanWedstrijd(w.id, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || []);
-  }
-  toast('Wedstrijd bijgewerkt!');
+    toast('Groepswedstrijd bijgewerkt!');
   } else {
-    // Nieuw
+    // Nieuw — sla direct in DB op om echte UUID te krijgen
     var nieuw = {
-      id: Date.now(), code: gwGenereerCode(),
+      code: gwGenereerCode(),
       naam: w.naam, datum: w.datum, baan: w.baan, vorm: w.vorm,
-      holes: w.holes, startgeld: w.startgeld, omschrijving: w.omschrijving,
-      deelnemers: w.deelnemers, scores: {}, flights: []
+      holes: w.holes, welkeNegen: w.welkeNegen || 'uit',
+      startgeld: w.startgeld, omschrijving: w.omschrijving,
+      deelnemers: w.deelnemers, scores: {}, flights: [],
+      organisatorId: _currentUser ? _currentUser.id : null,
+      status: 'actief'
     };
-    GROEPSWEDSTRIJDEN.push(nieuw);
-    toast('Groepswedstrijd aangemaakt! Code: ' + nieuw.code);
+    var saved = await dbSaveGroepswedstrijd(nieuw);
+    if (saved && saved.id) {
+      GROEPSWEDSTRIJDEN.push(saved);
+      toast('Groepswedstrijd aangemaakt! Code: ' + saved.code);
+    } else {
+      // Fallback: lokaal opslaan met int-id (zal verloren bij refresh)
+      nieuw.id = Date.now();
+      GROEPSWEDSTRIJDEN.push(nieuw);
+      toast('Aangemaakt (lokaal — DB-save mislukt). Code: ' + nieuw.code, 'err');
+    }
   }
   spNav('groep', document.querySelector('[data-spview="groep"]'));
   renderGroepOverzicht();
@@ -10657,12 +10670,14 @@ function gwOpenScorekaart(gwId) {
 var _gwScorekaartActief = null;
 var SK_IS_GW = false;
 
-function gwScorekaartOpslaan() {
+async function gwScorekaartOpslaan() {
   var gwId = _gwScorekaartActief;
   var g = GROEPSWEDSTRIJDEN.find(function(x) { return x.id === gwId; });
   if (g) {
     if (!g.scores) g.scores = {};
     g.scores[_currentUser.id] = _skScores;
+    // Save naar DB
+    await dbSaveGroepswedstrijd(g);
     toast('Scorekaart opgeslagen!');
     _gwScorekaartActief = null;
     gwOpenDetail(gwId);
@@ -12166,6 +12181,79 @@ async function laadCompetities() {
     return true;
   } catch(e) { console.warn('laadCompetities:', e.message); return false; }
 }
+
+// ─── Groepswedstrijden DB-koppeling ──────────────────────
+async function dbSaveGroepswedstrijd(gw) {
+  try {
+    var data = {
+      code: gw.code,
+      naam: gw.naam || '',
+      datum: gw.datum || null,
+      baan: gw.baan || null,
+      vorm: gw.vorm || 'Stableford',
+      holes: gw.holes || 18,
+      welke_negen: gw.welkeNegen || 'uit',
+      startgeld: gw.startgeld || 0,
+      omschrijving: gw.omschrijving || '',
+      deelnemers: gw.deelnemers || [],
+      scores: gw.scores || {},
+      flights: gw.flights || [],
+      organisator_id: gw.organisatorId || (_currentUser ? _currentUser.id : null),
+      status: gw.status || 'actief',
+      bijgewerkt_op: new Date().toISOString()
+    };
+    if (gw.id && String(gw.id).indexOf('-') > 0) {
+      // Bestaand met UUID — PATCH
+      await supa('groepswedstrijden', 'PATCH', data, { id: 'eq.' + gw.id });
+      return gw;
+    } else {
+      // Nieuw — POST
+      var res = await supa('groepswedstrijden', 'POST', data);
+      if (res && res[0]) return dbGroepswedstrijdNaarApp(res[0]);
+      return gw;
+    }
+  } catch(e) {
+    console.warn('dbSaveGroepswedstrijd:', e.message);
+    toast('Opslaan mislukt: ' + e.message, 'err');
+    return null;
+  }
+}
+
+function dbGroepswedstrijdNaarApp(g) {
+  return {
+    id: g.id,
+    code: g.code,
+    naam: g.naam || '',
+    datum: g.datum || '',
+    baan: g.baan || '',
+    vorm: g.vorm || 'Stableford',
+    holes: g.holes || 18,
+    welkeNegen: g.welke_negen || 'uit',
+    startgeld: g.startgeld || 0,
+    omschrijving: g.omschrijving || '',
+    deelnemers: g.deelnemers || [],
+    scores: g.scores || {},
+    flights: g.flights || [],
+    organisatorId: g.organisator_id || null,
+    status: g.status || 'actief'
+  };
+}
+
+async function dbDeleteGroepswedstrijd(id) {
+  try {
+    await supa('groepswedstrijden', 'DELETE', null, { id: 'eq.' + id });
+    return true;
+  } catch(e) { console.warn('dbDeleteGroepswedstrijd:', e.message); return false; }
+}
+
+async function laadGroepswedstrijden() {
+  try {
+    var rs = await supa('groepswedstrijden', 'GET', null, { select: '*', order: 'aangemaakt_op.desc' });
+    GROEPSWEDSTRIJDEN = (rs || []).map(dbGroepswedstrijdNaarApp);
+    return true;
+  } catch(e) { console.warn('laadGroepswedstrijden:', e.message); return false; }
+}
+
 
 function delCompetitie(id) {
   if (!confirm('Competitie verwijderen? De gekoppelde wedstrijden blijven bestaan.')) return;
