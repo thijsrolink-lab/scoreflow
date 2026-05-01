@@ -9059,7 +9059,77 @@ function renderSpInfoTab(w, fase) {
   var leider = (typeof leiderNaam === 'function') ? leiderNaam(w) : '';
   var ingeschreven = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).length;
 
-  var html = '<div class="sp-wd-card">' +
+  // Inschrijf-status blok bovenaan (voor speler)
+  var html = '';
+  if (_currentUser && _currentUser.rol === 'Speler' && fase !== 'afgelast' && fase !== 'afgerond') {
+    var mijnInschr = INSCHRIJVINGEN.find(function(i) { return i.wid === w.id && i.sid === _currentUser.id; });
+    var inschrOpen = isInschrijvingOpen(w);
+
+    if (mijnInschr && mijnInschr.status === 'ingeschreven') {
+      // Speler is ingeschreven
+      html += '<div class="sp-wd-card" style="background:#dcfce7;border-color:#bbf7d0">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+        '<div>' +
+          '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#16a34a;font-weight:700">✓ Je bent ingeschreven</div>' +
+          '<div style="font-size:13px;color:#0c1b2a;margin-top:2px">Sinds ' + (mijnInschr.datum ? formatDatum(mijnInschr.datum) : 'recent') + '</div>' +
+        '</div>' +
+        (fase === 'open' || fase === 'gepubliceerd' ? '<button class="btn btn-s btn-sm" onclick="doSelfAfmelden(\'' + escHtml(w.id) + '\')" style="color:#dc2626;border-color:#fecaca">Afmelden</button>' : '') +
+        '</div></div>';
+    } else if (mijnInschr && mijnInschr.status === 'wachtlijst') {
+      html += '<div class="sp-wd-card" style="background:#fef3c7;border-color:#fde68a">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+        '<div>' +
+          '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#a16207;font-weight:700">⏳ Op wachtlijst</div>' +
+          '<div style="font-size:13px;color:#0c1b2a;margin-top:2px">We laten je weten zodra er plek is.</div>' +
+        '</div>' +
+        '<button class="btn btn-s btn-sm" onclick="doSelfAfmelden(\'' + escHtml(w.id) + '\')" style="color:#dc2626;border-color:#fecaca">Afmelden</button>' +
+        '</div></div>';
+    } else if (mijnInschr && mijnInschr.status === 'afgemeld') {
+      html += '<div class="sp-wd-card">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+        '<div>' +
+          '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;font-weight:700">Afgemeld</div>' +
+          '<div style="font-size:13px;color:#0c1b2a;margin-top:2px">Je was afgemeld voor deze wedstrijd.</div>' +
+        '</div>' +
+        (inschrOpen ? '<button class="btn btn-p btn-sm" onclick="doSelfInschrijven(\'' + escHtml(w.id) + '\')">Opnieuw inschrijven</button>' : '') +
+        '</div></div>';
+    } else if (inschrOpen) {
+      // Niet ingeschreven, kan zich inschrijven
+      var hcpOk = !w.hcpmax || (_currentUser.hcp >= (w.hcpmin || 0) && _currentUser.hcp <= w.hcpmax);
+      if (hcpOk) {
+        html += '<div class="sp-wd-card" style="background:#eff6ff;border-color:#bfdbfe">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+          '<div>' +
+            '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#1d4ed8;font-weight:700">Inschrijving open</div>' +
+            '<div style="font-size:13px;color:#0c1b2a;margin-top:2px">' + ingeschreven + (w.max ? ' van ' + w.max : '') + ' deelnemers' +
+              (w.inschrijfSluit ? ' · sluit ' + formatDatum(w.inschrijfSluit) : '') + '</div>' +
+          '</div>' +
+          '<button class="btn btn-p btn-sm" onclick="doSelfInschrijven(\'' + escHtml(w.id) + '\')">Inschrijven</button>' +
+          '</div></div>';
+      } else {
+        html += '<div class="sp-wd-card" style="background:#fef2f2;border-color:#fecaca">' +
+          '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#dc2626;font-weight:700">Niet beschikbaar</div>' +
+          '<div style="font-size:13px;color:#0c1b2a;margin-top:4px">Je HCP (' + _currentUser.hcp.toFixed(1) + ') valt buiten de toelating (' + (w.hcpmin || 0) + ' - ' + w.hcpmax + ')</div>' +
+          '</div>';
+      }
+    } else {
+      // Inschrijving niet open
+      var redenTekst = '';
+      if (w.inschrijfOpen && new Date(w.inschrijfOpen) > new Date()) {
+        redenTekst = 'Inschrijving opent ' + formatDatum(w.inschrijfOpen);
+      } else if (w.inschrijfSluit && new Date(w.inschrijfSluit) < new Date()) {
+        redenTekst = 'Inschrijving is gesloten op ' + formatDatum(w.inschrijfSluit);
+      } else {
+        redenTekst = 'Inschrijving niet open';
+      }
+      html += '<div class="sp-wd-card" style="background:#f1f4f8">' +
+        '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;font-weight:700">Inschrijving</div>' +
+        '<div style="font-size:13px;color:#0c1b2a;margin-top:4px">' + redenTekst + '</div>' +
+        '</div>';
+    }
+  }
+
+  html += '<div class="sp-wd-card">' +
     '<h3>Wedstrijd-info</h3>' +
     '<div class="sp-wd-card-row"><span class="label">Vorm</span><span class="value">' + escHtml(w.vorm) + '</span></div>' +
     '<div class="sp-wd-card-row"><span class="label">Baan</span><span class="value">' + escHtml(w.baan) + '</span></div>' +
@@ -9108,6 +9178,121 @@ function renderSpInfoTab(w, fase) {
   return html;
 }
 
+
+
+// ─── Speler self-inschrijven flow ──────────────────
+function isInschrijvingOpen(w) {
+  if (w.status !== 'gepubliceerd' && w.status !== 'open') return false;
+  var nu = new Date();
+  if (w.inschrijfOpen && new Date(w.inschrijfOpen) > nu) return false;
+  if (w.inschrijfSluit) {
+    var sluit = new Date(w.inschrijfSluit);
+    sluit.setHours(23, 59, 59);  // einde van de dag
+    if (sluit < nu) return false;
+  }
+  return true;
+}
+
+function formatDatum(d) {
+  if (!d) return '';
+  try {
+    var dt = (typeof d === 'string') ? new Date(d) : d;
+    return dt.getDate() + ' ' + ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'][dt.getMonth()] + ' ' + dt.getFullYear();
+  } catch(e) { return String(d); }
+}
+
+async function doSelfInschrijven(wId) {
+  if (!_currentUser || _currentUser.rol !== 'Speler') return;
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) return;
+
+  // Checks
+  if (!isInschrijvingOpen(w)) {
+    toast('Inschrijving niet open', 'err');
+    return;
+  }
+  // HCP check
+  if (w.hcpmax && (_currentUser.hcp < (w.hcpmin || 0) || _currentUser.hcp > w.hcpmax)) {
+    toast('Je HCP valt buiten de toelating', 'err');
+    return;
+  }
+
+  // Vol? → wachtlijst
+  var ingeschreven = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; }).length;
+  var status = (w.max && ingeschreven >= w.max) ? 'wachtlijst' : 'ingeschreven';
+
+  // Bestaande inschrijving updaten of nieuwe maken
+  var bestaand = INSCHRIJVINGEN.find(function(i) { return i.wid === wId && i.sid === _currentUser.id; });
+
+  try {
+    if (bestaand) {
+      // Update bestaand naar 'ingeschreven' (was bv. 'afgemeld')
+      bestaand.status = status;
+      bestaand.datum = new Date().toISOString().split('T')[0];
+      await supa('inschrijvingen', 'PATCH', {
+        status: status,
+        datum: bestaand.datum
+      }, { id: 'eq.' + bestaand.id });
+    } else {
+      // Nieuwe inschrijving
+      var nw = {
+        wid: wId,
+        sid: _currentUser.id,
+        datum: new Date().toISOString().split('T')[0],
+        status: status,
+        opm: ''
+      };
+      var res = await supa('inschrijvingen', 'POST', nw);
+      if (res && res[0]) {
+        INSCHRIJVINGEN.push(dbIngNaarApp(res[0]));
+      }
+    }
+    toast(status === 'wachtlijst' ? 'Op wachtlijst geplaatst' : 'Ingeschreven!');
+
+    // Re-render speler-detail-view
+    if (typeof renderSpelerWdDetail === 'function') renderSpelerWdDetail();
+    else if (typeof openSpelerWdDetail === 'function') openSpelerWdDetail(wId);
+  } catch(e) {
+    console.warn('doSelfInschrijven:', e.message);
+    toast('Inschrijven mislukt: ' + e.message, 'err');
+  }
+}
+
+async function doSelfAfmelden(wId) {
+  if (!_currentUser || _currentUser.rol !== 'Speler') return;
+  if (!confirm('Weet je zeker dat je je wilt afmelden?')) return;
+
+  var bestaand = INSCHRIJVINGEN.find(function(i) { return i.wid === wId && i.sid === _currentUser.id; });
+  if (!bestaand) return;
+
+  try {
+    bestaand.status = 'afgemeld';
+    await supa('inschrijvingen', 'PATCH', {
+      status: 'afgemeld'
+    }, { id: 'eq.' + bestaand.id });
+
+    // Eerste op wachtlijst auto-promoten
+    var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+    if (w && w.max) {
+      var ingeschreven = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; }).length;
+      if (ingeschreven < w.max) {
+        var wachtend = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'wachtlijst'; })
+          .sort(function(a, b) { return new Date(a.datum) - new Date(b.datum); })[0];
+        if (wachtend) {
+          wachtend.status = 'ingeschreven';
+          await supa('inschrijvingen', 'PATCH', { status: 'ingeschreven' }, { id: 'eq.' + wachtend.id });
+        }
+      }
+    }
+
+    toast('Afgemeld');
+    if (typeof renderSpelerWdDetail === 'function') renderSpelerWdDetail();
+    else if (typeof openSpelerWdDetail === 'function') openSpelerWdDetail(wId);
+  } catch(e) {
+    console.warn('doSelfAfmelden:', e.message);
+    toast('Afmelden mislukt: ' + e.message, 'err');
+  }
+}
 // ─── Tab: Mijn start (flight + tijd) ────────────
 function renderSpMijnStartTab(w, fase) {
   if (!_currentUser) return '<div class="sp-wd-empty"><div class="icon">⚠️</div><h3>Niet ingelogd</h3></div>';
