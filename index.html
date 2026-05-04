@@ -132,6 +132,22 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 .modal{background:var(--card);border-radius:var(--rxl);border:1px solid var(--bd);padding:1.5rem;max-width:540px;width:100%;max-height:88vh;overflow-y:auto}
 .modal-title{font-family:Inter,sans-serif;font-size:16px;color:var(--g);margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between}
 .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--txm);line-height:1}
+/* Offline indicator — gele banner bovenaan body als netwerk weg */
+body.offline::before {
+  content: '⚠️ Geen internet — scores worden lokaal bewaard, sync wanneer terug online';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: #f59e0b;
+  color: #fff;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 9999;
+  font-family: 'Inter', sans-serif;
+}
+body.offline { padding-top: 38px; }
+
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--g);color:#fff;padding:10px 18px;border-radius:var(--rl);font-size:13px;font-weight:500;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:500;max-width:340px;pointer-events:none}
 .toast.show{transform:translateY(0);opacity:1}
 .toast.err{background:var(--red)}
@@ -4570,6 +4586,26 @@ async function dbSaveScore(wId, sid, ronde, holeIdx, score) {
   } catch(e) { console.warn('dbSaveScore exception:', e.message); }
 }
 
+// Verwijder score uit DB (bij wissen door admin/speler)
+async function dbDeleteScore(wId, sid, ronde, holeIdx) {
+  try {
+    var url = SUPA_URL + '/rest/v1/scores?wid=eq.' + wId +
+              '&sid=eq.' + sid + '&ronde=eq.' + ronde + '&hole=eq.' + (holeIdx + 1);
+    var res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + ((SUPA_SESSION && SUPA_SESSION.access_token) || SUPA_KEY),
+      },
+    });
+    if (!res.ok) {
+      var errText = await res.text();
+      console.warn('dbDeleteScore fout:', res.status, errText.slice(0, 200));
+    }
+  } catch(e) { console.warn('dbDeleteScore exception:', e.message); }
+}
+
+
 async function dbSaveInschrijving(ing) {
   try {
     var res = await supa('inschrijvingen', 'POST',
@@ -7803,10 +7839,15 @@ function updateTeamScore(inp) {
   // Herbereken team totaal + leaderboard
   setTimeout(function() { renderScoreInvoer(); }, 100);
 
-  // Opslaan naar Supabase (async, niet-blocking)
-  dbSaveTeamScore(wId, ronde, teamKey, hole, val).catch(function(e){
-    console.warn('dbSaveTeamScore:', e.message);
-  });
+  // Opslaan naar Supabase met visuele status
+  if (val !== '') {
+    markScoreSaving(inp);
+    dbSaveTeamScore(wId, ronde, teamKey, hole, val).then(function() {
+      markScoreSaved(inp);
+    }).catch(function(e) {
+      markScoreFailed(inp, e.message);
+    });
+  }
 }
 
 async function dbSaveTeamScore(wId, ronde, teamKey, holeIdx, score) {
@@ -8631,6 +8672,55 @@ function switchTab(tab){
   }
 }
 
+// ─── Score-save status indicator ──────────────────────
+// Geeft visuele feedback per score-input: saving / saved / failed
+function markScoreSaving(inp) {
+  if (!inp) return;
+  inp.dataset.saveStatus = 'saving';
+  inp.style.outline = '2px solid #f59e0b';
+  inp.style.outlineOffset = '-2px';
+}
+function markScoreSaved(inp) {
+  if (!inp) return;
+  inp.dataset.saveStatus = 'saved';
+  inp.style.outline = '2px solid #16a34a';
+  inp.style.outlineOffset = '-2px';
+  // Fade groene rand na 1 seconde
+  setTimeout(function() {
+    if (inp.dataset.saveStatus === 'saved') {
+      inp.style.outline = '';
+      inp.style.outlineOffset = '';
+    }
+  }, 1000);
+}
+function markScoreFailed(inp, msg) {
+  if (!inp) return;
+  inp.dataset.saveStatus = 'failed';
+  inp.style.outline = '2px solid #dc2626';
+  inp.style.outlineOffset = '-2px';
+  if (typeof toast === 'function') {
+    toast('Score niet opgeslagen — controleer verbinding. ' + (msg || ''), 'err');
+  }
+  // Verwijder rand na 5 sec — gebruiker is gewaarschuwd
+  setTimeout(function() {
+    if (inp.dataset.saveStatus === 'failed') {
+      inp.style.outline = '2px dashed #dc2626';
+    }
+  }, 5000);
+}
+
+// Online/offline detectie — toon banner bij verlies van verbinding
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('online', function() {
+    if (typeof toast === 'function') toast('Verbinding hersteld', 'ok');
+    if (typeof document !== 'undefined' && document.body) document.body.classList.remove('offline');
+  });
+  window.addEventListener('offline', function() {
+    if (typeof toast === 'function') toast('Verbinding verbroken — scores worden lokaal bewaard', 'err');
+    if (typeof document !== 'undefined' && document.body) document.body.classList.add('offline');
+  });
+}
+
 function updateScore(inp){
   var wId=inp.dataset.wid,ronde=parseInt(inp.dataset.ronde),sid=inp.dataset.sid,hi=parseInt(inp.dataset.hi);
   var par=parseInt(inp.dataset.par),ex=parseInt(inp.dataset.ex);
@@ -8647,6 +8737,23 @@ function updateScore(inp){
   var bEl=document.getElementById('br-'+wId+'-'+ronde+'-'+sid);if(bEl)bEl.textContent=sp.gespeeld>0?sp.bruto:'—';
   var nEl=document.getElementById('ne-'+wId+'-'+ronde+'-'+sid);if(nEl)nEl.textContent=sp.gespeeld>0?sp.netto:'—';
   var sEl=document.getElementById('sf-'+wId+'-'+ronde+'-'+sid);if(sEl)sEl.textContent=sp.gespeeld>0?sf.punten:'—';
+  // DB save (was eerder vergeten — score werd alleen lokaal opgeslagen!)
+  var val = inp.value === '' ? '' : parseInt(inp.value);
+  markScoreSaving(inp);
+  if (val !== '') {
+    dbSaveScore(wId, sid, ronde, hi, val).then(function() {
+      markScoreSaved(inp);
+    }).catch(function(e) {
+      markScoreFailed(inp, e.message);
+    });
+  } else {
+    // Score gewist — verwijder uit DB
+    dbDeleteScore(wId, sid, ronde, hi).then(function() {
+      markScoreSaved(inp);
+    }).catch(function(e) {
+      markScoreFailed(inp, e.message);
+    });
+  }
 }
 
 function buildLeaderboard(wId,ronde,baan,sps,w){
@@ -11837,7 +11944,14 @@ function cskInput(inp) {
   // Kleur updaten
   inp.className = 'csk-inp' + (v ? ' ' + sklas(v, par, ex) : '');
   // Opslaan naar Supabase
-  if (v && v !== '') dbSaveScore(wId, sid, r, idx, parseInt(v)).catch(function(e){ console.warn('Score:', e.message); });
+  if (v && v !== '') {
+        markScoreSaving(inp);
+        dbSaveScore(wId, sid, r, idx, parseInt(v)).then(function() {
+          markScoreSaved(inp);
+        }).catch(function(e) {
+          markScoreFailed(inp, e.message);
+        });
+      }
 
   // Stat bar updaten
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
