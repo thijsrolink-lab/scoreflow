@@ -544,11 +544,13 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 
 /* ── COMPACTE SCOREKAART ─────────────────────────────── */
 .csk-wrap{background:var(--card);border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;margin-bottom:.75rem}
-.csk-header{display:grid;background:var(--surf);border-bottom:1px solid var(--bd);font-size:10px;color:var(--txm);font-weight:500}
+.csk-header{display:grid;grid-template-columns:2fr repeat(18,1fr);background:var(--surf);border-bottom:1px solid var(--bd);font-size:10px;color:var(--txm);font-weight:500}
+.csk-header.h9{grid-template-columns:2fr repeat(9,1fr)}
 .csk-hcell{padding:5px 2px;text-align:center;border-right:1px solid var(--bd)}
 .csk-hcell:last-child{border-right:none}
 .csk-hcell.l{text-align:left;padding-left:8px}
-.csk-row{display:grid;border-bottom:1px solid var(--surf);align-items:center;min-height:32px}
+.csk-row{display:grid;grid-template-columns:2fr repeat(18,1fr);border-bottom:1px solid var(--surf);align-items:center;min-height:32px}
+.csk-row.h9{grid-template-columns:2fr repeat(9,1fr)}
 .csk-row:last-child{border-bottom:none}
 .csk-row.par-r{background:var(--surf);font-size:10px;color:var(--txh)}
 .csk-row.si-r{background:#fafaf8;font-size:10px;color:var(--txh)}
