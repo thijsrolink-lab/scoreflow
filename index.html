@@ -11049,9 +11049,10 @@ function gwOpenDetail(id) {
   var isOrg = mijnRol && mijnRol.isOrganisator;
   var d = new Date(g.datum);
 
-  // Bouw baan voor scoring
-  var baan = getBaan(g.holes);
-  baan.slope = 113; baan.cr = 72; baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
+  // Bouw baan voor scoring (De Hooge gele tee)
+  var baan = getBaan(g.holes, null, null, g.welkeNegen);
+  baan.slope = 131; baan.cr = (g.holes === 9 ? 36.05 : 72.1);
+  baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
 
   // Leaderboard
   var lbRows = g.deelnemers.map(function(deeln) {
@@ -11161,7 +11162,8 @@ function gwRenderScorekaartView() {
   var isOrg = mijnRol && mijnRol.isOrganisator;
 
   var baan = getBaan(g.holes, null, null, g.welkeNegen);
-  baan.slope = 113; baan.cr = 72;
+  // Gebruik De Hooge gele tee waardes (zelfde als in admin-wedstrijden)
+  baan.slope = 131; baan.cr = (g.holes === 9 ? 36.05 : 72.1);
   baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
 
   // Header
@@ -11174,14 +11176,9 @@ function gwRenderScorekaartView() {
   var hdrEl = document.getElementById('sp-scorekaart-header');
   if (hdrEl) hdrEl.innerHTML = headerHtml;
 
-  // DEBUG: log baan + deelnemer-data
-  console.log('[GW-Scorekaart] baan:', { slope: baan.slope, cr: baan.cr, par: baan.parTotaal, holes: g.holes });
-  console.log('[GW-Scorekaart] deelnemers:', g.deelnemers.map(function(d){return {naam:d.naam, hcp:d.hcp};}));
-
   // Bereken state per speler
   var spelerStates = g.deelnemers.map(function(deeln) {
     var sh = berekenSpeelhandicap(deeln.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes);
-    console.log('[GW-Scorekaart] ' + deeln.naam + ' HCP ' + deeln.hcp + ' → SH ' + sh);
     var sc = (g.scores && g.scores[deeln.uid]) || Array(g.holes).fill('');
     var sp_res = berekenStrokeplay(sc, baan, sh, 'geen');
     var sf = berekenStableford(sc, baan, sh);
