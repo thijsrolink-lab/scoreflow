@@ -11163,6 +11163,15 @@ function gwOpenScorekaart(gwId) {
   var skView = document.getElementById('sp-scorekaart');
   if (skView) {
     skView.classList.add('on');
+    // Header BUITEN content-div (zodat renderScorekaart die niet overschrijft)
+    var hdrEl = document.getElementById('sp-scorekaart-header');
+    if (hdrEl) {
+      hdrEl.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">' +
+          '<button class="btn btn-s btn-xs" onclick="_gwScorekaartActief=null;gwOpenDetail(\'' + gwId + '\')">&#8592; Terug</button>' +
+          '<div class="sp-section-title" style="margin-bottom:0;flex:1">' + escHtml(g.naam) + '</div>' +
+        '</div>';
+    }
     document.getElementById('sp-scorekaart-content').innerHTML = '';
     // Override de opslaan functie tijdelijk
     _gwScorekaartActief = gwId;
@@ -13871,6 +13880,12 @@ try {
     <!-- Groepswedstrijd detail -->
     <div id="sp-groep-detail" class="sp-view">
       <div id="sp-groep-detail-content"></div>
+    </div>
+
+    <!-- Scorekaart view (voor groepswedstrijd) -->
+    <div id="sp-scorekaart" class="sp-view">
+      <div id="sp-scorekaart-header"></div>
+      <div id="sp-scorekaart-content"></div>
     </div>
 
 <!-- Berichten -->
