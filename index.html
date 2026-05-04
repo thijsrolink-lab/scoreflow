@@ -3964,7 +3964,7 @@ function renderInschrijvingenInTab(wId) {
       var u = USERS.find(function(x){return x.id===ing.sid;});
       if(!u) return;
       var sh = (typeof berekenSpeelhandicap === 'function')
-        ? berekenSpeelhandicap(u.hcp || 0, w.cr || 72, w.slope || 113, w.holes || 18)
+        ? berekenSpeelhandicap(u.hcp || 0, w.slope || 131, w.cr || 72.1, (w.holes === 9 ? 36 : 71), (w.hcpperc || 100) / 100, w.holes || 18)
         : '-';
       var d = ing.datum ? new Date(ing.datum).toLocaleDateString('nl-NL') : '-';
       var statusClass = ing.status === 'ingeschreven' ? 'bg' : (ing.status === 'wachtlijst' ? 'bw' : 'bx');
