@@ -5026,6 +5026,14 @@ function loginAs(email,pw){
 function startSessie(user){
   _currentUser=user;
   document.getElementById('login-err').textContent='';
+  // Bewaar sessie in localStorage zodat refresh ingelogd houdt
+  try {
+    localStorage.setItem('gs_sessie', JSON.stringify({
+      email: user.email,
+      id: user.id,
+      tijd: Date.now()
+    }));
+  } catch(e) { console.warn('Sessie bewaren mislukt:', e.message); }
   if(user.rol==='Speler'){
     toonScherm('speler');
     initSpelerPortaal();
@@ -5034,14 +5042,53 @@ function startSessie(user){
     initAdminInterface();
   }
 }
+
+// Auto-login bij refresh — gebruikt opgeslagen sessie
+async function probeerAutoLogin() {
+  try {
+    var raw = localStorage.getItem('gs_sessie');
+    if (!raw) return false;
+    var sessie = JSON.parse(raw);
+    if (!sessie || !sessie.email) return false;
+    
+    // Sessie ouder dan 7 dagen? → vervalt
+    var maxLeeftijd = 7 * 24 * 60 * 60 * 1000;
+    if (Date.now() - (sessie.tijd || 0) > maxLeeftijd) {
+      localStorage.removeItem('gs_sessie');
+      return false;
+    }
+    
+    // Laad data en zoek user
+    await laadAlleData();
+    var user = USERS.find(function(u) { return u.email && u.email.toLowerCase() === sessie.email.toLowerCase(); });
+    if (!user) {
+      // Fallback DEMO_USERS
+      user = DEMO_USERS.find(function(u) { return u.email.toLowerCase() === sessie.email.toLowerCase(); });
+    }
+    if (user) {
+      startSessie(user);
+      return true;
+    }
+    return false;
+  } catch(e) {
+    console.warn('Auto-login mislukt:', e.message);
+    return false;
+  }
+}
 window.startSessie = startSessie;  // expliciet voor bootstrap
 
 function logout(){
+  // Wis localStorage sessie zodat refresh niet auto-inlogt
+  try { localStorage.removeItem('gs_sessie'); } catch(e) {}
   supaLogout().catch(function(){});
   stopRealtimeLb();
   _currentUser=null;
-  document.getElementById('login-email').value='';
-  document.getElementById('login-pw').value='';
+  var emEl = document.getElementById('login-email');
+  var pwEl = document.getElementById('login-pw');
+  var erEl = document.getElementById('login-err');
+  if (emEl) emEl.value='';
+  if (pwEl) pwEl.value='';
+  if (erEl) erEl.textContent='';
   toonScherm('login');
 }
 
@@ -12712,6 +12759,28 @@ function renderOomKlassement(comp, ws, baan) {
 function renderWeeklyKlassement(comp, ws, baan) {
   // Zelfde als OoM maar telt ook nul-rondes mee
   return renderOomKlassement(comp, ws, baan);
+}
+
+
+
+// ─── Auto-login bij refresh ─────────────────────
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      try {
+        if (typeof probeerAutoLogin === 'function') {
+          probeerAutoLogin().then(function(ok) {
+            if (!ok && typeof toonScherm === 'function') toonScherm('login');
+          }).catch(function(e) {
+            console.warn('Auto-login fout:', e.message);
+            if (typeof toonScherm === 'function') toonScherm('login');
+          });
+        }
+      } catch(e) {
+        console.warn('Init fout:', e.message);
+      }
+    }, 50);
+  });
 }
 
 // ============================================================
