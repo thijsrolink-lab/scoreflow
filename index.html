@@ -7559,23 +7559,19 @@ function uiTexasScramble(wId, ronde, baan, sps, w) {
   }
 
   var perc = (w.hcpperc || 100) / 100;
-  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:1rem">' +
-    'Texas Scramble — elk team speelt één bal. Vul per flight de score per hole in. ' +
-    'Teamhandicap: gewogen gemiddelde (laagste 100%, daarna 60%/40%/20%) × ' + (w.hcpperc || 100) + '%</div>';
 
-  flights.forEach(function(flightSids, fi) {
+  // ─── Bereken state per flight ───
+  var flightStates = flights.map(function(flightSids, fi) {
     var spelers = flightSids.map(function(sid) {
       return sps.find(function(s) { return s.id === sid; });
     }).filter(Boolean);
-    if (!spelers.length) return;
+    if (!spelers.length) return null;
 
     var teamHcp = teamHandicapScramble(spelers, perc);
     var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
-    // Team score: probeer eerst onder 'team-' key, anders lees uit eerste teamlid
     var teamKey = 'team-' + fi;
     var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
     if (!scores && spelers.length > 0) {
-      // Lees uit eerste teamlid (team scores worden gesynced over alle leden)
       var eersteSid = spelers[0].id;
       scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][eersteSid]);
     }
@@ -7583,80 +7579,187 @@ function uiTexasScramble(wId, ronde, baan, sps, w) {
     var strokeplay = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
     var stableford = berekenStableford(scores, baan, teamSh);
 
-    // Team naam = namen van alle spelers
-    var teamNaam = spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', ');
+    return {
+      fi: fi, spelers: spelers, teamHcp: teamHcp, teamSh: teamSh, teamKey: teamKey,
+      scores: scores, strokeplay: strokeplay, stableford: stableford,
+      teamNaam: spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', '),
+      gespeeld: strokeplay.gespeeld,
+      klaar: strokeplay.gespeeld === baan.holes,
+      bezig: strokeplay.gespeeld > 0 && strokeplay.gespeeld < baan.holes
+    };
+  }).filter(Boolean);
 
-    html += '<div class="blk" style="margin-bottom:1rem;padding:1rem">';
+  // ─── Summary banner ───
+  var totaalFlights = flightStates.length;
+  var klaar = flightStates.filter(function(f) { return f.klaar; }).length;
+  var bezig = flightStates.filter(function(f) { return f.bezig; }).length;
+  var nietGestart = totaalFlights - klaar - bezig;
+  var totHoles = totaalFlights * baan.holes;
+  var ingevuldHoles = flightStates.reduce(function(a, f) { return a + f.gespeeld; }, 0);
+  var pct = totHoles > 0 ? Math.round((ingevuldHoles / totHoles) * 100) : 0;
 
-    // Team header
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">';
-    html += '<div>';
-    html += '<div style="font-size:11px;font-weight:600;color:var(--gm);text-transform:uppercase;letter-spacing:.08em">Flight ' + (fi + 1) + '</div>';
-    html += '<div style="font-weight:500;font-size:14px">' + escHtml(teamNaam) + '</div>';
-    html += '<div style="font-size:11px;color:var(--txm);margin-top:2px">HCPs: ' +
-      spelers.map(function(s) { return s.hcp; }).join(' / ') +
-      ' → Team SH <strong style="color:var(--g)">' + teamSh + '</strong></div>';
-    html += '</div>';
-    html += '<div style="text-align:right">';
-    html += '<div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Netto</div>';
-    html += '<div style="font-size:22px;font-weight:700;color:var(--g);font-family:\'Inter\',sans-serif">' +
-      (strokeplay.gespeeld > 0 ? strokeplay.netto : '—') + '</div>';
-    html += '<div style="font-size:11px;color:var(--txm)">Bruto ' + (strokeplay.gespeeld > 0 ? strokeplay.bruto : '—') +
-      ' · SF ' + stableford.punten + 'p · ' + strokeplay.gespeeld + '/' + baan.holes + ' holes</div>';
-    html += '</div>';
-    html += '</div>';
+  // Leider: laagste netto met minstens 9 holes gespeeld
+  var leider = null;
+  flightStates.forEach(function(f) {
+    if (f.strokeplay.gespeeld >= Math.min(9, baan.holes)) {
+      if (!leider || f.strokeplay.netto < leider.strokeplay.netto) leider = f;
+    }
+  });
 
-    // Compacte score invoer 2 x 9 holes
-    html += '<div class="tbl-wrap">';
-    var halves = baan.holes === 18 ? [[0,9],[9,18]] : [[0,baan.holes]];
-    halves.forEach(function(range, hi) {
-      html += '<table class="sc-tbl" style="margin-bottom:' + (hi === 0 && halves.length > 1 ? '.5rem' : '0') + '">';
-      html += '<thead><tr><th class="lft">Hole</th>';
-      for (var i = range[0]; i < range[1]; i++) html += '<th>' + (i+1) + '</th>';
-      html += '<th>Tot</th></tr></thead>';
-      html += '<tbody>';
+  var html = '<div style="background:linear-gradient(135deg,#0c1b2a,#1a3d2b);color:#fff;padding:1rem 1.25rem;border-radius:var(--rl);margin-bottom:1rem">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">' +
+      '<div>' +
+        '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#86efac;font-weight:700;margin-bottom:6px">📊 Wedstrijdoverzicht</div>' +
+        '<div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:13px">' +
+          '<div><div style="opacity:.7;font-size:11px">Voortgang</div><div style="font-size:18px;font-weight:700">' + pct + '%</div></div>' +
+          '<div><div style="opacity:.7;font-size:11px">Klaar</div><div style="font-size:18px;font-weight:700;color:#4ade80">' + klaar + '/' + totaalFlights + '</div></div>' +
+          '<div><div style="opacity:.7;font-size:11px">Bezig</div><div style="font-size:18px;font-weight:700;color:#fbbf24">' + bezig + '</div></div>' +
+          (nietGestart > 0 ? '<div><div style="opacity:.7;font-size:11px">Niet gestart</div><div style="font-size:18px;font-weight:700;opacity:.6">' + nietGestart + '</div></div>' : '') +
+        '</div>' +
+      '</div>' +
+      (leider ? '<div style="text-align:right">' +
+        '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#fbbf24;font-weight:700;margin-bottom:4px">🏆 Leidend</div>' +
+        '<div style="font-size:13px;font-weight:600">Flight ' + (leider.fi + 1) + '</div>' +
+        '<div style="font-size:11px;opacity:.7;margin-top:2px">netto ' + leider.strokeplay.netto + ' · ' + leider.stableford.punten + ' pt</div>' +
+      '</div>' : '') +
+    '</div>' +
+    // Progress bar
+    '<div style="margin-top:.85rem;height:6px;background:rgba(255,255,255,.15);border-radius:999px;overflow:hidden">' +
+      '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#86efac,#4ade80);transition:width .4s"></div>' +
+    '</div>' +
+  '</div>';
 
-      // Par rij
-      html += '<tr class="par-row"><td class="lft">Par</td>';
-      var parSom = 0;
-      for (var i = range[0]; i < range[1]; i++) { html += '<td>' + baan.par[i] + '</td>'; parSom += baan.par[i]; }
-      html += '<td><strong>' + parSom + '</strong></td></tr>';
+  // ─── Filter chips ───
+  var filterActief = window._tsFilter || 'alle';
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem">' +
+    [
+      { val: 'alle', lbl: 'Alle', cnt: totaalFlights },
+      { val: 'bezig', lbl: 'Bezig', cnt: bezig },
+      { val: 'klaar', lbl: 'Klaar', cnt: klaar },
+      { val: 'nietgestart', lbl: 'Niet gestart', cnt: nietGestart }
+    ].filter(function(o) { return o.cnt > 0 || o.val === 'alle'; }).map(function(o) {
+      var on = filterActief === o.val;
+      return '<button onclick="setTsFilter(\'' + o.val + '\')" style="padding:5px 10px;border-radius:999px;font-size:11px;font-weight:500;font-family:Inter,sans-serif;cursor:pointer;border:1px solid ' +
+        (on ? '#16a34a' : '#e6eaf0') + ';background:' + (on ? '#16a34a' : '#fff') + ';color:' + (on ? '#fff' : '#425466') + '">' +
+        o.lbl + ' <span style="opacity:.7;margin-left:3px">' + o.cnt + '</span></button>';
+    }).join('') +
+  '</div>';
 
-      // SI rij
-      html += '<tr class="si-row"><td class="lft">SI</td>';
-      for (var i = range[0]; i < range[1]; i++) html += '<td>' + baan.si[i] + '</td>';
-      html += '<td>—</td></tr>';
+  // ─── Filter flights op chip-keuze ───
+  var zichtbaar = flightStates.filter(function(f) {
+    if (filterActief === 'klaar') return f.klaar;
+    if (filterActief === 'bezig') return f.bezig;
+    if (filterActief === 'nietgestart') return !f.klaar && !f.bezig;
+    return true;
+  });
 
-      // Score rij
-      html += '<tr><td class="lft"><strong>Team</strong></td>';
-      var totaal = 0, ingevuld = 0;
-      for (var i = range[0]; i < range[1]; i++) {
-        var v = scores[i];
-        var isVal = v !== '' && v !== null && v !== undefined;
-        if (isVal) { totaal += Number(v); ingevuld++; }
-        var par = baan.par[i];
-        var scoreClass = '';
-        if (isVal) {
-          var diff = Number(v) - par;
-          if (diff <= -2) scoreClass = 'sc-eagle';
-          else if (diff === -1) scoreClass = 'sc-birdie';
-          else if (diff === 1) scoreClass = 'sc-bogey';
-          else if (diff >= 2) scoreClass = 'sc-double';
+  if (!zichtbaar.length) {
+    html += '<div style="padding:2rem;text-align:center;color:#8b94a3;font-size:13px">Geen flights in deze categorie.</div>';
+    return html;
+  }
+
+  // ─── Flight cards (collapsible) ───
+  var openFlight = window._tsOpenFlight;
+  // Default: eerste 'bezig' flight openen, anders eerste 'nietgestart'
+  if (openFlight == null) {
+    var defaultOpen = flightStates.find(function(f) { return f.bezig; }) ||
+                      flightStates.find(function(f) { return !f.klaar; }) ||
+                      flightStates[0];
+    if (defaultOpen) openFlight = defaultOpen.fi;
+  }
+
+  zichtbaar.forEach(function(f) {
+    var isOpen = f.fi === openFlight;
+    var statusColor = f.klaar ? '#16a34a' : f.bezig ? '#f59e0b' : '#94a3b8';
+    var statusBg = f.klaar ? 'rgba(22,163,74,0.12)' : f.bezig ? 'rgba(245,158,11,0.12)' : '#f1f4f8';
+    var statusLbl = f.klaar ? '✓ Klaar' : f.bezig ? f.gespeeld + '/' + baan.holes + ' holes' : 'Niet gestart';
+
+    html += '<div class="ts-flight" data-fi="' + f.fi + '" style="background:#fff;border:1px solid ' + (isOpen ? '#16a34a' : '#e6eaf0') + ';border-radius:var(--rl);margin-bottom:.75rem;overflow:hidden">';
+
+    // Klikbare header
+    html += '<div onclick="toggleTsFlight(' + f.fi + ')" style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;cursor:pointer;background:' + (isOpen ? 'rgba(22,163,74,0.04)' : 'transparent') + '">' +
+      '<div style="min-width:60px">' +
+        '<div style="font-size:10px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.08em">Flight</div>' +
+        '<div style="font-size:22px;font-weight:800;color:#0c1b2a;line-height:1">' + (f.fi + 1) + '</div>' +
+      '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:14px;font-weight:600;color:#0c1b2a;margin-bottom:2px">' + escHtml(f.teamNaam) + '</div>' +
+        '<div style="font-size:11px;color:#8b94a3">SH ' + f.teamSh + ' · HCPs ' + f.spelers.map(function(s) { return s.hcp; }).join('/') + '</div>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:3px 8px;border-radius:999px;background:' + statusBg + ';color:' + statusColor + ';display:inline-block;margin-bottom:4px">' + statusLbl + '</div>' +
+        (f.gespeeld > 0 ? '<div style="font-size:11px;color:#8b94a3">netto <strong style="color:#16a34a">' + f.strokeplay.netto + '</strong> · SF ' + f.stableford.punten + 'p</div>' : '') +
+      '</div>' +
+      '<div style="font-size:18px;color:#8b94a3;transition:transform .2s;transform:rotate(' + (isOpen ? '90' : '0') + 'deg)">▸</div>' +
+    '</div>';
+
+    // Open: scorekaart
+    if (isOpen) {
+      html += '<div style="padding:0 1rem 1rem 1rem;border-top:1px solid #f1f4f8">';
+      html += '<div class="tbl-wrap" style="margin-top:.75rem">';
+      var halves = baan.holes === 18 ? [[0,9],[9,18]] : [[0,baan.holes]];
+      halves.forEach(function(range, hi) {
+        html += '<table class="sc-tbl" style="margin-bottom:' + (hi === 0 && halves.length > 1 ? '.5rem' : '0') + '">';
+        html += '<thead><tr><th class="lft">Hole</th>';
+        for (var i = range[0]; i < range[1]; i++) html += '<th>' + (i+1) + '</th>';
+        html += '<th>Tot</th></tr></thead>';
+        html += '<tbody>';
+
+        html += '<tr class="par-row"><td class="lft">Par</td>';
+        var parSom = 0;
+        for (var i = range[0]; i < range[1]; i++) { html += '<td>' + baan.par[i] + '</td>'; parSom += baan.par[i]; }
+        html += '<td><strong>' + parSom + '</strong></td></tr>';
+
+        html += '<tr class="si-row"><td class="lft">SI</td>';
+        for (var i = range[0]; i < range[1]; i++) html += '<td>' + baan.si[i] + '</td>';
+        html += '<td>—</td></tr>';
+
+        html += '<tr><td class="lft"><strong>Team</strong></td>';
+        var totaal = 0, ingevuld = 0;
+        for (var i = range[0]; i < range[1]; i++) {
+          var v = f.scores[i];
+          var isVal = v !== '' && v !== null && v !== undefined;
+          if (isVal) { totaal += Number(v); ingevuld++; }
+          var par = baan.par[i];
+          var scoreClass = '';
+          if (isVal) {
+            var diff = Number(v) - par;
+            if (diff <= -2) scoreClass = 'sc-eagle';
+            else if (diff === -1) scoreClass = 'sc-birdie';
+            else if (diff === 1) scoreClass = 'sc-bogey';
+            else if (diff >= 2) scoreClass = 'sc-double';
+          }
+          html += '<td><input type="number" class="sc-inp ' + scoreClass + '" min="1" max="15" ' +
+            'value="' + (isVal ? v : '') + '" ' +
+            'data-wid="' + wId + '" data-ronde="' + ronde + '" data-team="' + f.teamKey + '" data-hole="' + i + '" ' +
+            'onchange="updateTeamScore(this)" onfocus="this.select()"/></td>';
         }
-        html += '<td><input type="number" class="sc-inp ' + scoreClass + '" min="1" max="15" ' +
-          'value="' + (isVal ? v : '') + '" ' +
-          'data-wid="' + wId + '" data-ronde="' + ronde + '" data-team="' + teamKey + '" data-hole="' + i + '" ' +
-          'onchange="updateTeamScore(this)" onfocus="this.select()"/></td>';
-      }
-      html += '<td><strong>' + (ingevuld > 0 ? totaal : '—') + '</strong></td></tr>';
+        html += '<td><strong>' + (ingevuld > 0 ? totaal : '—') + '</strong></td></tr>';
+        html += '</tbody></table>';
+      });
+      html += '</div></div>';
+    }
 
-      html += '</tbody></table>';
-    });
-    html += '</div>'; // tbl-wrap
-    html += '</div>'; // blk
+    html += '</div>';
   });
 
   return html;
+}
+
+// Filter setter — bewaart in window state + re-render
+function setTsFilter(val) {
+  window._tsFilter = val;
+  if (typeof renderScoreInvoer === 'function') renderScoreInvoer();
+}
+
+// Toggle flight: open of sluit
+function toggleTsFlight(fi) {
+  if (window._tsOpenFlight === fi) {
+    window._tsOpenFlight = -1; // alles dicht
+  } else {
+    window._tsOpenFlight = fi;
+  }
+  if (typeof renderScoreInvoer === 'function') renderScoreInvoer();
 }
 
 // Team score opslaan bij input change
