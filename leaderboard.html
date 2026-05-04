@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Leaderboard — Golfspot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c1b2a;
+  --surf: #142537;
+  --bd: #243a52;
+  --tx: #ffffff;
+  --txm: #94a3b8;
+  --txh: #64748b;
+  --g: #16a34a;
+  --gl: rgba(22,163,74,0.15);
+  --amb: #f59e0b;
+  --r: 8px;
+  --rl: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.lb-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.lb-hd-left { display: flex; flex-direction: column; }
+.lb-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
+  color: #fca5a5; font-weight: 700; margin-bottom: 6px;
+}
+.lb-eyebrow::before {
+  content: ''; width: 8px; height: 8px;
+  background: #ef4444; border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.lb-titel { font-size: 32px; font-weight: 700; line-height: 1.1; color: #fff; }
+.lb-sub { font-size: 14px; color: var(--txm); margin-top: 4px; }
+
+.lb-meta {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  font-size: 12px; color: var(--txm);
+}
+.lb-refresh {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surf); border: 1px solid var(--bd);
+  border-radius: 999px; padding: 6px 12px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--txm);
+}
+.lb-refresh-dot {
+  width: 6px; height: 6px; background: var(--g); border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+.lb-club { font-size: 11px; text-transform: uppercase; letter-spacing: .15em; color: var(--txm); font-weight: 600; }
+
+.tbl-wrap {
+  background: var(--surf); border: 1px solid var(--bd);
+  border-radius: var(--rl); overflow: hidden;
+}
+.tbl { width: 100%; border-collapse: collapse; font-size: 16px; }
+.tbl thead { background: rgba(255,255,255,0.04); }
+.tbl th {
+  text-align: left; padding: 12px 16px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--txm); font-weight: 700; border-bottom: 1px solid var(--bd);
+}
+.tbl td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--tx); }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tbody tr:nth-child(-n+3) td:first-child {
+  font-weight: 800; color: #fbbf24; font-size: 18px;
+}
+
+.sponsor-banner {
+  background: linear-gradient(135deg, #fefce8, #fde68a);
+  border-radius: var(--rl); padding: 1.25rem 1.5rem;
+  text-align: center; color: #0c1b2a;
+}
+.sponsor-banner-eyebrow {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
+  color: #92400e; font-weight: 700; margin-bottom: 8px;
+}
+.sponsor-banner-name { font-size: 22px; font-weight: 700; color: #0c1b2a; }
+.sponsor-banner-co {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid rgba(146,64,14,0.2);
+  display: flex; gap: 1.5rem; justify-content: center; align-items: center;
+  flex-wrap: wrap; font-size: 13px;
+}
+
+.lb-loading { text-align: center; padding: 3rem; color: var(--txm); font-size: 14px; }
+.lb-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5; padding: 1rem 1.25rem;
+  border-radius: var(--r); font-size: 14px;
+}
+
+.lb-controls {
+  position: fixed; bottom: 1rem; right: 1rem;
+  display: flex; gap: 8px; z-index: 100;
+}
+.lb-ctrl-btn {
+  background: var(--surf); border: 1px solid var(--bd);
+  color: var(--txm); padding: 8px 14px; border-radius: 999px;
+  cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500;
+}
+.lb-ctrl-btn:hover { color: var(--tx); background: var(--bd); }
+
+.tbl .badge {
+  display: inline-block; padding: 3px 8px; border-radius: 6px;
+  font-size: 11px; font-weight: 600;
+}
+.tbl .bg { background: rgba(22,163,74,0.2); color: #4ade80; }
+.tbl .bb { background: rgba(59,130,246,0.2); color: #60a5fa; }
+.tbl .bx { background: rgba(239,68,68,0.2); color: #f87171; }
+.tbl .ba { background: rgba(245,158,11,0.2); color: #fbbf24; }
+
+@media (max-width: 800px) {
+  body { padding: 1rem; }
+  .lb-titel { font-size: 22px; }
+  .tbl { font-size: 14px; }
+  .tbl th, .tbl td { padding: 10px 8px; }
+}
+</style>
+</head>
+<body>
+
+<div class="lb-hd">
+  <div class="lb-hd-left">
+    <div class="lb-eyebrow">LIVE</div>
+    <div class="lb-titel" id="lb-titel">Leaderboard</div>
+    <div class="lb-sub" id="lb-sub">Bezig met laden...</div>
+  </div>
+  <div class="lb-meta">
+    <div class="lb-club" id="lb-club">De Hooge Rotterdamsche</div>
+    <div class="lb-refresh"><span class="lb-refresh-dot"></span><span id="lb-refresh-text">Auto-refresh elke 15s</span></div>
+  </div>
+</div>
+
+<div id="lb-content" class="lb-loading">Wedstrijd laden...</div>
+
+<div id="lb-sponsor"></div>
+
+<div class="lb-controls">
+  <button class="lb-ctrl-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// LIVE LEADERBOARD — STANDALONE TV-MODE
+// Auto-refresh elke 15s. Geen login nodig.
+// ═══════════════════════════════════════════════════════════════
+
+var SUPA_URL = "https://zyxusjhxncwytohjxrnu.supabase.co";
+var SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5eHVzamh4bmN3eXRvaGp4cm51Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjUyNDAsImV4cCI6MjA5MjI0MTI0MH0.FaKpwQtIseR_2Vz0jw9lZWWbdT535CwoteRaeMENyWM";
+
+// Globale data
+var USERS = [];
+var WEDSTRIJDEN = [];
+var INSCHRIJVINGEN = [];
+var SCORES = {};
+var FLIGHTS = {};
+var SPONSOREN = [];
+var WEDSTRIJD_SPONSOREN = [];
+var _currentUser = null;
+
+// Wedstrijd-ID uit URL
+var urlParams = new URLSearchParams(window.location.search);
+var WID = urlParams.get('w') || urlParams.get('wid') || urlParams.get('wedstrijd');
+
+var BAAN_18 = {
+  naam: 'De Hooge Rotterdamsche',
+  holes: 18,
+  // UIT (1-9): 4-4-4-3-5-4-4-4-4 = 36
+  // IN (10-18): 5-3-5-3-4-3-4-4-4 = 35
+  par: [4,4,4,3,5,4,4,4,4,  5,3,5,3,4,3,4,4,4],
+  si:  [8,10,14,18,12,16,2,4,6,  9,13,1,15,3,7,11,17,5],
+  // Lengtes per tee (meters), index 0 = wit, 1 = geel, 2 = blauw, 3 = rood, 4 = oranje
+  lengtes: {
+    wit:    [377,333,279,119,463,254,380,384,362, 492,103,500,157,350,157,310,310,374],  // 5656m
+    geel:   [336,294,269,119,449,239,355,373,323, 460,103,465,146,339,144,300,312,305],  // 5331m
+    blauw:  [336,294,237,109,390,239,355,307,323, 437,103,456,141,316,144,300,307,268],  // 5067m
+    rood:   [314,251,232,109,384,210,316,298,273, 366,103,448,134,310,133,258,249,263],  // 4651m
+    oranje: [194,193,167,109,321,162,250,264,247, 309,103,332, 92,241, 73,210,249,206]   // 3722m
+  }
+};
+
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatVsPar(d){return d===0?'E':d>0?'+'+d:''+d;}
+
+function scoreKlasse(s,par,extra){if(!s)return '';var n=Number(s)-extra;if(n<=par-2)return 'eagle';if(n===par-1)return 'birdie';if(n===par+1)return 'bogey';if(n>=par+2)return 'double';return 'par';}
+
+function pasESCtoe(s,par,extra,esc){if(!s||s<=0)return s;if(esc==='double')return Math.min(s,par+2);if(esc==='triple')return Math.min(s,par+3);if(esc==='nettodouble')return Math.min(s,par+2+extra);return s;}
+
+function stablefordPunten(s,par,extra){if(s===null||s==='')return 0;var d=par-(Number(s)-extra);return d>=3?5:d===2?4:d===1?3:d===0?2:d===-1?1:0;}
+
+function berekenSpeelhandicap(ega,slope,cr,par,perc,holes){slope=slope||113;cr=cr||72;par=par||72;perc=perc||1.0;holes=holes||18;var sh=Math.round(ega*(slope/113)+(cr-par));sh=Math.round(sh*perc);if(holes===9)sh=Math.round(sh/2);return sh;}
+
+function extraSlagenPerHole(sh,si){return si.map(function(s){return Math.floor(sh/si.length)+(Math.abs(sh)%si.length>=s?Math.sign(sh)||0:0);});}
+
+function berekenStrokeplay(scores,baan,sh,esc){
+  esc=esc||'geen';
+  var ex=extraSlagenPerHole(sh,baan.si);
+  var bruto=0,netto=0;
+  var perHole=scores.map(function(s,i){
+    if(s===null||s==='')return{bruto:null,netto:null,extra:ex[i],par:baan.par[i]};
+    var g=pasESCtoe(Number(s),baan.par[i],ex[i],esc);bruto+=g;netto+=g-ex[i];
+    return{bruto:g,netto:g-ex[i],extra:ex[i],par:baan.par[i]};
+  });
+  return{perHole:perHole,bruto:bruto,netto:netto,nettoVsPar:netto-baan.parTotaal,brutoVsPar:bruto-baan.parTotaal,gespeeld:scores.filter(function(s){return s!==null&&s!=='';}).length};
+}
+
+function berekenStableford(scores,baan,sh){
+  var ex=extraSlagenPerHole(sh,baan.si);var tot=0;
+  var perHole=scores.map(function(s,i){var p=stablefordPunten(s,baan.par[i],ex[i]);tot+=p;return{slagen:s!==null&&s!==''?Number(s):null,extra:ex[i],punten:p,par:baan.par[i]};});
+  return{perHole:perHole,punten:tot,gespeeld:scores.filter(function(s){return s!==null&&s!=='';}).length};
+}
+
+function teamHandicapScramble(spelers, perc) {
+  perc = perc || 1.0;
+  var gewichten = [1.0, 0.6, 0.4, 0.2];
+  var sortHcp = spelers.map(function(s) { return s.hcp; }).sort(function(a, b) { return a - b; });
+  var som = sortHcp.reduce(function(a, h, i) { return a + h * (gewichten[i] || 0.2); }, 0);
+  var teamHcp = Math.round((som / spelers.length) * perc);
+  return teamHcp;
+}
+
+function zichtbareHoles(w) {
+  var totaal = w.holes || 18;
+  var blind = parseInt(w.blindHoles) || 0;
+  if (blind <= 0) return totaal;
+  if (_currentUser && (_currentUser.rol === 'Superadmin' || _currentUser.rol === 'Wedstrijdleider' || _currentUser.rol === 'Secretaris')) return totaal;
+  if (w.status === 'afgerond') return totaal;
+  return Math.max(0, totaal - blind);
+}
+
+function filterScoresVoorBlind(scores, w) {
+  var zichtbaar = zichtbareHoles(w);
+  var totaal = w.holes || 18;
+  if (zichtbaar >= totaal) return scores;
+  var nieuw = scores.slice(0, zichtbaar);
+  for (var i = zichtbaar; i < totaal; i++) nieuw.push('');
+  return nieuw;
+}
+
+function blindHint(w) {
+  var z = zichtbareHoles(w);
+  var t = w.holes || 18;
+  if (z >= t) return '';
+  return '<div style="padding:0.6rem 0.85rem;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin:0 0 0.5rem 0;font-size:12px;color:#92400e;font-weight:500">🔒 Hole ' + (z + 1) + '–' + t + ' verborgen — zichtbaar na afronding</div>';
+}
+
+function buildLeaderboard(wId,ronde,baan,sps,w){
+  // Texas Scramble heeft team leaderboard
+  if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') return buildTeamLeaderboard(wId, ronde, baan, sps, w);
+  var rows=sps.map(function(s){
+    var sh=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,w.hcpperc/100,w.holes);
+    var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
+    sc = filterScoresVoorBlind(sc, w);
+    var sp=berekenStrokeplay(sc,baan,sh,w.esc||'geen');
+    var sf=berekenStableford(sc,baan,sh);
+    return{naam:s.voor+' '+s.ach,sh:sh,netto:sp.netto,bruto:sp.bruto,nettoVsPar:sp.nettoVsPar,sfPts:sf.punten,gespeeld:sp.gespeeld,has:sp.gespeeld>0};
+  });
+  if(w.vorm==='Stableford')rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.sfPts-a.sfPts;});
+  else rows.sort(function(a,b){return !a.has?1:!b.has?-1:a.netto-b.netto;});
+  var html=blindHint(w)+'<table class="tbl"><thead><tr><th style="width:32px">#</th><th>Speler</th><th>SH</th>';
+  if(w.vorm==='Stableford')html+='<th>Punten</th><th>Gespeeld</th>';
+  else html+='<th>Netto</th><th>Bruto</th><th>+/- par</th><th>Gespeeld</th>';
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    var p=i+1;var pcls=p===1?'lb-1':p===2?'lb-2':p===3?'lb-3':'lb-n';
+    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+r.naam+'</td><td style="color:var(--txm)">'+r.sh+'</td>';
+    if(w.vorm==='Stableford')html+='<td style="color:var(--gm);font-weight:500">'+(r.has?r.sfPts:'—')+'</td><td style="color:var(--txm)">'+r.gespeeld+'/'+baan.holes+'</td>';
+    else html+='<td style="font-weight:500">'+(r.has?r.netto:'—')+'</td><td style="color:var(--txm)">'+(r.has?r.bruto:'—')+'</td><td class="'+(r.has&&r.nettoVsPar<0?'under':r.has&&r.nettoVsPar>0?'over':'')+'">'+(r.has?formatVsPar(r.nettoVsPar):'—')+'</td><td style="color:var(--txm)">'+r.gespeeld+'/'+baan.holes+'</td>';
+    html+='</tr>';
+  });
+  return html+'</tbody></table>';
+}
+
+function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
+  var flights = FLIGHTS[wId] || [];
+  if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
+
+  var perc = (w.hcpperc || 100) / 100;
+  var rows = flights.map(function(flightSids, fi) {
+    var spelers = flightSids.map(function(sid) {
+      return sps.find(function(s) { return s.id === sid; });
+    }).filter(Boolean);
+    if (!spelers.length) return null;
+
+    var teamHcp = teamHandicapScramble(spelers, perc);
+    var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
+    var teamKey = 'team-' + fi;
+    var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
+    if (!scores && spelers.length > 0) {
+      scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][spelers[0].id]);
+    }
+    scores = scores || Array(baan.holes).fill('');
+    scores = filterScoresVoorBlind(scores, w);
+    var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
+
+    return {
+      flight: fi + 1,
+      teamNaam: spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', '),
+      teamSh: teamSh,
+      netto: sp.netto, bruto: sp.bruto,
+      nettoVsPar: sp.nettoVsPar,
+      gespeeld: sp.gespeeld,
+      has: sp.gespeeld > 0,
+    };
+  }).filter(Boolean);
+
+  rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+
+  var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Texas Scramble leaderboard — gesorteerd op netto score per team</div>';
+  html += '<table class="tbl"><thead><tr>' +
+    '<th style="width:32px">#</th><th>Team</th><th>SH</th><th>Netto</th><th>Bruto</th><th>+/- par</th><th>Gespeeld</th>' +
+    '</tr></thead><tbody>';
+  rows.forEach(function(r, i) {
+    var p = i+1; var pcls = p===1?'lb-1':p===2?'lb-2':p===3?'lb-3':'lb-n';
+    html += '<tr>';
+    html += '<td><div class="lb-pos ' + pcls + '">' + p + '</div></td>';
+    html += '<td><div style="font-size:11px;color:var(--gm);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Flight ' + r.flight + '</div><div style="font-weight:500">' + escHtml(r.teamNaam) + '</div></td>';
+    html += '<td style="color:var(--txm)">' + r.teamSh + '</td>';
+    html += '<td style="font-weight:600;color:var(--g);font-size:16px">' + (r.has ? r.netto : '—') + '</td>';
+    html += '<td style="color:var(--txm)">' + (r.has ? r.bruto : '—') + '</td>';
+    html += '<td class="' + (r.has && r.nettoVsPar < 0 ? 'under' : r.has && r.nettoVsPar > 0 ? 'over' : '') + '">' +
+      (r.has ? formatVsPar(r.nettoVsPar) : '—') + '</td>';
+    html += '<td style="color:var(--txm)">' + r.gespeeld + '/' + baan.holes + '</td>';
+    html += '</tr>';
+  });
+  return html + '</tbody></table>';
+}
+
+function hoofdsponsorVoorWedstrijd(wId) {
+  var koppel = (WEDSTRIJD_SPONSOREN || []).find(function(k) { return k.wedstrijdId === wId && k.type === 'hoofdsponsor'; });
+  if (!koppel) return null;
+  return SPONSOREN.find(function(s) { return s.id === koppel.sponsorId; }) || null;
+}
+
+function coSponsorenVoorWedstrijd(wId) {
+  var koppels = (WEDSTRIJD_SPONSOREN || []).filter(function(k) { return k.wedstrijdId === wId && k.type === 'co-sponsor'; });
+  return koppels.map(function(k) { return SPONSOREN.find(function(s) { return s.id === k.sponsorId; }); }).filter(Boolean);
+}
+
+function getBaan9(welkeNegen) {
+  var w = welkeNegen === 'in' ? 9 : 0;  // start-offset (0=UIT, 9=IN)
+  return {
+    naam: BAAN_18.naam + ' (' + (welkeNegen === 'in' ? 'IN, hole 10-18' : 'UIT, hole 1-9') + ')',
+    holes: 9,
+    par: BAAN_18.par.slice(w, w+9),
+    si: BAAN_18.si.slice(w, w+9),
+    welkeNegen: welkeNegen || 'uit'
+  };
+}
+
+function getBaan9(welkeNegen) {
+  var w = welkeNegen === 'in' ? 9 : 0;  // start-offset (0=UIT, 9=IN)
+  return {
+    naam: BAAN_18.naam + ' (' + (welkeNegen === 'in' ? 'IN, hole 10-18' : 'UIT, hole 1-9') + ')',
+    holes: 9,
+    par: BAAN_18.par.slice(w, w+9),
+    si: BAAN_18.si.slice(w, w+9),
+    welkeNegen: welkeNegen || 'uit'
+  };
+}
+
+
+
+// ─── Supabase fetch ──────────────────────────
+async function supaGET(table, params) {
+  params = params || {};
+  var qs = Object.keys(params).map(function(k) {
+    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+  }).join('&');
+  var url = SUPA_URL + '/rest/v1/' + table + (qs ? '?' + qs : '');
+  var res = await fetch(url, {
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status + ' op ' + table);
+  return await res.json();
+}
+
+function dbWedstrijdNaarApp(w) {
+  return {
+    id: w.id, naam: w.naam, datum: w.datum, tijd: w.tijd || '',
+    leiderId: w.leider_id || null,
+    baan: w.baan, cr: w.cr, slope: w.slope,
+    holes: w.holes, vorm: w.vorm, rondes: w.rondes,
+    flt: w.flt || 3, status: w.status, max: w.max_deelnemers,
+    hcpmax: w.hcp_max, hcpmin: w.hcp_min, hcpperc: w.hcp_perc, esc: w.esc,
+    startgeld: w.startgeld, skinsPot: w.skins_pot,
+    inschrijfOpen: w.inschrijf_open, inschrijfSluit: w.inschrijf_sluit,
+    omschrijving: w.omschrijving, kleur: w.kleur || 'ceg',
+    afgelast_reden: w.afgelast_reden || '',
+    driveMin: w.drive_min != null ? w.drive_min : null,
+    driveMax: w.drive_max != null ? w.drive_max : null,
+    blindHoles: w.blind_holes || 0,
+    welkeNegen: w.welke_negen || 'uit'
+  };
+}
+
+function dbUserNaarApp(g) {
+  return { id: g.id, voor: g.voor, ach: g.ach, email: g.email, rol: g.rol,
+    hcp: g.hcp, lid: g.lid };
+}
+
+function dbIngNaarApp(i) {
+  return { id: i.id, wid: i.wid, sid: i.sid,
+    datum: i.datum ? i.datum.split('T')[0] : '', status: i.status, opm: i.opm || '' };
+}
+
+async function laadWedstrijdData() {
+  if (!WID) {
+    document.getElementById('lb-content').innerHTML = '<div class="lb-error">Geen wedstrijd-ID opgegeven. Gebruik <code>?w=UUID</code> in de URL.</div>';
+    return false;
+  }
+
+  try {
+    // Wedstrijd
+    var ws = await supaGET('wedstrijden', { id: 'eq.' + WID, select: '*' });
+    if (!ws || ws.length === 0) {
+      document.getElementById('lb-content').innerHTML = '<div class="lb-error">Wedstrijd niet gevonden.</div>';
+      return false;
+    }
+    WEDSTRIJDEN = [dbWedstrijdNaarApp(ws[0])];
+
+    // Inschrijvingen
+    var ings = await supaGET('inschrijvingen', { wid: 'eq.' + WID, select: '*' });
+    INSCHRIJVINGEN = (ings || []).map(dbIngNaarApp);
+
+    // Users (alle, voor flights ook)
+    var us = await supaGET('gebruikers', { select: '*' });
+    USERS = (us || []).map(dbUserNaarApp);
+
+    // Scores
+    var scs = await supaGET('scores', { wid: 'eq.' + WID, select: '*' });
+    SCORES = {};
+    SCORES[WID] = {};
+    (scs || []).forEach(function(s) {
+      var r = s.ronde || 0;
+      if (!SCORES[WID][r]) SCORES[WID][r] = {};
+      if (!SCORES[WID][r][s.sid]) SCORES[WID][r][s.sid] = Array(18).fill('');
+      SCORES[WID][r][s.sid][s.hole - 1] = s.score;
+    });
+
+    // Flights
+    var fls = await supaGET('flights', { wid: 'eq.' + WID, select: '*' });
+    FLIGHTS[WID] = [];
+    (fls || []).forEach(function(f) {
+      if (!FLIGHTS[WID][f.flight_nr]) FLIGHTS[WID][f.flight_nr] = [];
+      FLIGHTS[WID][f.flight_nr].push(f.sid);
+    });
+
+    // Sponsors
+    var sponsors = await supaGET('sponsoren', { select: '*' });
+    SPONSOREN = (sponsors || []).map(function(s) {
+      return { id: s.id, naam: s.naam, logoUrl: s.logo_url, status: s.status,
+        pakketNaam: s.pakket_naam, website: s.website };
+    });
+    var ws_links = await supaGET('wedstrijd_sponsoren', { wedstrijd_id: 'eq.' + WID, select: '*' });
+    WEDSTRIJD_SPONSOREN = (ws_links || []).map(function(s) {
+      return { wedstrijdId: s.wedstrijd_id, sponsorId: s.sponsor_id, type: s.type, holeNr: s.hole_nr };
+    });
+
+    return true;
+  } catch(e) {
+    console.error('Data laden:', e);
+    document.getElementById('lb-content').innerHTML = '<div class="lb-error">Fout bij laden: ' + e.message + '</div>';
+    return false;
+  }
+}
+
+function renderLB() {
+  var w = WEDSTRIJDEN[0];
+  if (!w) return;
+
+  document.getElementById('lb-titel').textContent = w.naam;
+  var d = w.datum ? new Date(w.datum) : null;
+  var dStr = d ? d.toLocaleDateString('nl-NL', {weekday: 'long', day: 'numeric', month: 'long'}) : '';
+  document.getElementById('lb-sub').textContent = dStr + ' · ' + w.vorm + ' · ' + w.holes + ' holes' + (w.tijd ? ' · ' + w.tijd : '');
+  if (w.baan) document.getElementById('lb-club').textContent = w.baan;
+
+  if (w.status === 'afgerond') {
+    document.querySelector('.lb-eyebrow').textContent = 'AFGEROND';
+    document.querySelector('.lb-eyebrow').style.color = '#4ade80';
+  }
+
+  var sps = INSCHRIJVINGEN
+    .filter(function(i) { return i.status === 'ingeschreven'; })
+    .map(function(i) { return USERS.find(function(u) { return u.id === i.sid; }); })
+    .filter(Boolean);
+
+  var baan = getBaan(w.holes, null, null, w.welkeNegen);
+
+  var html;
+  try {
+    if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
+      html = buildTeamLeaderboard(WID, 0, baan, sps, w);
+    } else {
+      html = buildLeaderboard(WID, 0, baan, sps, w);
+    }
+  } catch(e) {
+    console.error('Render error:', e);
+    html = '<div class="lb-error">Render error: ' + escHtml(e.message) + '</div>';
+  }
+
+  document.getElementById('lb-content').innerHTML = html || '<div class="lb-loading">Nog geen scores ingevoerd.</div>';
+
+  // Sponsor-banner
+  var hsp = hoofdsponsorVoorWedstrijd(WID);
+  var co = coSponsorenVoorWedstrijd(WID);
+  var sb_el = document.getElementById('lb-sponsor');
+  if (hsp || co.length > 0) {
+    var sb = '<div class="sponsor-banner">';
+    if (hsp) {
+      sb += '<div class="sponsor-banner-eyebrow">Powered by</div>';
+      var logo = hsp.logoUrl ? '<img src="' + escHtml(hsp.logoUrl) + '" style="height:48px;width:auto;border-radius:4px;vertical-align:middle;margin-right:12px" onerror="this.style.display=\'none\'"/>' : '';
+      sb += '<div class="sponsor-banner-name">' + logo + escHtml(hsp.naam) + '</div>';
+    }
+    if (co.length > 0) {
+      sb += '<div class="sponsor-banner-co">';
+      sb += '<span style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#92400e;font-weight:700">Mede mogelijk door</span>';
+      co.forEach(function(s) {
+        var l = s.logoUrl ? '<img src="' + escHtml(s.logoUrl) + '" style="height:28px;border-radius:3px" onerror="this.style.display=\'none\'"/>' : '';
+        sb += '<span style="display:inline-flex;align-items:center;gap:6px">' + l + escHtml(s.naam) + '</span>';
+      });
+      sb += '</div>';
+    }
+    sb += '</div>';
+    sb_el.innerHTML = sb;
+  } else {
+    sb_el.innerHTML = '';
+  }
+
+  var nu = new Date().toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+  document.getElementById('lb-refresh-text').textContent = 'Laatst ververst: ' + nu;
+}
+
+async function refresh() {
+  var ok = await laadWedstrijdData();
+  if (ok) renderLB();
+}
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen();
+}
+
+// Start + auto-refresh
+refresh();
+setInterval(refresh, 15000);
+
+</script>
+</body>
+</html>
