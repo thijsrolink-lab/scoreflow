@@ -11626,12 +11626,12 @@ function eclBesteKaart(wId, baan, sps, w) {
 // ============================================================
 // Wrapper die de compacte kaart teruggeeft
 function bouwScoreInvoerTabel(wId, ronde, baan, sps, w) {
-  // Texas Scramble: 1 scorekaart per flight
+  // Texas Scramble: blijft eigen flight-view
   if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
     return uiTexasScramble(wId, ronde, baan, sps, w);
   }
 
-  // Andere vormen: compacte scorekaart per speler met overzicht
+  // Empty state
   if (!sps || sps.length === 0) {
     return '<div style="padding:2rem 1rem;text-align:center;background:var(--surf);border-radius:var(--rl);color:var(--txm);font-size:14px">' +
       '<div style="font-size:32px;margin-bottom:8px">⛳</div>' +
@@ -11640,7 +11640,7 @@ function bouwScoreInvoerTabel(wId, ronde, baan, sps, w) {
       '</div>';
   }
 
-  // Bereken per speler de status (klaar/bezig/niet gestart) + leider
+  // ─── Bereken state per speler ───
   var spelerStates = sps.map(function(sp) {
     var shv = berekenSpeelhandicap(sp.hcp, w.slope, w.cr, baan.parTotaal, (w.hcpperc||100) / 100, w.holes);
     var sc = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][sp.id]) || Array(baan.holes).fill('');
@@ -11654,15 +11654,16 @@ function bouwScoreInvoerTabel(wId, ronde, baan, sps, w) {
     };
   });
 
+  // Stats
   var totaal = spelerStates.length;
-  var klaar = spelerStates.filter(function(f) { return f.klaar; }).length;
-  var bezig = spelerStates.filter(function(f) { return f.bezig; }).length;
+  var klaar = spelerStates.filter(function(s) { return s.klaar; }).length;
+  var bezig = spelerStates.filter(function(s) { return s.bezig; }).length;
   var nietGestart = totaal - klaar - bezig;
   var totHoles = totaal * baan.holes;
   var ingevuld = spelerStates.reduce(function(a, s) { return a + s.gespeeld; }, 0);
   var pct = totHoles > 0 ? Math.round((ingevuld / totHoles) * 100) : 0;
 
-  // Leider: hoogste stableford-punten met >= 9 holes (of beste netto bij strokeplay)
+  // Leider
   var leider = null;
   spelerStates.forEach(function(s) {
     if (s.strokeplay.gespeeld >= Math.min(9, baan.holes)) {
@@ -11682,7 +11683,7 @@ function bouwScoreInvoerTabel(wId, ronde, baan, sps, w) {
         '<div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:13px">' +
           '<div><div style="opacity:.7;font-size:11px">Voortgang</div><div style="font-size:18px;font-weight:700">' + pct + '%</div></div>' +
           '<div><div style="opacity:.7;font-size:11px">Klaar</div><div style="font-size:18px;font-weight:700;color:#4ade80">' + klaar + '/' + totaal + '</div></div>' +
-          '<div><div style="opacity:.7;font-size:11px">Bezig</div><div style="font-size:18px;font-weight:700;color:#fbbf24">' + bezig + '</div></div>' +
+          (bezig > 0 ? '<div><div style="opacity:.7;font-size:11px">Bezig</div><div style="font-size:18px;font-weight:700;color:#fbbf24">' + bezig + '</div></div>' : '') +
           (nietGestart > 0 ? '<div><div style="opacity:.7;font-size:11px">Niet gestart</div><div style="font-size:18px;font-weight:700;opacity:.6">' + nietGestart + '</div></div>' : '') +
         '</div>' +
       '</div>' +
@@ -11699,10 +11700,99 @@ function bouwScoreInvoerTabel(wId, ronde, baan, sps, w) {
     '</div>' +
   '</div>';
 
-  // Compacte scorekaart (bestaande functie)
-  html += bouwCompacteScorekaart({ wId: wId, ronde: ronde, baan: baan, sps: sps, w: w, bewerkbaar: true, toonTotaal: true });
+  // Filter chips
+  var filterActief = window._spFilter || 'alle';
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem">' +
+    [
+      { val: 'alle', lbl: 'Alle', cnt: totaal },
+      { val: 'bezig', lbl: 'Bezig', cnt: bezig },
+      { val: 'klaar', lbl: 'Klaar', cnt: klaar },
+      { val: 'nietgestart', lbl: 'Niet gestart', cnt: nietGestart }
+    ].filter(function(o) { return o.cnt > 0 || o.val === 'alle'; }).map(function(o) {
+      var on = filterActief === o.val;
+      return '<button onclick="setSpFilter(\'' + o.val + '\')" style="padding:5px 10px;border-radius:999px;font-size:11px;font-weight:500;font-family:Inter,sans-serif;cursor:pointer;border:1px solid ' +
+        (on ? '#16a34a' : '#e6eaf0') + ';background:' + (on ? '#16a34a' : '#fff') + ';color:' + (on ? '#fff' : '#425466') + '">' +
+        o.lbl + ' <span style="opacity:.7;margin-left:3px">' + o.cnt + '</span></button>';
+    }).join('') +
+  '</div>';
+
+  // Filter
+  var zichtbaar = spelerStates.filter(function(s) {
+    if (filterActief === 'klaar') return s.klaar;
+    if (filterActief === 'bezig') return s.bezig;
+    if (filterActief === 'nietgestart') return !s.klaar && !s.bezig;
+    return true;
+  });
+
+  if (!zichtbaar.length) {
+    html += '<div style="padding:2rem;text-align:center;color:#8b94a3;font-size:13px">Geen spelers in deze categorie.</div>';
+    return html;
+  }
+
+  // Speler-cards (collapsed/expanded)
+  var openSpelerId = window._spOpenId;
+  // Default: eerste 'bezig', dan 'nietgestart'
+  if (openSpelerId == null) {
+    var defaultOpen = spelerStates.find(function(s) { return s.bezig; }) ||
+                      spelerStates.find(function(s) { return !s.klaar; }) ||
+                      spelerStates[0];
+    if (defaultOpen) openSpelerId = defaultOpen.sp.id;
+  }
+
+  zichtbaar.forEach(function(s) {
+    var isOpen = s.sp.id === openSpelerId;
+    var statusColor = s.klaar ? '#16a34a' : s.bezig ? '#f59e0b' : '#94a3b8';
+    var statusBg = s.klaar ? 'rgba(22,163,74,0.12)' : s.bezig ? 'rgba(245,158,11,0.12)' : '#f1f4f8';
+    var statusLbl = s.klaar ? '✓ Klaar' : s.bezig ? s.gespeeld + '/' + baan.holes + ' holes' : 'Niet gestart';
+
+    html += '<div class="sp-score-card" data-sid="' + s.sp.id + '" style="background:#fff;border:1px solid ' + (isOpen ? '#16a34a' : '#e6eaf0') + ';border-radius:var(--rl);margin-bottom:.5rem;overflow:hidden">';
+
+    // Klikbare header
+    html += '<div onclick="toggleSpScore(\'' + s.sp.id + '\')" style="display:flex;align-items:center;gap:1rem;padding:.75rem 1rem;cursor:pointer;background:' + (isOpen ? 'rgba(22,163,74,0.04)' : 'transparent') + '">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:' + (isOpen ? '#16a34a' : '#f1f4f8') + ';color:' + (isOpen ? '#fff' : '#425466') + ';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">' +
+        escHtml(s.sp.voor[0] + s.sp.ach[0]) +
+      '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:14px;font-weight:600;color:#0c1b2a;margin-bottom:2px">' + escHtml(s.sp.voor + ' ' + s.sp.ach) + '</div>' +
+        '<div style="font-size:11px;color:#8b94a3">SH ' + s.shv + ' · HCP ' + s.sp.hcp + '</div>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:3px 8px;border-radius:999px;background:' + statusBg + ';color:' + statusColor + ';display:inline-block;margin-bottom:4px">' + statusLbl + '</div>' +
+        (s.gespeeld > 0 ? '<div style="font-size:11px;color:#8b94a3">' +
+          (w.vorm === 'Stableford' ? '<strong style="color:#16a34a">' + s.stableford.punten + ' pt</strong> · netto ' + s.strokeplay.netto :
+            'netto <strong style="color:#16a34a">' + s.strokeplay.netto + '</strong> · ' + s.stableford.punten + ' pt') +
+        '</div>' : '') +
+      '</div>' +
+      '<div style="font-size:18px;color:#8b94a3;transition:transform .2s;transform:rotate(' + (isOpen ? '90' : '0') + 'deg)">▸</div>' +
+    '</div>';
+
+    // Open: scorekaart voor deze speler
+    if (isOpen) {
+      html += '<div style="padding:0 1rem 1rem 1rem;border-top:1px solid #f1f4f8">' +
+        bouwCompacteScorekaart({ wId: wId, ronde: ronde, baan: baan, sps: [s.sp], w: w, bewerkbaar: true, toonTotaal: true }) +
+      '</div>';
+    }
+
+    html += '</div>';
+  });
 
   return html;
+}
+
+// Filter setter
+function setSpFilter(val) {
+  window._spFilter = val;
+  if (typeof renderScoreInvoer === 'function') renderScoreInvoer();
+}
+
+// Toggle speler open/dicht
+function toggleSpScore(sid) {
+  if (window._spOpenId === sid) {
+    window._spOpenId = '';  // alles dicht
+  } else {
+    window._spOpenId = sid;
+  }
+  if (typeof renderScoreInvoer === 'function') renderScoreInvoer();
 }
 
 // ============================================================
