@@ -122,17 +122,23 @@ body {
 }
 
 @media (max-width: 768px) {
-  .lb-row { padding: .75rem 1rem; gap: .85rem; }
-  .lb-pos { width: 36px; height: 36px; font-size: 15px; }
-  .lb-naam-tx { font-size: 15px; }
-  .lb-score { font-size: 22px; min-width: 60px; }
+  .lb-container { padding: 1rem 0.75rem; }
+  .lb-row { padding: .75rem .85rem; gap: .65rem; }
+  .lb-pos { width: 36px; height: 36px; font-size: 15px; flex-shrink: 0; }
+  .lb-naam-tx { font-size: 16px; }
+  .lb-naam-sub { font-size: 11px; }
+  .lb-score { font-size: 22px; min-width: 50px; }
+  .lb-titel { font-size: 22px; }
+  .lb-sub { font-size: 12px; }
+  .lb-hd { gap: 0.5rem; }
+  .lb-meta { display: none; }
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
-.lb-titel { font-size: 32px; font-weight: 700; line-height: 1.1; color: #fff; }
+.lb-titel { font-size: 32px; font-weight: 800; line-height: 1.05; color: #fff; letter-spacing: -0.02em; }
 .lb-sub { font-size: 14px; color: var(--txm); margin-top: 4px; }
 
 .lb-meta {
@@ -507,8 +513,20 @@ function renderGwLeaderboard() {
   document.getElementById('lb-sub').textContent = dStr + ' · ' + g.vorm + ' · ' + g.holes + ' holes' + (g.baan ? ' · ' + g.baan : '');
   document.getElementById('lb-club').textContent = g.baan || 'Groepswedstrijd';
 
-  document.querySelector('.lb-eyebrow').textContent = g.status === 'afgerond' ? 'AFGEROND' : 'GROEPSWEDSTRIJD';
-  document.querySelector('.lb-eyebrow').style.color = '#86efac';
+  // Live status
+  var alleKlaar = rows.every(function(r) { return r.gespeeld === g.holes; });
+  var isLive = hasScores && !alleKlaar && g.status !== 'afgerond';
+  var ebEl = document.querySelector('.lb-eyebrow');
+  if (isLive) {
+    ebEl.textContent = 'LIVE — ' + ingevuldHoles + ' / ' + totHoles + ' holes ingevuld';
+    ebEl.style.color = '#fca5a5';  // rood pulsing dot blijft default
+  } else if (alleKlaar) {
+    ebEl.textContent = 'AFGEROND';
+    ebEl.style.color = '#86efac';
+  } else {
+    ebEl.textContent = 'GROEPSWEDSTRIJD';
+    ebEl.style.color = '#86efac';
+  }
 
   // Baan setup (De Hooge gele tee — dezelfde defaults als in app)
   var baan = {
@@ -552,12 +570,19 @@ function renderGwLeaderboard() {
 
   var html = '';
 
-  // Top stats banner
+  // Top stats banner — full width met progress bar
   if (hasScores || totaalSpelers > 0) {
-    html += '<div style="display:flex;justify-content:center;gap:2rem;flex-wrap:wrap;margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px">';
-    html += '<div style="text-align:center"><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;font-weight:600">Voortgang</div><div style="font-size:24px;font-weight:800;color:#fff;margin-top:2px">' + pct + '%</div></div>';
-    html += '<div style="text-align:center"><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;font-weight:600">Klaar</div><div style="font-size:24px;font-weight:800;color:#4ade80;margin-top:2px">' + klaar + '/' + totaalSpelers + '</div></div>';
-    html += '<div style="text-align:center"><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;font-weight:600">Vorm</div><div style="font-size:18px;font-weight:700;color:#fff;margin-top:6px">' + escHtml(g.vorm) + '</div></div>';
+    html += '<div style="margin-bottom:1.25rem;padding:1.25rem;background:linear-gradient(135deg,rgba(22,163,74,0.08),rgba(255,255,255,0.03));border:1px solid rgba(22,163,74,0.2);border-radius:14px">';
+    html += '<div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center">';
+    html += '<div style="display:flex;gap:1.5rem;flex-wrap:wrap">';
+    html += '<div><div style="font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Voortgang</div><div style="font-size:28px;font-weight:800;color:#fff;margin-top:2px;line-height:1">' + pct + '%</div></div>';
+    html += '<div><div style="font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Klaar</div><div style="font-size:28px;font-weight:800;color:#4ade80;margin-top:2px;line-height:1">' + klaar + '<span style="font-size:18px;color:var(--txm);font-weight:600">/' + totaalSpelers + '</span></div></div>';
+    html += '<div><div style="font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Vorm</div><div style="font-size:16px;font-weight:700;color:#fff;margin-top:6px;line-height:1">' + escHtml(g.vorm) + '</div></div>';
+    html += '</div></div>';
+    // Progress bar
+    html += '<div style="margin-top:1rem;height:6px;background:rgba(255,255,255,0.08);border-radius:999px;overflow:hidden">';
+    html += '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#86efac,#4ade80);transition:width .4s"></div>';
+    html += '</div>';
     html += '</div>';
   }
 
@@ -590,7 +615,7 @@ function renderGwLeaderboard() {
       if (r.isOrg) html += '<span class="gw-tag" style="background:rgba(245,158,11,0.2);color:#fbbf24">Org</span>';
       if (r.isGast) html += '<span class="gw-tag" style="background:rgba(139,148,163,0.2);color:#94a3b8">Gast</span>';
       html += '</div>';
-      html += '<div class="lb-naam-sub">SH ' + r.sh + ' · ' + r.gespeeld + '/' + g.holes + ' holes' + (r.has ? ' · bruto ' + r.bruto : '') + '</div>';
+      html += '<div class="lb-naam-sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">SH ' + r.sh + ' · ' + r.gespeeld + '/' + g.holes + (r.has ? ' · bruto ' + r.bruto : '') + '</div>';
       html += '</div>';
       html += '<div style="text-align:right;flex-shrink:0;min-width:80px">';
       html += '<div class="lb-score ' + scoreClass + '" style="margin:0">' + scoreStr + '</div>';
