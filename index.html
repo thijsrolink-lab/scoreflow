@@ -12858,8 +12858,9 @@ async function laadCompetities() {
 
 // ─── Groepswedstrijden DB-koppeling ──────────────────────
 async function dbSaveGroepswedstrijd(gw) {
-  try {
-    var data = {
+  // Bouw minimale data — bijgewerkt_op alleen erbij als tabel die kolom heeft
+  function bouwData(includeBijgewerkt) {
+    var d = {
       code: gw.code,
       naam: gw.naam || '',
       datum: gw.datum || null,
@@ -12873,22 +12874,41 @@ async function dbSaveGroepswedstrijd(gw) {
       scores: gw.scores || {},
       flights: gw.flights || [],
       organisator_id: gw.organisatorId || (_currentUser ? _currentUser.id : null),
-      status: gw.status || 'actief',
-      bijgewerkt_op: new Date().toISOString()
+      status: gw.status || 'actief'
     };
+    if (includeBijgewerkt) d.bijgewerkt_op = new Date().toISOString();
+    return d;
+  }
+
+  async function probeerSave(includeBijgewerkt) {
+    var data = bouwData(includeBijgewerkt);
     if (gw.id && String(gw.id).indexOf('-') > 0) {
-      // Bestaand met UUID — PATCH
       await supa('groepswedstrijden', 'PATCH', data, { id: 'eq.' + gw.id });
       return gw;
     } else {
-      // Nieuw — POST
       var res = await supa('groepswedstrijden', 'POST', data);
       if (res && res[0]) return dbGroepswedstrijdNaarApp(res[0]);
       return gw;
     }
+  }
+
+  try {
+    return await probeerSave(true);
   } catch(e) {
-    console.warn('dbSaveGroepswedstrijd:', e.message);
-    toast('Opslaan mislukt: ' + e.message, 'err');
+    var msg = e.message || '';
+    // Fallback: probeer zonder bijgewerkt_op als die kolom ontbreekt
+    if (msg.indexOf('bijgewerkt') >= 0 || msg.indexOf('PGRST204') >= 0) {
+      console.warn('Retry zonder bijgewerkt_op:', msg);
+      try {
+        return await probeerSave(false);
+      } catch(e2) {
+        console.warn('dbSaveGroepswedstrijd fallback ook mislukt:', e2.message);
+        toast('Opslaan mislukt: ' + e2.message, 'err');
+        return null;
+      }
+    }
+    console.warn('dbSaveGroepswedstrijd:', msg);
+    toast('Opslaan mislukt: ' + msg, 'err');
     return null;
   }
 }
