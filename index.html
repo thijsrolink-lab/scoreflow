@@ -11174,9 +11174,14 @@ function gwRenderScorekaartView() {
   var hdrEl = document.getElementById('sp-scorekaart-header');
   if (hdrEl) hdrEl.innerHTML = headerHtml;
 
+  // DEBUG: log baan + deelnemer-data
+  console.log('[GW-Scorekaart] baan:', { slope: baan.slope, cr: baan.cr, par: baan.parTotaal, holes: g.holes });
+  console.log('[GW-Scorekaart] deelnemers:', g.deelnemers.map(function(d){return {naam:d.naam, hcp:d.hcp};}));
+
   // Bereken state per speler
   var spelerStates = g.deelnemers.map(function(deeln) {
     var sh = berekenSpeelhandicap(deeln.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes);
+    console.log('[GW-Scorekaart] ' + deeln.naam + ' HCP ' + deeln.hcp + ' → SH ' + sh);
     var sc = (g.scores && g.scores[deeln.uid]) || Array(g.holes).fill('');
     var sp_res = berekenStrokeplay(sc, baan, sh, 'geen');
     var sf = berekenStableford(sc, baan, sh);
