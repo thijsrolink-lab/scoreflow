@@ -30,14 +30,11 @@ html, body {
   color: var(--tx);
   min-height: 100vh;
   overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
-body {
-  padding: 1.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
+
 
 .lb-hd {
   display: flex;
@@ -74,6 +71,19 @@ body {
 .lb-row.top {
   border-color: rgba(251, 191, 36, 0.3);
   background: linear-gradient(90deg, rgba(251,191,36,0.08), var(--surf) 60%);
+}
+
+/* Desktop container — pakt volledige breedte */
+.lb-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  box-sizing: border-box;
+}
+
+#lb-content {
+  width: 100%;
 }
 
 .lb-pos {
@@ -125,7 +135,20 @@ body {
 @media (max-width: 768px) {
   .lb-container { padding: 0.75rem 0.5rem; }
   .lb-row { padding: .65rem .75rem; gap: .55rem; }
-  .lb-pos { width: 32px; height: 32px; font-size: 13px; flex-shrink: 0; }
+  /* Desktop container — pakt volledige breedte */
+.lb-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  box-sizing: border-box;
+}
+
+#lb-content {
+  width: 100%;
+}
+
+.lb-pos { width: 32px; height: 32px; font-size: 13px; flex-shrink: 0; }
   .lb-naam-tx { font-size: 15px; }
   .lb-naam-sub { font-size: 11px; margin-top: 1px; }
   .lb-score { font-size: 22px; min-width: 0; }
@@ -226,7 +249,7 @@ body {
 .tbl .ba { background: rgba(245,158,11,0.2); color: #fbbf24; }
 
 @media (max-width: 800px) {
-  body { padding: 1rem; }
+ 
   .lb-titel { font-size: 22px; }
   .tbl { font-size: 14px; }
   .tbl th, .tbl td { padding: 10px 8px; }
