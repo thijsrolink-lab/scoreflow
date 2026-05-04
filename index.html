@@ -5492,73 +5492,174 @@ function renderCal(){
 // ============================================================
 // WEDSTRIJDEN (admin)
 // ============================================================
-function renderWedstrijden(){
-  var q = (document.getElementById('w-search').value || '').toLowerCase();
-  var list = WEDSTRIJDEN.filter(function(w) { return !q || w.naam.toLowerCase().indexOf(q) >= 0; });
-  var kanNieuw = heeftToegang('nieuw');
 
-  document.getElementById('w-list').innerHTML = list.length ? list.map(function(w) {
+// ─── Wedstrijden-lijst: helpers voor groepering en filtering ─────────
+var _wdFilter = { admin: 'alle', speler: 'alle' };  // huidige filter-keuze
+var _wdZoek = { admin: '', speler: '' };            // zoekveld waarde
+
+// Classificatie: vandaag / aankomend / afgerond
+function wdGroep(w) {
+  var fase = wedstrijdFase(w);
+  if (fase === 'live') return 'vandaag';
+  if (fase === 'afgerond' || fase === 'afgelast') return 'afgerond';
+  // Datum check
+  if (w.datum) {
     var d = new Date(w.datum);
-    var ic = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).length;
-    var pct = w.max ? Math.round((ic / w.max) * 100) : 0;
-    var fase = wedstrijdFase(w);
-    var acts = '';
-
-    // Bewerken: mag alleen als niet alles-gelockt (dus concept/gepubliceerd)
-    if (kanNieuw) {
-      if (fase === 'concept' || fase === 'gepubliceerd') {
-        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();editW(\'' + w.id + '\')">Bewerken</button>';
-      } else if (fase === 'live') {
-        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();editW(\'' + w.id + '\')" title="Beperkt bewerkbaar tijdens live">Bewerken</button>';
-      } else {
-        acts += '<button class="btn btn-s btn-xs" disabled title="Wedstrijd is ' + fase + ' — niet meer bewerkbaar" style="opacity:.5;cursor:not-allowed">Bewerken</button>';
-      }
-    }
-
-    // Lifecycle-acties per fase
-    if (kanNieuw) {
-      if (fase === 'gepubliceerd') {
-        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();startWedstrijd(\'' + w.id + '\')" title="Start wedstrijd nu" style="background:#16a34a;color:#fff;border-color:#16a34a">Start</button>';
-      }
-      if (fase === 'live') {
-        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();afrondWedstrijd(\'' + w.id + '\')" title="Wedstrijd afronden" style="background:#0c1b2a;color:#fff;border-color:#0c1b2a">Afronden</button>';
-      }
-      if (fase === 'afgelast') {
-        acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();heractiveerWedstrijd(\'' + w.id + '\')" title="Wedstrijd opnieuw activeren" style="background:#16a34a;color:#fff;border-color:#16a34a">Heractiveer</button>';
-      }
-    }
-
-    if (heeftToegang('inschrijvingen')) acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();openWdDetail(\'' + w.id + '\')">Inschrijvingen</button>';
-    if (heeftToegang('flights')) acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();adminNavToW(\'flights\',\'' + w.id + '\')">Flights</button>';
-    if (heeftToegang('scores')) acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();adminNavToW(\'scores\',\'' + w.id + '\')">Scores</button>';
-
-    // Afgelasten: alleen als nog niet afgerond/afgelast
-    if (kanNieuw && fase !== 'afgerond' && fase !== 'afgelast') {
-      acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();afgelastWedstrijd(\'' + w.id + '\')" title="Wedstrijd afgelasten" style="color:#dc2626;border-color:#fecaca">Afgelasten</button>';
-    }
-    if (kanNieuw) acts += '<button class="btn btn-d btn-xs" onclick="event.stopPropagation();delW(\'' + w.id + '\')">&#215;</button>';
-
-    return '<div class="lr" onclick="openWdDetail(\'' + w.id + '\')">' +
-      '<div class="lr-l">' +
-        '<div class="lr-n">' + escHtml(w.naam) + '</div>' +
-        '<div class="lr-m">' +
-          d.getDate() + ' ' + MN[d.getMonth()] + ' ' + d.getFullYear() +
-          ' &middot; <span class="badge bx">' + escHtml(w.vorm) + '</span> &middot; ' + w.holes + 'h' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:6px;margin-top:3px">' +
-          '<div class="pb" style="width:80px"><div class="pf" style="width:' + pct + '%"></div></div>' +
-          '<span style="font-size:11px;color:var(--txm)">' + ic + '/' + (w.max || '?') + '</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="lr-r">' +
-        statusBadge(w) +
-        acts +
-      '</div>' +
-    '</div>';
-  }).join('') : '<p style="font-size:13px;color:var(--txm);padding:8px 0">Geen wedstrijden gevonden.</p>';
+    var nu = new Date();
+    nu.setHours(0,0,0,0);
+    var dag = new Date(d);
+    dag.setHours(0,0,0,0);
+    if (dag.getTime() === nu.getTime()) return 'vandaag';
+    if (dag < nu) return 'afgerond';
+  }
+  return 'aankomend';
 }
 
-function adminNavToW(view,wId){
+// Filter wedstrijden op chip-keuze + zoekterm
+function filterWedstrijden(ws, filter, zoek) {
+  return ws.filter(function(w) {
+    if (zoek && w.naam.toLowerCase().indexOf(zoek.toLowerCase()) < 0) return false;
+    if (filter === 'alle') return true;
+    var fase = wedstrijdFase(w);
+    var groep = wdGroep(w);
+    if (filter === 'aankomend') return groep === 'aankomend' || groep === 'vandaag';
+    if (filter === 'live') return fase === 'live';
+    if (filter === 'afgerond') return fase === 'afgerond';
+    if (filter === 'concept') return fase === 'concept';
+    return true;
+  });
+}
+
+// Sorteer chronologisch (oplopend = eerstvolgende eerst)
+function sorteerWedstrijdenOpDatum(ws, oplopend) {
+  return ws.slice().sort(function(a, b) {
+    var da = new Date(a.datum || '9999-12-31');
+    var db = new Date(b.datum || '9999-12-31');
+    return oplopend ? (da - db) : (db - da);
+  });
+}
+
+// Bouw filter-chips HTML
+function bouwFilterChips(actief, opties, idPrefix) {
+  return '<div class="wd-filter-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem">' +
+    opties.map(function(opt) {
+      var is = actief === opt.value;
+      return '<button class="wd-chip' + (is ? ' on' : '') + '" onclick="zetWdFilter(\'' + idPrefix + '\',\'' + opt.value + '\')" style="' +
+        'padding:6px 12px;border-radius:999px;font-size:12px;font-weight:500;font-family:Inter,sans-serif;cursor:pointer;border:1px solid ' +
+        (is ? '#16a34a' : '#e6eaf0') + ';background:' + (is ? '#16a34a' : '#fff') + ';color:' + (is ? '#fff' : '#425466') + ';transition:all .15s">' +
+        escHtml(opt.label) + (opt.count != null ? ' <span style="opacity:.7;margin-left:4px">' + opt.count + '</span>' : '') +
+        '</button>';
+    }).join('') +
+  '</div>';
+}
+
+// Zet filter en re-render
+function zetWdFilter(scope, waarde) {
+  _wdFilter[scope] = waarde;
+  if (scope === 'admin' && typeof renderWedstrijden === 'function') renderWedstrijden();
+  if (scope === 'speler' && typeof renderSpAlleWedstrijden === 'function') renderSpAlleWedstrijden();
+  if (scope === 'speler-mijn' && typeof renderSpMijnWedstrijden === 'function') renderSpMijnWedstrijden();
+}
+
+// Groepering met datum-headers (Vandaag, Aankomend, Afgerond)
+function bouwWedstrijdGroepen(ws, renderItem, opts) {
+  opts = opts || {};
+  var vandaag = ws.filter(function(w) { return wdGroep(w) === 'vandaag'; });
+  var aankomend = ws.filter(function(w) { return wdGroep(w) === 'aankomend'; });
+  var afgerond = ws.filter(function(w) { return wdGroep(w) === 'afgerond'; });
+
+  var html = '';
+  if (vandaag.length) {
+    html += '<div class="wd-groep" style="margin-bottom:1.25rem">' +
+      '<div class="wd-groep-hd" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#16a34a;font-weight:700;margin-bottom:.5rem;display:flex;align-items:center;gap:6px">' +
+        '<span style="display:inline-block;width:8px;height:8px;background:#16a34a;border-radius:50%"></span>Vandaag' +
+      '</div>' +
+      vandaag.map(renderItem).join('') +
+    '</div>';
+  }
+  if (aankomend.length) {
+    html += '<div class="wd-groep" style="margin-bottom:1.25rem">' +
+      '<div class="wd-groep-hd" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#0c1b2a;font-weight:700;margin-bottom:.5rem">' +
+        '📅 Aankomend' + (aankomend.length > 0 ? ' <span style="color:#8b94a3;font-weight:500">· ' + aankomend.length + '</span>' : '') +
+      '</div>' +
+      aankomend.map(renderItem).join('') +
+    '</div>';
+  }
+  if (afgerond.length) {
+    html += '<details class="wd-groep" style="margin-bottom:1.25rem"' + (opts.afgerondOpen ? ' open' : '') + '>' +
+      '<summary style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8b94a3;font-weight:700;margin-bottom:.5rem;cursor:pointer;list-style:none">' +
+        '<span style="display:inline-block;margin-right:4px">▸</span>Afgerond <span style="color:#8b94a3;font-weight:500">· ' + afgerond.length + '</span>' +
+      '</summary>' +
+      '<div style="margin-top:.5rem">' + afgerond.map(renderItem).join('') + '</div>' +
+    '</details>';
+  }
+  return html || '<p style="color:#8b94a3;padding:2rem;text-align:center;font-size:14px">Geen wedstrijden gevonden.</p>';
+}
+
+
+function renderWedstrijden(){
+  var q = (document.getElementById('w-search') ? document.getElementById('w-search').value : '') || '';
+  _wdZoek.admin = q;
+  var filter = _wdFilter.admin || 'alle';
+  var kanNieuw = heeftToegang('nieuw');
+
+  // Filter + sorteer
+  var lijst = filterWedstrijden(WEDSTRIJDEN, filter, q);
+  lijst = sorteerWedstrijdenOpDatum(lijst, true);
+
+  // Tellen voor chips
+  var totaal = WEDSTRIJDEN.length;
+  var aankomend = WEDSTRIJDEN.filter(function(w) { var g = wdGroep(w); return g === 'aankomend' || g === 'vandaag'; }).length;
+  var live = WEDSTRIJDEN.filter(function(w) { return wedstrijdFase(w) === 'live'; }).length;
+  var afgerond = WEDSTRIJDEN.filter(function(w) { return wedstrijdFase(w) === 'afgerond'; }).length;
+  var concept = WEDSTRIJDEN.filter(function(w) { return wedstrijdFase(w) === 'concept'; }).length;
+
+  var chips = bouwFilterChips(filter, [
+    { label: 'Alle', value: 'alle', count: totaal },
+    { label: 'Aankomend', value: 'aankomend', count: aankomend },
+    { label: 'Live', value: 'live', count: live },
+    { label: 'Afgerond', value: 'afgerond', count: afgerond },
+    { label: 'Concept', value: 'concept', count: concept }
+  ], 'admin');
+
+  // Render één wedstrijd-rij
+  function renderRij(w) {
+    var d = new Date(w.datum);
+    var ic = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).length;
+    var fase = wedstrijdFase(w);
+    var faseColor = fase === 'live' ? '#16a34a' : fase === 'afgerond' ? '#8b94a3' : fase === 'concept' ? '#f59e0b' : fase === 'afgelast' ? '#dc2626' : '#3b82f6';
+    var faseBg = fase === 'live' ? 'rgba(22,163,74,0.15)' : fase === 'afgerond' ? '#f1f4f8' : fase === 'concept' ? 'rgba(245,158,11,0.15)' : fase === 'afgelast' ? 'rgba(220,38,38,0.15)' : 'rgba(59,130,246,0.15)';
+    var dagNm = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()];
+    var datumStr = dagNm + ' ' + d.getDate() + ' ' + MN[d.getMonth()];
+    var acts = '';
+
+    if (kanNieuw && (fase === 'concept' || fase === 'gepubliceerd' || fase === 'live')) {
+      acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();editW(\'' + w.id + '\')">Bewerken</button>';
+    }
+    if (kanNieuw && fase === 'gepubliceerd') {
+      acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();startWedstrijd(\'' + w.id + '\')" style="background:#16a34a;color:#fff;border-color:#16a34a">Start</button>';
+    }
+    if (kanNieuw && fase === 'live') {
+      acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();afrondWedstrijd(\'' + w.id + '\')" style="background:#0c1b2a;color:#fff;border-color:#0c1b2a">Afronden</button>';
+    }
+
+    return '<div class="wd-rij" onclick="openWdDetail(\'' + w.id + '\')" style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:1px solid #e6eaf0;border-radius:8px;margin-bottom:.5rem;cursor:pointer;background:#fff;transition:all .15s">' +
+      '<div style="min-width:72px">' +
+        '<div style="font-size:11px;color:#8b94a3;text-transform:uppercase;letter-spacing:.05em">' + escHtml(dagNm.substring(0,3)) + '</div>' +
+        '<div style="font-size:18px;font-weight:700;color:#0c1b2a;line-height:1">' + d.getDate() + ' ' + MN[d.getMonth()].substring(0,3).toLowerCase() + '</div>' +
+      '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:15px;font-weight:600;color:#0c1b2a;margin-bottom:2px">' + escHtml(w.naam) + '</div>' +
+        '<div style="font-size:12px;color:#8b94a3">' + escHtml(w.vorm) + ' · ' + w.holes + ' holes · ' + ic + (w.max ? '/' + w.max : '') + ' deelnemers</div>' +
+      '</div>' +
+      '<span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding:4px 10px;border-radius:999px;background:' + faseBg + ';color:' + faseColor + '">' + fase + '</span>' +
+      (acts ? '<div style="display:flex;gap:4px" onclick="event.stopPropagation()">' + acts + '</div>' : '') +
+    '</div>';
+  }
+
+  var groepen = bouwWedstrijdGroepen(lijst, renderRij);
+  document.getElementById('w-list').innerHTML = chips + groepen;
+}function adminNavToW(view,wId){
   adminNav(view);
   setTimeout(function(){
     var map={inschrijvingen:'ing-fw',flights:'fl-w',scores:'sc-w'};
@@ -8728,6 +8829,130 @@ function renderSpelerKalender(){
       '<span class="sp-w-arrow">→</span>' +
     '</div>';
   }).join('');
+
+  // ── 5. Tab-view 'Mijn wedstrijden' / 'Alle wedstrijden' ───
+  if (typeof renderSpMijnWedstrijden === 'function') {
+    if (_spWedTab === 'alle') renderSpAlleWedstrijden();
+    else renderSpMijnWedstrijden();
+  }
+}
+
+
+
+// ─── Speler: Mijn wedstrijden + Alle wedstrijden ──────────────
+var _spWedTab = 'mijn';  // 'mijn' of 'alle'
+
+function spZetWedTab(tab) {
+  _spWedTab = tab;
+  if (tab === 'mijn') renderSpMijnWedstrijden();
+  else renderSpAlleWedstrijden();
+}
+
+function bouwSpelerWedstrijdRij(w) {
+  var d = new Date(w.datum);
+  var fase = wedstrijdFase(w);
+  var ic = INSCHRIJVINGEN.filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; }).length;
+  var mijn = INSCHRIJVINGEN.find(function(i) { return i.wid === w.id && i.sid === _currentUser.id; });
+  var dagNm = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()];
+  var faseColor = fase === 'live' ? '#16a34a' : fase === 'afgerond' ? '#8b94a3' : fase === 'concept' ? '#f59e0b' : fase === 'afgelast' ? '#dc2626' : '#3b82f6';
+  var faseBg = fase === 'live' ? 'rgba(22,163,74,0.12)' : fase === 'afgerond' ? '#f1f4f8' : fase === 'concept' ? 'rgba(245,158,11,0.12)' : fase === 'afgelast' ? 'rgba(220,38,38,0.12)' : 'rgba(59,130,246,0.12)';
+  var statusBadge = '';
+  if (mijn) {
+    if (mijn.status === 'ingeschreven') statusBadge = '<span style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(22,163,74,0.15);color:#16a34a">✓ Ingeschreven</span>';
+    else if (mijn.status === 'wachtlijst') statusBadge = '<span style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(245,158,11,0.15);color:#a16207">Wachtlijst</span>';
+  }
+
+  return '<div class="sp-wd-rij" onclick="openSpelerWdDetail(\'' + w.id + '\')" style="display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border:1px solid #e6eaf0;border-radius:8px;margin-bottom:.5rem;cursor:pointer;background:#fff;transition:all .15s">' +
+    '<div style="min-width:64px">' +
+      '<div style="font-size:10px;color:#8b94a3;text-transform:uppercase;letter-spacing:.05em">' + escHtml(dagNm.substring(0,3)) + '</div>' +
+      '<div style="font-size:17px;font-weight:700;color:#0c1b2a;line-height:1">' + d.getDate() + ' ' + MN[d.getMonth()].substring(0,3).toLowerCase() + '</div>' +
+    '</div>' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:14px;font-weight:600;color:#0c1b2a;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(w.naam) + '</div>' +
+      '<div style="font-size:11px;color:#8b94a3">' + escHtml(w.vorm) + ' · ' + w.holes + 'h · ' + ic + (w.max ? '/' + w.max : '') + '</div>' +
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">' +
+      '<span style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:3px 8px;border-radius:999px;background:' + faseBg + ';color:' + faseColor + '">' + fase + '</span>' +
+      statusBadge +
+    '</div>' +
+  '</div>';
+}
+
+function bouwSpWedTabs(actief) {
+  return '<div style="display:flex;gap:0;margin-bottom:1rem;border-bottom:1px solid #e6eaf0">' +
+    '<button onclick="spZetWedTab(\'mijn\')" style="padding:10px 16px;background:none;border:none;border-bottom:2px solid ' + (actief === 'mijn' ? '#16a34a' : 'transparent') + ';color:' + (actief === 'mijn' ? '#16a34a' : '#425466') + ';font-weight:' + (actief === 'mijn' ? '700' : '500') + ';font-family:Inter,sans-serif;cursor:pointer;font-size:13px">Mijn wedstrijden</button>' +
+    '<button onclick="spZetWedTab(\'alle\')" style="padding:10px 16px;background:none;border:none;border-bottom:2px solid ' + (actief === 'alle' ? '#16a34a' : 'transparent') + ';color:' + (actief === 'alle' ? '#16a34a' : '#425466') + ';font-weight:' + (actief === 'alle' ? '700' : '500') + ';font-family:Inter,sans-serif;cursor:pointer;font-size:13px">Alle wedstrijden</button>' +
+  '</div>';
+}
+
+function renderSpMijnWedstrijden() {
+  var u = _currentUser;
+  if (!u) return;
+  var container = document.getElementById('sp-wed-lijst');
+  if (!container) return;
+
+  // Wedstrijden waar speler is ingeschreven (alle statussen behalve afgemeld)
+  var mijnIngs = INSCHRIJVINGEN.filter(function(i) { return i.sid === u.id && i.status !== 'afgemeld'; });
+  var mijnIds = mijnIngs.map(function(i) { return i.wid; });
+  var ws = WEDSTRIJDEN.filter(function(w) { return mijnIds.indexOf(w.id) >= 0 && w.status !== 'concept'; });
+
+  // Zoek + filter
+  var q = (document.getElementById('sp-wed-search') ? document.getElementById('sp-wed-search').value : '') || '';
+  var filter = _wdFilter['speler-mijn'] || 'alle';
+  var lijst = filterWedstrijden(ws, filter, q);
+  lijst = sorteerWedstrijdenOpDatum(lijst, true);
+
+  var aankomend = ws.filter(function(w) { var g = wdGroep(w); return g === 'aankomend' || g === 'vandaag'; }).length;
+  var live = ws.filter(function(w) { return wedstrijdFase(w) === 'live'; }).length;
+  var afgerond = ws.filter(function(w) { return wedstrijdFase(w) === 'afgerond'; }).length;
+
+  var chips = bouwFilterChips(filter, [
+    { label: 'Alle', value: 'alle', count: ws.length },
+    { label: 'Aankomend', value: 'aankomend', count: aankomend },
+    { label: 'Live', value: 'live', count: live },
+    { label: 'Afgerond', value: 'afgerond', count: afgerond }
+  ], 'speler-mijn');
+
+  var zoekHtml = '<input type="text" id="sp-wed-search" value="' + escHtml(q) + '" placeholder="Zoeken op naam..." oninput="renderSpMijnWedstrijden()" style="width:100%;padding:8px 12px;font-size:13px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif;margin-bottom:1rem"/>';
+
+  var emptyMsg = '';
+  if (ws.length === 0) {
+    emptyMsg = '<div style="text-align:center;padding:3rem 1rem;color:#8b94a3"><div style="font-size:32px;margin-bottom:8px">📅</div><p style="font-size:14px;margin:0">Je bent nog niet ingeschreven voor wedstrijden.<br/>Bekijk Alle wedstrijden om je in te schrijven.</p></div>';
+  }
+
+  var groepen = lijst.length ? bouwWedstrijdGroepen(lijst, bouwSpelerWedstrijdRij) : '<p style="color:#8b94a3;padding:2rem;text-align:center;font-size:14px">Geen resultaten voor deze filter.</p>';
+
+  container.innerHTML = bouwSpWedTabs('mijn') + (ws.length ? (zoekHtml + chips + groepen) : emptyMsg);
+}
+
+function renderSpAlleWedstrijden() {
+  var container = document.getElementById('sp-wed-lijst');
+  if (!container) return;
+
+  // Alle wedstrijden behalve concept (die zijn niet zichtbaar voor spelers)
+  var ws = WEDSTRIJDEN.filter(function(w) { return w.status !== 'concept'; });
+
+  var q = (document.getElementById('sp-wed-search') ? document.getElementById('sp-wed-search').value : '') || '';
+  var filter = _wdFilter.speler || 'aankomend';  // Default voor 'alle' tab: aankomend
+  var lijst = filterWedstrijden(ws, filter, q);
+  lijst = sorteerWedstrijdenOpDatum(lijst, true);
+
+  var aankomend = ws.filter(function(w) { var g = wdGroep(w); return g === 'aankomend' || g === 'vandaag'; }).length;
+  var live = ws.filter(function(w) { return wedstrijdFase(w) === 'live'; }).length;
+  var afgerond = ws.filter(function(w) { return wedstrijdFase(w) === 'afgerond'; }).length;
+
+  var chips = bouwFilterChips(filter, [
+    { label: 'Alle', value: 'alle', count: ws.length },
+    { label: 'Aankomend', value: 'aankomend', count: aankomend },
+    { label: 'Live', value: 'live', count: live },
+    { label: 'Afgerond', value: 'afgerond', count: afgerond }
+  ], 'speler');
+
+  var zoekHtml = '<input type="text" id="sp-wed-search" value="' + escHtml(q) + '" placeholder="Zoeken op naam..." oninput="renderSpAlleWedstrijden()" style="width:100%;padding:8px 12px;font-size:13px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif;margin-bottom:1rem"/>';
+
+  var groepen = lijst.length ? bouwWedstrijdGroepen(lijst, bouwSpelerWedstrijdRij) : '<p style="color:#8b94a3;padding:2rem;text-align:center;font-size:14px">Geen wedstrijden gevonden.</p>';
+
+  container.innerHTML = bouwSpWedTabs('alle') + zoekHtml + chips + groepen;
 }
 
 // Helper: open een wedstrijd vanuit speler perspectief
@@ -13401,6 +13626,7 @@ try {
       <div id="sp-hero"></div>
       <div id="sp-list-head"></div>
       <div id="sp-wedstrijden-list"></div>
+      <div id="sp-wed-lijst" style="margin-top:1.5rem"></div>
     </div>
 
     <!-- Mijn inschrijvingen -->
