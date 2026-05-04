@@ -2985,7 +2985,7 @@ async function dbSaveSponsor(sp) {
       periode_start: sp.periodeStart || null,
       periode_eind: sp.periodeEind || null,
       notitie: sp.notitie || null,
-      bijgewerkt_op: new Date().toISOString()
+      bijgewerkt: new Date().toISOString()
     };
     if (sp.id && String(sp.id).includes('-')) {
       await supa('sponsoren', 'PATCH', data, { id: 'eq.' + sp.id });
@@ -11161,9 +11161,13 @@ function saveSpelerProfiel(){
   toast('Profiel opgeslagen.');
 }
 
-// Enter op login
-document.getElementById('login-pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-document.getElementById('login-email').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('login-pw').focus();});
+// Enter op login (defensief — elementen kunnen ontbreken)
+(function() {
+  var pwEl = document.getElementById('login-pw');
+  var emEl = document.getElementById('login-email');
+  if (pwEl) pwEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
+  if (emEl) emEl.addEventListener('keydown', function(e) { if (e.key === 'Enter' && pwEl) pwEl.focus(); });
+})();
 
 // ============================================================
 // COMPACTE SCOREKAART — overal in de app
@@ -12533,7 +12537,7 @@ async function dbSaveCompetitie(comp) {
       ecl_hcp_perc: comp.eclHcpPerc || 75,
       wids: comp.wids || [],
       status: comp.status || 'actief',
-      bijgewerkt_op: new Date().toISOString()
+      bijgewerkt: new Date().toISOString()
     };
     if (comp.id && String(comp.id).includes('-')) {
       // Bestaande competitie (UUID)
@@ -12608,7 +12612,7 @@ async function dbSaveGroepswedstrijd(gw) {
       flights: gw.flights || [],
       organisator_id: gw.organisatorId || (_currentUser ? _currentUser.id : null),
       status: gw.status || 'actief',
-      bijgewerkt_op: new Date().toISOString()
+      bijgewerkt: new Date().toISOString()
     };
     if (gw.id && String(gw.id).indexOf('-') > 0) {
       // Bestaand met UUID — PATCH
@@ -12656,7 +12660,7 @@ async function dbDeleteGroepswedstrijd(id) {
 
 async function laadGroepswedstrijden() {
   try {
-    var rs = await supa('groepswedstrijden', 'GET', null, { select: '*', order: 'aangemaakt_op.desc' });
+    var rs = await supa('groepswedstrijden', 'GET', null, { select: '*', order: 'aangemaakt.desc' });
     GROEPSWEDSTRIJDEN = (rs || []).map(dbGroepswedstrijdNaarApp);
     return true;
   } catch(e) { console.warn('laadGroepswedstrijden:', e.message); return false; }
