@@ -91,6 +91,8 @@ html, body {
 
 #lb-content {
   width: 100%;
+  display: block;
+  box-sizing: border-box;
 }
 
 .lb-pos {
@@ -155,9 +157,6 @@ html, body {
 }
 
 
-#lb-content {
-  width: 100%;
-}
 
 .lb-pos { width: 30px; height: 30px; font-size: 13px; flex-shrink: 0; }
   .lb-naam-tx { font-size: 15px; }
@@ -616,7 +615,7 @@ function renderGwLeaderboard() {
 
   // Top stats banner — alles op 1 rij + progress bar
   if (hasScores || totaalSpelers > 0) {
-    html += '<div class="gw-stats" style="margin-bottom:1rem;padding:1rem 1.25rem;background:linear-gradient(135deg,rgba(22,163,74,0.08),rgba(255,255,255,0.03));border:1px solid rgba(22,163,74,0.2);border-radius:12px">';
+    html += '<div class="gw-stats" style="margin-bottom:1rem;padding:1rem 1.25rem;background:linear-gradient(135deg,rgba(22,163,74,0.08),rgba(255,255,255,0.03));border:1px solid rgba(22,163,74,0.2);border-radius:12px;width:100%;box-sizing:border-box">';
     html += '<div class="gw-stats-grid" style="display:grid;grid-template-columns:auto auto 1fr;gap:1.5rem;align-items:center">';
     html += '<div><div style="font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Voortgang</div><div class="gw-stats-item-num" style="font-size:26px;font-weight:800;color:#fff;line-height:1;margin-top:2px">' + pct + '%</div></div>';
     html += '<div><div style="font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Klaar</div><div class="gw-stats-item-num" style="font-size:26px;font-weight:800;color:#4ade80;line-height:1;margin-top:2px">' + klaar + '<span style="font-size:16px;color:var(--txm);font-weight:600">/' + totaalSpelers + '</span></div></div>';
@@ -629,9 +628,9 @@ function renderGwLeaderboard() {
   }
 
   if (!hasScores) {
-    html += '<div class="lb-loading"><div style="font-size:32px;margin-bottom:8px">⛳</div><div style="font-size:16px;font-weight:600;color:#fff;margin-bottom:6px">Nog geen scores</div><div style="font-size:13px">Wacht tot de eerste spelers hun scores invoeren.</div></div>';
+    html += '<div class="lb-loading" style="width:100%"><div style="font-size:32px;margin-bottom:8px">⛳</div><div style="font-size:16px;font-weight:600;color:#fff;margin-bottom:6px">Nog geen scores</div><div style="font-size:13px">Wacht tot de eerste spelers hun scores invoeren.</div></div>';
   } else {
-    html += '<div style="display:flex;flex-direction:column;gap:10px">';
+    html += '<div style="display:flex;flex-direction:column;gap:10px;width:100%">';
     rows.forEach(function(r, i) {
       var pos = i + 1;
       var posCls = pos === 1 ? 'lb-1' : pos === 2 ? 'lb-2' : pos === 3 ? 'lb-3' : 'lb-n';
