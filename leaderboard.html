@@ -513,21 +513,6 @@ function renderGwLeaderboard() {
   document.getElementById('lb-sub').textContent = dStr + ' · ' + g.vorm + ' · ' + g.holes + ' holes' + (g.baan ? ' · ' + g.baan : '');
   document.getElementById('lb-club').textContent = g.baan || 'Groepswedstrijd';
 
-  // Live status
-  var alleKlaar = rows.every(function(r) { return r.gespeeld === g.holes; });
-  var isLive = hasScores && !alleKlaar && g.status !== 'afgerond';
-  var ebEl = document.querySelector('.lb-eyebrow');
-  if (isLive) {
-    ebEl.textContent = 'LIVE — ' + ingevuldHoles + ' / ' + totHoles + ' holes ingevuld';
-    ebEl.style.color = '#fca5a5';  // rood pulsing dot blijft default
-  } else if (alleKlaar) {
-    ebEl.textContent = 'AFGEROND';
-    ebEl.style.color = '#86efac';
-  } else {
-    ebEl.textContent = 'GROEPSWEDSTRIJD';
-    ebEl.style.color = '#86efac';
-  }
-
   // Baan setup (De Hooge gele tee — dezelfde defaults als in app)
   var baan = {
     holes: g.holes,
@@ -567,6 +552,23 @@ function renderGwLeaderboard() {
   var ingevuldHoles = rows.reduce(function(a, r) { return a + r.gespeeld; }, 0);
   var pct = totHoles > 0 ? Math.round((ingevuldHoles / totHoles) * 100) : 0;
   var klaar = rows.filter(function(r) { return r.gespeeld === g.holes; }).length;
+
+  // Live status in eyebrow
+  var alleKlaar = totaalSpelers > 0 && klaar === totaalSpelers;
+  var isLive = hasScores && !alleKlaar && g.status !== 'afgerond';
+  var ebEl = document.querySelector('.lb-eyebrow');
+  if (ebEl) {
+    if (isLive) {
+      ebEl.textContent = 'LIVE — ' + ingevuldHoles + ' / ' + totHoles + ' holes ingevuld';
+      ebEl.style.color = '#fca5a5';
+    } else if (alleKlaar) {
+      ebEl.textContent = 'AFGEROND';
+      ebEl.style.color = '#86efac';
+    } else {
+      ebEl.textContent = 'GROEPSWEDSTRIJD';
+      ebEl.style.color = '#86efac';
+    }
+  }
 
   var html = '';
 
