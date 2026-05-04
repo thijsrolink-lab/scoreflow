@@ -4013,13 +4013,19 @@ function renderFlightsInTab(wId) {
   var container = document.getElementById('wd-tab-flights');
   if(!container) return;
 
-  var sps = INSCHRIJVINGEN
-    .filter(function(i){return i.wid===wId && i.status==='ingeschreven';})
-    .map(function(i){return USERS.find(function(s){return s.id===i.sid;});})
-    .filter(Boolean);
+  // Verzamel alle ingeschreven spelers (echt + gast)
+  var ings = INSCHRIJVINGEN.filter(function(i){return i.wid===wId && i.status==='ingeschreven';});
+  var sps = ings.map(function(i) {
+    if (i.is_gast) {
+      return inschrijvingNaarSpeler ? inschrijvingNaarSpeler(i) : null;
+    }
+    return USERS.find(function(s){return s.id===i.sid;});
+  }).filter(Boolean);
+
   var flights = (typeof FLIGHTS !== 'undefined' && FLIGHTS[wId]) ? FLIGHTS[wId] : [];
   var perFlight = w.flt || 3;
   var benodigde = Math.ceil(sps.length / perFlight);
+  var maxFlightSize = perFlight;
 
   // Header met info + acties
   var html = '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid #f1f4f8">' +
@@ -4037,6 +4043,7 @@ function renderFlightsInTab(wId) {
         '<option value="naam">Alfabetisch</option>' +
       '</select>' +
       '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:14px;min-height:40px" onclick="autoFlights()">Auto-indeling</button>' +
+      '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:14px;min-height:40px;background:#fef3e0;border-color:#fde68a;color:#92400e" onclick="openVoegSpelerToeAanFlight(\'' + wId + '\', null)">+ Speler/Gast</button>' +
       '<button class="wd-btn wd-btn-primary" style="padding:0.5rem 1rem;font-size:14px;min-height:40px" onclick="slaFlightsOpVoorWedstrijd(\'' + wId + '\')">Opslaan</button>' +
     '</div>' +
   '</div>';
@@ -4054,25 +4061,59 @@ function renderFlightsInTab(wId) {
       var hr = 8 + Math.floor(totalMin / 60);
       var min = totalMin % 60;
       var time = String(hr).padStart(2,'0') + ':' + String(min).padStart(2,'0');
+
+      var spelersHtml = flight.map(function(sid, posIdx) {
+        var isGast = String(sid).indexOf('gast-') === 0;
+        var s, hcp;
+        if (isGast) {
+          var ingId = sid.replace('gast-', '');
+          var ing = INSCHRIJVINGEN.find(function(x) { return String(x.id) === ingId; });
+          if (!ing) return '';
+          var nm = ing.gast_naam || '';
+          var nmParts = nm.split(' ');
+          s = { voor: nmParts[0] || nm, ach: nmParts.slice(1).join(' ') };
+          hcp = ing.gast_hcp;
+        } else {
+          s = USERS.find(function(x){return x.id===sid;});
+          if (!s) return '';
+          hcp = s.hcp;
+        }
+        var sh = (typeof berekenSpeelhandicap === 'function')
+          ? berekenSpeelhandicap(hcp, w.slope, w.cr, w.holes===9?36:72, (w.hcpperc||100)/100, w.holes)
+          : '-';
+        var avBg = isGast ? '#fef3e0' : '#16a34a';
+        var avColor = isGast ? '#a16207' : '#fff';
+        var firstChar = (s.voor||'X')[0];
+        var secondChar = (s.ach||'')[0] || '';
+
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f4f8">' +
+          '<div class="av" style="width:28px;height:28px;font-size:11px;background:' + avBg + ';color:' + avColor + ';border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0">' + escHtml(firstChar + secondChar) + '</div>' +
+          '<span style="flex:1;min-width:0;font-size:14px;color:#0c1b2a;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(s.voor + ' ' + (s.ach||'')) + (isGast ? ' <span style="background:rgba(245,158,11,0.15);color:#a16207;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700">GAST</span>' : '') + '</span>' +
+          '<span style="font-size:11px;color:#8b94a3;flex-shrink:0">HCP ' + Number(hcp).toFixed(1) + '</span>' +
+          '<span style="font-size:11px;background:#f1f4f8;padding:2px 6px;border-radius:6px;color:#425466;flex-shrink:0">SH ' + sh + '</span>' +
+          '<button onclick="event.stopPropagation();flightVerplaats(\'' + wId + '\',' + fi + ',' + posIdx + ',\'voor\')" ' + (fi===0 && posIdx===0 ? 'disabled' : '') + ' title="Naar flight ervoor" style="background:#fff;border:1px solid #e6eaf0;border-radius:4px;width:24px;height:24px;cursor:pointer;color:#425466;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">↑</button>' +
+          '<button onclick="event.stopPropagation();flightVerplaats(\'' + wId + '\',' + fi + ',' + posIdx + ',\'na\')" title="Naar flight erna" style="background:#fff;border:1px solid #e6eaf0;border-radius:4px;width:24px;height:24px;cursor:pointer;color:#425466;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">↓</button>' +
+          '<button onclick="event.stopPropagation();flightVerwijder(\'' + wId + '\',' + fi + ',' + posIdx + ')" title="Uit flight verwijderen" style="background:#fff;border:1px solid #fecaca;color:#dc2626;border-radius:4px;width:24px;height:24px;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>' +
+        '</div>';
+      }).join('');
+
+      // Lege plek-knop als flight nog niet vol is
+      var legePlekHtml = '';
+      var totalSlots = flight.length;
+      while (totalSlots < maxFlightSize) {
+        legePlekHtml += '<div onclick="openVoegSpelerToeAanFlight(\'' + wId + '\',' + fi + ')" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:2px dashed #e6eaf0;border-radius:6px;margin-top:6px;cursor:pointer;color:#8b94a3;font-size:12px;font-weight:500" onmouseover="this.style.borderColor=\'#16a34a\';this.style.color=\'#16a34a\'" onmouseout="this.style.borderColor=\'#e6eaf0\';this.style.color=\'#8b94a3\'">+ Lege plek (klik om te vullen)</div>';
+        totalSlots++;
+        if (totalSlots > 8) break; // safety
+      }
+
       html += '<div style="background:#f8fafa;border:1px solid #e6eaf0;border-radius:12px;padding:1rem 1.25rem">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">' +
           '<span style="font-family:Inter,sans-serif;font-weight:700;font-size:15px;color:#0c1b2a">Flight ' + (fi+1) + '</span>' +
           '<span style="font-size:13px;color:#16a34a;font-weight:600;background:#f0fdf4;padding:3px 10px;border-radius:100px">' + time + '</span>' +
         '</div>' +
-        '<div style="display:flex;flex-direction:column;gap:6px">' +
-          flight.map(function(sid) {
-            var s = USERS.find(function(x){return x.id===sid;});
-            if (!s) return '';
-            var sh = (typeof berekenSpeelhandicap === 'function')
-              ? berekenSpeelhandicap(s.hcp, w.slope, w.cr, w.holes===9?36:72, (w.hcpperc||100)/100, w.holes)
-              : '-';
-            return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0">' +
-              '<div class="av" style="width:28px;height:28px;font-size:11px;background:#16a34a;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600">' + escHtml(s.voor[0] + s.ach[0]) + '</div>' +
-              '<span style="flex:1;font-size:14px;color:#0c1b2a;font-weight:500">' + escHtml(s.voor + ' ' + s.ach) + '</span>' +
-              '<span style="font-size:12px;color:#8b94a3">HCP ' + s.hcp + '</span>' +
-              '<span style="font-size:11px;background:#f1f4f8;padding:2px 8px;border-radius:6px;color:#425466">SH ' + sh + '</span>' +
-            '</div>';
-          }).join('') +
+        '<div style="display:flex;flex-direction:column;gap:0">' +
+          spelersHtml +
+          legePlekHtml +
         '</div>' +
       '</div>';
     });
@@ -6245,6 +6286,11 @@ async function flightVerplaats(wId, flightIdx, posIdx, richting) {
 
   await dbSaveFlights(wId);
   renderFlights();
+  // Ook tab refresh als we daar zijn
+  if (typeof renderFlightsInTab === 'function') {
+    var detailWedstrijd = window._currentDetailWid || wId;
+    renderFlightsInTab(detailWedstrijd);
+  }
   toast('Speler verplaatst naar Flight ' + (doelIdx + 1));
 }
 
@@ -6262,6 +6308,7 @@ async function flightVerwijder(wId, flightIdx, posIdx) {
 
   await dbSaveFlights(wId);
   renderFlights();
+  if (typeof renderFlightsInTab === 'function') renderFlightsInTab(wId);
   toast('Speler uit flight verwijderd');
 }
 
@@ -6339,6 +6386,7 @@ async function voegSpelerToeAanFlight(sid) {
   await dbSaveFlights(wId);
   closeModal('modal-vsa');
   renderFlights();
+  if (typeof renderFlightsInTab === 'function') renderFlightsInTab(wId);
   toast('Speler toegevoegd aan Flight ' + (flightIdx + 1));
 }
 
@@ -6420,6 +6468,7 @@ async function opslaanGast() {
     await dbSaveFlights(wId);
     closeModal('modal-vsa');
     renderFlights();
+    if (typeof renderFlightsInTab === 'function') renderFlightsInTab(wId);
     toast('Gast ' + naam + ' toegevoegd aan Flight ' + (flightIdx + 1));
   } catch(e) {
     console.error('opslaanGast:', e);
