@@ -445,19 +445,14 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
 
   var perc = (w.hcpperc || 100) / 100;
-  console.log('[TS-LB] hcpperc:', w.hcpperc, 'perc:', perc, 'slope:', w.slope, 'cr:', w.cr, 'par:', baan.parTotaal, 'holes:', w.holes);
   var rows = flights.map(function(flightSids, fi) {
     var spelers = flightSids.map(function(sid) {
-      var found = sps.find(function(s) { return s.id === sid; });
-      if (!found) console.warn('[TS-LB] Speler niet gevonden voor sid:', sid);
-      return found;
+      return sps.find(function(s) { return s.id === sid; });
     }).filter(Boolean);
     if (!spelers.length) return null;
 
-    console.log('[TS-LB] Flight ' + (fi+1) + ' spelers:', spelers.map(function(s){return s.voor+' '+s.ach+' (HCP '+s.hcp+')';}));
     var teamHcp = teamHandicapScramble(spelers, perc);
     var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
-    console.log('[TS-LB] Flight ' + (fi+1) + ' → team-EGA: ' + teamHcp + ', team-SH: ' + teamSh);
     var teamKey = 'team-' + fi;
     var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
     if (!scores && spelers.length > 0) {
