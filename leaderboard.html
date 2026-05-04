@@ -880,9 +880,16 @@ function toggleFullscreen() {
   else document.documentElement.requestFullscreen();
 }
 
-// DEBUG: toon status bovenaan
-console.log('Leaderboard init — WID:', WID);
-if (!WID) {
+// DEBUG
+console.log('Leaderboard init — WID:', WID, 'GW_CODE:', GW_CODE);
+
+// GW-mode: verberg TV-only controls (fullscreen, etc.)
+if (IS_GW) {
+  var ctrlsEl = document.querySelector('.lb-controls');
+  if (ctrlsEl) ctrlsEl.style.display = 'none';
+}
+
+if (!WID && !GW_CODE) {
   document.getElementById('lb-content').innerHTML = '<div class="lb-error">Geen wedstrijd-ID in URL.<br><br>Gebruik: <code>./leaderboard.html?w=WEDSTRIJD-UUID</code><br><br>Huidige URL: <code>' + window.location.href + '</code></div>';
 }
 
