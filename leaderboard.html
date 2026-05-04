@@ -506,7 +506,7 @@ async function laadWedstrijdData() {
     return true;
   } catch(e) {
     console.error('Data laden:', e);
-    document.getElementById('lb-content').innerHTML = '<div class="lb-error">Fout bij laden: ' + e.message + '</div>';
+    document.getElementById('lb-content').innerHTML = '<div class="lb-error">Fout bij laden: ' + e.message + '<br><br>Stack: <pre style="font-size:10px;white-space:pre-wrap">' + (e.stack || 'geen stack').substring(0, 500) + '</pre></div>';
     return false;
   }
 }
@@ -542,7 +542,7 @@ function renderLB() {
     }
   } catch(e) {
     console.error('Render error:', e);
-    html = '<div class="lb-error">Render error: ' + escHtml(e.message) + '</div>';
+    html = '<div class="lb-error">Render error: ' + escHtml(e.message) + '<br><br>Stack: <pre style="font-size:10px;white-space:pre-wrap">' + escHtml((e.stack || 'geen stack').substring(0, 500)) + '</pre></div>';
   }
 
   document.getElementById('lb-content').innerHTML = html || '<div class="lb-loading">Nog geen scores ingevoerd.</div>';
@@ -587,9 +587,20 @@ function toggleFullscreen() {
   else document.documentElement.requestFullscreen();
 }
 
+// DEBUG: toon status bovenaan
+console.log('Leaderboard init — WID:', WID);
+if (!WID) {
+  document.getElementById('lb-content').innerHTML = '<div class="lb-error">Geen wedstrijd-ID in URL.<br><br>Gebruik: <code>./leaderboard.html?w=WEDSTRIJD-UUID</code><br><br>Huidige URL: <code>' + window.location.href + '</code></div>';
+}
+
 // Start + auto-refresh
-refresh();
-setInterval(refresh, 15000);
+refresh().catch(function(e) {
+  console.error('Initial refresh failed:', e);
+  document.getElementById('lb-content').innerHTML = '<div class="lb-error">Init fout: ' + e.message + '</div>';
+});
+setInterval(function() {
+  refresh().catch(function(e) { console.warn('Refresh failed:', e.message); });
+}, 15000);
 
 </script>
 </body>
