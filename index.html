@@ -11176,27 +11176,9 @@ function gwRenderScorekaartView() {
   var hdrEl = document.getElementById('sp-scorekaart-header');
   if (hdrEl) hdrEl.innerHTML = headerHtml;
 
-  // Welke speler is actief in scoring? (default: jezelf, of eerste deelnemer)
-  if (!window._gwActieveSpId) {
-    window._gwActieveSpId = (mijnRol && u.id) || g.deelnemers[0].uid;
-  }
-  var actieveSpId = window._gwActieveSpId;
-
-  // Speler-switcher (alleen tonen als meer dan 1 deelnemer EN jij bent organisator OF jij speelt zelf)
-  // Iedereen mag voor iedereen scoren in groepswedstrijd
+  // Geen switcher meer — alle spelers staan onder elkaar in invoer-tab
+  var actieveSpId = u.id;  // voor scorekaart-tab nog gebruikt
   var switcherHtml = '';
-  if (g.deelnemers.length > 1) {
-    switcherHtml = '<div style="margin-bottom:1rem">' +
-      '<label style="font-size:11px;color:#8b94a3;text-transform:uppercase;letter-spacing:.05em;font-weight:600;display:block;margin-bottom:4px">Score invoeren voor</label>' +
-      '<select onchange="window._gwActieveSpId=this.value;gwRenderScorekaartView()" style="width:100%;padding:10px 12px;font-size:15px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif;font-weight:600;background:#fff">' +
-      g.deelnemers.map(function(d) {
-        var sel = d.uid === actieveSpId ? ' selected' : '';
-        var jij = d.uid === u.id ? ' (jij)' : '';
-        var gast = d.isGast ? ' [Gast]' : '';
-        return '<option value="' + d.uid + '"' + sel + '>' + escHtml(d.naam + jij + gast) + '</option>';
-      }).join('') +
-      '</select></div>';
-  }
 
   // Tab navigatie
   var actieveTab = window._gwTab || 'invoer';
@@ -11226,103 +11208,147 @@ function gwRenderScorekaartView() {
 
 // ─── Tab 1: Score invoeren (1 hole groot + big buttons) ──────
 function gwBouwInvoerTab(g, baan, actieveSpId, u) {
-  var deeln = g.deelnemers.find(function(d) { return d.uid === actieveSpId; });
-  if (!deeln) return '<p style="padding:2rem;text-align:center;color:#8b94a3">Speler niet gevonden.</p>';
-
-  var sh = berekenSpeelhandicap(deeln.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes);
-  var ex = extraSlagenPerHole(sh, baan.si);
-  var sc = (g.scores && g.scores[actieveSpId]) || Array(g.holes).fill('');
-
-  // Actieve hole (default: eerste lege, of 0)
-  var stateKey = 'gwHole-' + actieveSpId;
-  if (window[stateKey] == null) {
-    var firstEmpty = sc.findIndex(function(s) { return s === '' || s === null; });
-    window[stateKey] = firstEmpty >= 0 ? firstEmpty : 0;
+  // Actieve hole (gedeeld over alle spelers)
+  if (window._gwHole == null) {
+    // Default: laatste hole waar nog niet alle spelers gescoord hebben
+    var firstIncomplete = -1;
+    for (var i = 0; i < g.holes; i++) {
+      var alleScored = g.deelnemers.every(function(d) {
+        var sc = (g.scores && g.scores[d.uid]) || [];
+        return sc[i] !== '' && sc[i] != null;
+      });
+      if (!alleScored) { firstIncomplete = i; break; }
+    }
+    window._gwHole = firstIncomplete >= 0 ? firstIncomplete : 0;
   }
-  var hi = window[stateKey];
+  var hi = window._gwHole;
   if (hi < 0) hi = 0;
   if (hi >= g.holes) hi = g.holes - 1;
 
   var par = baan.par[hi];
   var si = baan.si[hi];
-  var extraSl = ex[hi];
-  var huidig = sc[hi];
 
-  // Progress dots (klikbaar)
+  // Progress dots (gedeeld) — kleur op basis van hoeveel spelers gescoord hebben
   var dotsHtml = '<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:1rem">';
   for (var i = 0; i < g.holes; i++) {
-    var v = sc[i];
+    var nGescoord = g.deelnemers.filter(function(d) {
+      var sc = (g.scores && g.scores[d.uid]) || [];
+      return sc[i] !== '' && sc[i] != null;
+    }).length;
+    var totaal = g.deelnemers.length;
+    var alleKlaar = nGescoord === totaal && totaal > 0;
     var actief = i === hi;
-    var heeft = v !== '' && v !== null;
-    var bg = actief ? '#16a34a' : heeft ? '#86efac' : '#e6eaf0';
-    var color = actief ? '#fff' : heeft ? '#0a4020' : '#8b94a3';
-    dotsHtml += '<button onclick="window[\'' + stateKey + '\']=' + i + ';gwRenderScorekaartView()" style="width:32px;height:32px;border-radius:50%;border:none;background:' + bg + ';color:' + color + ';font-weight:700;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">' + (i+1) + '</button>';
+    var bg, color;
+    if (actief) { bg = '#16a34a'; color = '#fff'; }
+    else if (alleKlaar) { bg = '#86efac'; color = '#0a4020'; }
+    else if (nGescoord > 0) { bg = '#fef3c7'; color = '#92400e'; }
+    else { bg = '#e6eaf0'; color = '#8b94a3'; }
+    dotsHtml += '<button onclick="window._gwHole=' + i + ';gwRenderScorekaartView()" style="width:32px;height:32px;border-radius:50%;border:none;background:' + bg + ';color:' + color + ';font-weight:700;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">' + (i+1) + '</button>';
   }
   dotsHtml += '</div>';
 
-  // Hole-header
-  var holeHtml = '<div style="background:#fff;border:2px solid #16a34a;border-radius:var(--rl);padding:1.5rem;margin-bottom:1rem">';
-  holeHtml += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem">';
-  holeHtml += '<div>';
-  holeHtml += '<div style="font-size:11px;color:#8b94a3;text-transform:uppercase;letter-spacing:.08em;font-weight:600">' + escHtml(deeln.naam) + '</div>';
-  holeHtml += '<div style="font-size:36px;font-weight:800;color:#0c1b2a;line-height:1;margin-top:4px">Hole ' + (hi+1) + '</div>';
-  holeHtml += '<div style="font-size:13px;color:#8b94a3;margin-top:6px">Par ' + par + ' · SI ' + si + (extraSl > 0 ? ' · <strong style="color:#16a34a">+' + extraSl + ' slag</strong>' : '') + '</div>';
-  holeHtml += '</div>';
-  // Huidige score badge
-  if (huidig !== '' && huidig !== null) {
-    var netto = Number(huidig) - extraSl;
-    var d = par - netto;
-    var lbl = d >= 2 ? 'EAGLE' : d === 1 ? 'BIRDIE' : d === 0 ? 'PAR' : d === -1 ? 'BOGEY' : d === -2 ? 'DOUBLE' : 'OVER';
-    var sf = d >= 3 ? 5 : d === 2 ? 4 : d === 1 ? 3 : d === 0 ? 2 : d === -1 ? 1 : 0;
-    var clr = d >= 1 ? '#16a34a' : d === 0 ? '#0c1b2a' : '#dc2626';
-    holeHtml += '<div style="text-align:right">';
-    holeHtml += '<div style="font-size:48px;font-weight:800;color:' + clr + ';line-height:1">' + huidig + '</div>';
-    holeHtml += '<div style="font-size:11px;color:#8b94a3;margin-top:2px">' + lbl + ' · ' + sf + ' pt</div>';
-    holeHtml += '</div>';
-  }
-  holeHtml += '</div>';
+  // Hole-header (compact)
+  var holeHdrHtml = '<div style="background:linear-gradient(135deg,#0c1b2a,#1a3d2b);color:#fff;padding:.85rem 1rem;border-radius:var(--rl);margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between">' +
+    '<div>' +
+      '<div style="font-size:11px;color:#86efac;text-transform:uppercase;letter-spacing:.08em;font-weight:700">Huidige hole</div>' +
+      '<div style="font-size:24px;font-weight:800;line-height:1;margin-top:2px">Hole ' + (hi+1) + '</div>' +
+    '</div>' +
+    '<div style="text-align:right">' +
+      '<div style="font-size:11px;color:rgba(255,255,255,.6)">Par ' + par + ' · SI ' + si + '</div>' +
+      '<div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px">' + g.deelnemers.length + ' spelers</div>' +
+    '</div>' +
+  '</div>';
 
-  // Big score buttons (3-9)
-  // Slim: toon range rond par
-  var minScore = Math.max(1, par - 2);
-  var maxScore = par + 5;
-  holeHtml += '<div style="display:grid;grid-template-columns:repeat(' + (maxScore - minScore + 1) + ',1fr);gap:6px;margin-bottom:1rem">';
-  for (var s = minScore; s <= maxScore; s++) {
-    var isActief = huidig === s;
-    var d = par - (s - extraSl);
-    var btnBg, btnColor, btnBorder;
-    if (isActief) {
-      btnBg = '#16a34a'; btnColor = '#fff'; btnBorder = '#16a34a';
-    } else if (d >= 2) {
-      btnBg = '#c8f0d8'; btnColor = '#0a3a1e'; btnBorder = '#86efac';
-    } else if (d === 1) {
-      btnBg = '#e0f5e8'; btnColor = '#0a4020'; btnBorder = '#bbf7d0';
-    } else if (d === 0) {
-      btnBg = '#fff'; btnColor = '#0c1b2a'; btnBorder = '#e6eaf0';
-    } else if (d === -1) {
-      btnBg = '#fef3e0'; btnColor = '#5a3800'; btnBorder = '#fde68a';
-    } else {
-      btnBg = '#fde8e8'; btnColor = '#6a1a1a'; btnBorder = '#fecaca';
+  // Per speler een rij
+  var spelersHtml = '<div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem">';
+
+  g.deelnemers.forEach(function(deeln) {
+    var sh = berekenSpeelhandicap(deeln.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes);
+    var ex = extraSlagenPerHole(sh, baan.si);
+    var sc = (g.scores && g.scores[deeln.uid]) || Array(g.holes).fill('');
+    var huidig = sc[hi];
+    var extraSl = ex[hi];
+    var heeft = huidig !== '' && huidig != null;
+
+    // Initials + kleur
+    var initials = deeln.naam.split(' ').map(function(w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
+    var avBg = deeln.isGast ? 'rgba(245,158,11,0.15)' : (deeln.uid === u.id ? '#16a34a' : '#f1f4f8');
+    var avColor = deeln.isGast ? '#a16207' : (deeln.uid === u.id ? '#fff' : '#425466');
+
+    // Score-info rechts
+    var scoreInfo = '';
+    if (heeft) {
+      var netto = Number(huidig) - extraSl;
+      var d = par - netto;
+      var sf = d >= 3 ? 5 : d === 2 ? 4 : d === 1 ? 3 : d === 0 ? 2 : d === -1 ? 1 : 0;
+      var clr = d >= 1 ? '#16a34a' : d === 0 ? '#0c1b2a' : '#dc2626';
+      scoreInfo = '<div style="font-size:11px;color:' + clr + ';font-weight:700;margin-top:2px">' + sf + ' pt</div>';
     }
-    holeHtml += '<button onclick="gwTapScore(\'' + actieveSpId + '\',' + hi + ',' + s + ')" style="padding:1rem 0;font-size:24px;font-weight:800;border:2px solid ' + btnBorder + ';background:' + btnBg + ';color:' + btnColor + ';border-radius:10px;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s">' + s + '</button>';
-  }
-  holeHtml += '</div>';
 
-  // Wis-knop als score is ingevuld
-  if (huidig !== '' && huidig !== null) {
-    holeHtml += '<button onclick="gwTapScore(\'' + actieveSpId + '\',' + hi + ',\'\')" style="width:100%;padding:8px;font-size:12px;color:#dc2626;background:none;border:1px dashed #fecaca;border-radius:8px;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:1rem">Score wissen</button>';
-  }
+    spelersHtml += '<div style="background:#fff;border:2px solid ' + (heeft ? '#86efac' : '#e6eaf0') + ';border-radius:var(--rl);padding:.65rem .85rem">';
+    // Header rij: avatar + naam + SH + score
+    spelersHtml += '<div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.55rem">';
+    spelersHtml += '<div style="width:28px;height:28px;border-radius:50%;background:' + avBg + ';color:' + avColor + ';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">' + escHtml(initials) + '</div>';
+    spelersHtml += '<div style="flex:1;min-width:0">';
+    spelersHtml += '<div style="font-size:14px;font-weight:600;color:#0c1b2a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(deeln.naam) +
+      (deeln.uid === u.id ? ' <span style="font-size:10px;color:#16a34a;font-weight:500">(jij)</span>' : '') + '</div>';
+    spelersHtml += '<div style="font-size:10px;color:#8b94a3">SH ' + sh + (extraSl > 0 ? ' · <strong style="color:#16a34a">+' + extraSl + ' slag</strong>' : '') + '</div>';
+    spelersHtml += '</div>';
+    if (heeft) {
+      spelersHtml += '<div style="text-align:right;margin-left:.5rem">';
+      spelersHtml += '<div style="font-size:22px;font-weight:800;color:#16a34a;line-height:1">' + huidig + '</div>';
+      spelersHtml += scoreInfo;
+      spelersHtml += '</div>';
+    }
+    spelersHtml += '</div>';
 
-  // Navigatie (pijltjes)
-  holeHtml += '<div style="display:flex;gap:8px">';
-  holeHtml += '<button onclick="gwVorigeHole(\'' + actieveSpId + '\')" ' + (hi === 0 ? 'disabled' : '') + ' style="flex:1;padding:12px;font-size:14px;font-weight:600;border:1px solid #e6eaf0;background:#fff;color:' + (hi === 0 ? '#cbd5e1' : '#0c1b2a') + ';border-radius:8px;cursor:' + (hi === 0 ? 'not-allowed' : 'pointer') + ';font-family:Inter,sans-serif">&#8592; Hole ' + hi + '</button>';
-  holeHtml += '<button onclick="gwVolgendeHole(\'' + actieveSpId + '\')" ' + (hi === g.holes - 1 ? 'disabled' : '') + ' style="flex:1;padding:12px;font-size:14px;font-weight:600;border:1px solid #16a34a;background:' + (hi === g.holes - 1 ? '#fff' : '#16a34a') + ';color:' + (hi === g.holes - 1 ? '#cbd5e1' : '#fff') + ';border-radius:8px;cursor:' + (hi === g.holes - 1 ? 'not-allowed' : 'pointer') + ';font-family:Inter,sans-serif">Hole ' + (hi + 2) + ' &#8594;</button>';
-  holeHtml += '</div>';
+    // Score-knoppen rij
+    var minScore = Math.max(1, par - 2);
+    var maxScore = par + 5;
+    spelersHtml += '<div style="display:grid;grid-template-columns:repeat(' + (maxScore - minScore + 1) + ',1fr);gap:4px">';
+    for (var s = minScore; s <= maxScore; s++) {
+      var isActief = huidig === s;
+      var d = par - (s - extraSl);
+      var btnBg, btnColor, btnBorder;
+      if (isActief) {
+        btnBg = '#16a34a'; btnColor = '#fff'; btnBorder = '#16a34a';
+      } else if (d >= 2) {
+        btnBg = '#c8f0d8'; btnColor = '#0a3a1e'; btnBorder = '#86efac';
+      } else if (d === 1) {
+        btnBg = '#e0f5e8'; btnColor = '#0a4020'; btnBorder = '#bbf7d0';
+      } else if (d === 0) {
+        btnBg = '#fff'; btnColor = '#0c1b2a'; btnBorder = '#e6eaf0';
+      } else if (d === -1) {
+        btnBg = '#fef3e0'; btnColor = '#5a3800'; btnBorder = '#fde68a';
+      } else {
+        btnBg = '#fde8e8'; btnColor = '#6a1a1a'; btnBorder = '#fecaca';
+      }
+      spelersHtml += '<button onclick="gwTapScore(\'' + deeln.uid + '\',' + hi + ',' + s + ')" style="padding:.65rem 0;font-size:18px;font-weight:800;border:1.5px solid ' + btnBorder + ';background:' + btnBg + ';color:' + btnColor + ';border-radius:8px;cursor:pointer;font-family:Inter,sans-serif;transition:all .12s">' + s + '</button>';
+    }
+    spelersHtml += '</div>';
 
-  holeHtml += '</div>';
+    // Wis-knop als score
+    if (heeft) {
+      spelersHtml += '<button onclick="gwTapScore(\'' + deeln.uid + '\',' + hi + ',\'\')" style="margin-top:.4rem;width:100%;padding:5px;font-size:11px;color:#dc2626;background:none;border:1px dashed #fecaca;border-radius:6px;cursor:pointer;font-family:Inter,sans-serif">Wissen</button>';
+    }
 
-  return dotsHtml + holeHtml;
+    spelersHtml += '</div>';
+  });
+  spelersHtml += '</div>';
+
+  // Pijltjes naar vorige/volgende hole
+  var navHtml = '<div style="display:flex;gap:8px">';
+  navHtml += '<button onclick="window._gwHole=Math.max(0,(window._gwHole||0)-1);gwRenderScorekaartView()" ' + (hi === 0 ? 'disabled' : '') +
+    ' style="flex:1;padding:14px;font-size:14px;font-weight:600;border:1px solid #e6eaf0;background:#fff;color:' + (hi === 0 ? '#cbd5e1' : '#0c1b2a') + ';border-radius:8px;cursor:' + (hi === 0 ? 'not-allowed' : 'pointer') + ';font-family:Inter,sans-serif">' +
+    '&#8592; Hole ' + hi + '</button>';
+  navHtml += '<button onclick="window._gwHole=Math.min(' + (g.holes-1) + ',(window._gwHole||0)+1);gwRenderScorekaartView()" ' + (hi === g.holes - 1 ? 'disabled' : '') +
+    ' style="flex:1;padding:14px;font-size:14px;font-weight:600;border:1px solid #16a34a;background:' + (hi === g.holes - 1 ? '#fff' : '#16a34a') + ';color:' + (hi === g.holes - 1 ? '#cbd5e1' : '#fff') + ';border-radius:8px;cursor:' + (hi === g.holes - 1 ? 'not-allowed' : 'pointer') + ';font-family:Inter,sans-serif">' +
+    'Hole ' + (hi + 2) + ' &#8594;</button>';
+  navHtml += '</div>';
+
+  return dotsHtml + holeHdrHtml + spelersHtml + navHtml;
 }
+
 
 // ─── Tab 2: Leaderboard ──────────────────────────────────────
 function gwBouwLeaderboardTab(g, baan, u) {
@@ -11456,15 +11482,21 @@ async function gwTapScore(uid, hole, score) {
   if (!g.scores[uid]) g.scores[uid] = Array(g.holes).fill('');
   g.scores[uid][hole] = score === '' ? '' : Number(score);
 
-  // Auto-door naar volgende hole als geldige score ingevuld
-  var stateKey = 'gwHole-' + uid;
-  if (score !== '' && hole < g.holes - 1) {
+  // Check of alle spelers nu gescoord hebben op deze hole
+  var alleKlaar = g.deelnemers.every(function(d) {
+    var sc = (g.scores && g.scores[d.uid]) || [];
+    return sc[hole] !== '' && sc[hole] != null;
+  });
+
+  // Re-render direct (visuele feedback)
+  gwRenderScorekaartView();
+
+  // Auto-door naar volgende hole als alle spelers klaar én niet laatste hole
+  if (alleKlaar && score !== '' && hole < g.holes - 1) {
     setTimeout(function() {
-      window[stateKey] = hole + 1;
+      window._gwHole = hole + 1;
       gwRenderScorekaartView();
-    }, 200);
-  } else {
-    gwRenderScorekaartView();
+    }, 600);
   }
 
   // Debounced DB save
