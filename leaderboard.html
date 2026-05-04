@@ -156,21 +156,32 @@ html, body {
   vertical-align: middle;
 }
 
-
-
-.lb-pos { width: 30px; height: 30px; font-size: 13px; flex-shrink: 0; }
+@media (max-width: 768px) {
+  .lb-container { padding: 0.85rem 0.75rem; }
+  .lb-row { padding: .65rem .75rem; gap: .55rem; }
+  .lb-pos { width: 30px; height: 30px; font-size: 13px; flex-shrink: 0; }
   .lb-naam-tx { font-size: 15px; }
   .lb-naam-sub { font-size: 11px; margin-top: 1px; }
-  .lb-score { font-size: 22px; min-width: 0; }
+  .lb-score { font-size: 20px; min-width: 0; }
   .lb-titel { font-size: 22px; }
   .lb-sub { font-size: 12px; }
   .lb-hd { gap: 0.5rem; }
-  .lb-meta { display: none; }
+  /* Header club + refresh op 1 rij op mobiel */
+  .lb-meta {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+    gap: .5rem;
+  }
+  .lb-club { font-size: 9px; letter-spacing: .1em; }
+  .lb-refresh { padding: 3px 8px; font-size: 9px; letter-spacing: .04em; }
   /* Top-stats compacter */
-  .gw-stats { padding: .85rem !important; }
+  .gw-stats { padding: .85rem 1rem !important; }
   .gw-stats-grid { gap: 1rem !important; }
   .gw-stats-item-num { font-size: 22px !important; }
-  .gw-stats-item-vorm { font-size: 14px !important; }
+  .gw-stats-item-vorm { font-size: 13px !important; }
 }
 
 @keyframes pulse {
