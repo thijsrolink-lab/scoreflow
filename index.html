@@ -10706,7 +10706,7 @@ function gwKaart(g, u) {
   var ic = g.deelnemers.length;
   var toekomst = new Date(g.datum) >= new Date(new Date().toDateString());
 
-  var html = '<div class="gw-card" onclick="gwOpenDetail(' + g.id + ')" style="cursor:pointer">';
+  var html = '<div class="gw-card" onclick="gwOpenDetail(\'' + g.id + '\')" style="cursor:pointer">';
   html += '<div class="gw-card-top">';
   html += '<div style="flex:1"><div class="gw-card-naam">' + escHtml(g.naam) + '</div>';
   html += '<div class="gw-card-meta">';
@@ -10730,7 +10730,7 @@ function gwKaart(g, u) {
     html += '<div class="av" style="width:28px;height:28px;font-size:10px;background:' + bg + ';color:' + clr + '" title="' + escHtml(d.naam) + '">' + initials + '</div>';
   });
   if (g.deelnemers.length > 6) html += '<div style="font-size:11px;color:var(--txm)">+' + (g.deelnemers.length - 6) + '</div>';
-  if (toekomst && isOrg) html += '<div style="margin-left:auto"><button class="btn btn-s btn-xs" onclick="event.stopPropagation();gwBewerken(' + g.id + ')">Bewerken</button></div>';
+  if (toekomst && isOrg) html += '<div style="margin-left:auto"><button class="btn btn-s btn-xs" onclick="event.stopPropagation();gwBewerken(\'' + g.id + '\')">Bewerken</button></div>';
   html += '</div></div>';
   return html;
 }
@@ -11024,11 +11024,16 @@ async function gwOpslaan() {
     if (saved && saved.id) {
       GROEPSWEDSTRIJDEN.push(saved);
       toast('Groepswedstrijd aangemaakt! Code: ' + saved.code);
+      // Direct door naar detail-view
+      gwOpenDetail(saved.id);
+      return;
     } else {
       // Fallback: lokaal opslaan met int-id (zal verloren bij refresh)
       nieuw.id = Date.now();
       GROEPSWEDSTRIJDEN.push(nieuw);
       toast('Aangemaakt (lokaal — DB-save mislukt). Code: ' + nieuw.code, 'err');
+      gwOpenDetail(nieuw.id);
+      return;
     }
   }
   spNav('groep', document.querySelector('[data-spview="groep"]'));
@@ -11077,7 +11082,7 @@ function gwOpenDetail(id) {
         (isJij ? ' <span style="font-size:11px;color:var(--gm)">(jij)</span>' : '') + '</div>' +
         '<div style="font-size:11px;color:var(--txm)">SH ' + r.sh + ' &middot; ' + r.gespeeld + '/' + g.holes + ' h</div></div>' +
         '<div style="font-weight:500" class="' + scoreCls + '">' + scoreStr + '</div>' +
-        (isJij ? '<button class="btn btn-p btn-xs" onclick="gwOpenScorekaart(' + g.id + ')">Scorekaart</button>' : '') +
+        (isJij ? '<button class="btn btn-p btn-xs" onclick="gwOpenScorekaart(\'' + g.id + '\')">Scorekaart</button>' : '') +
         '</div>';
     }).join('');
   }
@@ -11087,12 +11092,12 @@ function gwOpenDetail(id) {
   var mijnSc = (g.scores && g.scores[u.id]) || [];
   var heeftScores = mijnSc.filter(function(s){return s!=='';}).length > 0;
   var scoreKnopHtml = '<div style="margin-bottom:.75rem">' +
-    '<button class="btn btn-p btn-full" onclick="gwOpenScorekaart(' + g.id + ')">' +
+    '<button class="btn btn-p btn-full" onclick="gwOpenScorekaart(\'' + g.id + '\')">' +
     (heeftScores ? '&#9998; Scorekaart bijwerken' : '&#9971; Scores invoeren') + '</button></div>';
 
   // Deelnemers
   var deelHtml = '<div class="card" style="margin-bottom:.75rem"><div class="card-hd">Deelnemers (' + g.deelnemers.length + ')' +
-    (isOrg ? '<button class="btn btn-s btn-xs" onclick="gwBewerken(' + g.id + ')">Bewerken</button>' : '') + '</div>';
+    (isOrg ? '<button class="btn btn-s btn-xs" onclick="gwBewerken(\'' + g.id + '\')">Bewerken</button>' : '') + '</div>';
   deelHtml += g.deelnemers.map(function(deeln) {
     var isJij = deeln.uid === u.id;
     var initials = deeln.naam.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
