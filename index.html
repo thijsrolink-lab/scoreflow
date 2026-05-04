@@ -10267,24 +10267,19 @@ var _lbRefillTimeout = null;
 var _lbTerugNaar = null;
 
 function openLiveLeaderboard(forceWId) {
+  // Bepaal wedstrijd-ID uit verschillende bronnen
   var wId = forceWId;
-  // Probeer eerst de sc-w dropdown (oude scores-view)
   if (!wId) {
     var scw = document.getElementById('sc-w');
     if (scw && scw.value) wId = scw.value;
   }
-  // Anders: gebruik wedstrijd-detail context (nieuwe tab-view)
   if (!wId && typeof _wdDetailState !== 'undefined' && _wdDetailState && _wdDetailState.wId) {
     wId = _wdDetailState.wId;
   }
   if (!wId) { toast('Kies eerst een wedstrijd.', 'err'); return; }
-  _lbWId = wId;
-  _lbTerugNaar = _currentUser ? (_currentUser.rol === 'Speler' ? 'speler' : 'admin') : 'login';
-  toonScherm('leaderboard');
-  renderLiveLeaderboard();
-  startLbRefresh();
-  history.replaceState(null, '', '#leaderboard/' + wId);
-  document.getElementById('lb-share-url').textContent = 'Deel: ' + location.href;
+  // Open TV-mode leaderboard in nieuw tab (dezelfde standalone pagina)
+  var url = './leaderboard.html?w=' + encodeURIComponent(wId);
+  window.open(url, '_blank', 'noopener');
 }
 
 function openPubliekLeaderboard(wId) {
