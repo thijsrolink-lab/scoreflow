@@ -4492,8 +4492,17 @@ function dbWedstrijdNaarApp(w) {
     publiekLeaderboard: !!w.publiek_leaderboard,};
 }
 function dbIngNaarApp(i) {
-  return { id: i.id, wid: i.wid, sid: i.sid,
-    datum: i.datum ? i.datum.split('T')[0] : '', status: i.status, opm: i.opm || '' };
+  return {
+    id: i.id,
+    wid: i.wid,
+    sid: i.sid,
+    status: i.status || 'ingeschreven',
+    datum: i.datum,
+    opm: i.opm || '',
+    is_gast: !!i.is_gast,
+    gast_naam: i.gast_naam || null,
+    gast_hcp: i.gast_hcp != null ? Number(i.gast_hcp) : null
+  };
 }
 
 async function laadAlleData() {
@@ -6196,18 +6205,295 @@ function renderFlightsInit(){
   document.getElementById('fl-info').textContent='Kies een wedstrijd om de flights te beheren.';
 }
 
+
+// ─── Flight management: verplaats / verwijder / lege plek invullen ─────
+async function flightVerplaats(wId, flightIdx, posIdx, richting) {
+  if (!FLIGHTS[wId]) return;
+  var huidig = FLIGHTS[wId][flightIdx];
+  if (!huidig || posIdx >= huidig.length) return;
+  var sid = huidig[posIdx];
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  var maxSize = (w && w.flt) || 4;
+
+  // Bepaal doel-flight
+  var doelIdx;
+  if (richting === 'voor') {
+    if (flightIdx === 0) return;
+    doelIdx = flightIdx - 1;
+  } else {
+    if (flightIdx >= FLIGHTS[wId].length - 1) {
+      // Laatste flight — maak nieuwe aan
+      FLIGHTS[wId].push([]);
+    }
+    doelIdx = flightIdx + 1;
+  }
+
+  // Check of doel-flight ruimte heeft
+  if (FLIGHTS[wId][doelIdx].length >= maxSize) {
+    toast('Flight ' + (doelIdx + 1) + ' is vol (max ' + maxSize + ')', 'err');
+    return;
+  }
+
+  // Verplaats: uit huidig, in doel
+  FLIGHTS[wId][flightIdx].splice(posIdx, 1);
+  FLIGHTS[wId][doelIdx].push(sid);
+
+  // Verwijder lege flights aan eind
+  while (FLIGHTS[wId].length > 1 && FLIGHTS[wId][FLIGHTS[wId].length - 1].length === 0) {
+    FLIGHTS[wId].pop();
+  }
+
+  await dbSaveFlights(wId);
+  renderFlights();
+  toast('Speler verplaatst naar Flight ' + (doelIdx + 1));
+}
+
+async function flightVerwijder(wId, flightIdx, posIdx) {
+  if (!FLIGHTS[wId] || !FLIGHTS[wId][flightIdx]) return;
+  var sid = FLIGHTS[wId][flightIdx][posIdx];
+  if (!confirm('Speler uit deze flight verwijderen? (blijft wel ingeschreven)')) return;
+
+  FLIGHTS[wId][flightIdx].splice(posIdx, 1);
+
+  // Verwijder lege flights aan eind
+  while (FLIGHTS[wId].length > 1 && FLIGHTS[wId][FLIGHTS[wId].length - 1].length === 0) {
+    FLIGHTS[wId].pop();
+  }
+
+  await dbSaveFlights(wId);
+  renderFlights();
+  toast('Speler uit flight verwijderd');
+}
+
+// Open dialog: kies tussen bestaande speler toevoegen of nieuwe gast
+function openVoegSpelerToeAanFlight(wId, flightIdx) {
+  // flightIdx kan null zijn (algemeen toevoegen) of nummer (specifieke flight)
+  window._flightAddTarget = { wId: wId, flightIdx: flightIdx };
+
+  // Vul dropdown met spelers die nog NIET in een flight zitten
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  var ings = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; });
+  var inFlights = (FLIGHTS[wId] || []).reduce(function(acc, f) { return acc.concat(f); }, []);
+
+  // Spelers ingeschreven maar niet in flight
+  var beschikbaarHtml = ings.filter(function(i) {
+    var sid = i.is_gast ? 'gast-' + i.id : i.sid;
+    return inFlights.indexOf(sid) < 0;
+  }).map(function(i) {
+    if (i.is_gast) {
+      return '<button class="vsa-row" onclick="voegSpelerToeAanFlight(\'gast-' + i.id + '\')">' +
+        '<div style="font-weight:600">' + escHtml(i.gast_naam) + ' <span class="badge" style="background:rgba(245,158,11,0.15);color:#a16207;font-size:9px;padding:1px 5px">GAST</span></div>' +
+        '<div style="font-size:11px;color:#8b94a3">HCP ' + Number(i.gast_hcp).toFixed(1) + '</div>' +
+      '</button>';
+    }
+    var u = USERS.find(function(s) { return s.id === i.sid; });
+    if (!u) return '';
+    return '<button class="vsa-row" onclick="voegSpelerToeAanFlight(\'' + u.id + '\')">' +
+      '<div style="font-weight:600">' + escHtml(u.voor + ' ' + u.ach) + '</div>' +
+      '<div style="font-size:11px;color:#8b94a3">HCP ' + Number(u.hcp).toFixed(1) + '</div>' +
+    '</button>';
+  }).join('');
+
+  var html = '<div style="padding:1rem">' +
+    '<h3 style="margin:0 0 1rem 0;font-size:18px;font-weight:700">Speler toevoegen aan ' + (flightIdx != null ? 'Flight ' + (flightIdx + 1) : 'flight') + '</h3>' +
+    '<button class="btn btn-p btn-full" onclick="openGastModal()" style="margin-bottom:1rem">+ Nieuwe gast (zonder NGF-handicap)</button>' +
+    (beschikbaarHtml ?
+      '<div style="font-size:11px;color:#8b94a3;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px">Of kies ingeschreven speler:</div>' +
+      '<div style="display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto">' + beschikbaarHtml + '</div>' :
+      '<div style="font-size:13px;color:#8b94a3;text-align:center;padding:1rem">Alle ingeschreven spelers zijn al in een flight ingedeeld.<br>Voeg een nieuwe gast toe, of schrijf eerst een speler in via Inschrijvingen.</div>') +
+    '<div style="margin-top:1rem"><button class="btn btn-s btn-full" onclick="closeModal(\'modal-vsa\')">Annuleren</button></div>' +
+  '</div>';
+  document.getElementById('modal-vsa-content').innerHTML = html;
+  openModal('modal-vsa');
+}
+
+async function voegSpelerToeAanFlight(sid) {
+  var target = window._flightAddTarget;
+  if (!target) return;
+  var wId = target.wId;
+  var flightIdx = target.flightIdx;
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  var maxSize = (w && w.flt) || 4;
+
+  if (!FLIGHTS[wId]) FLIGHTS[wId] = [];
+
+  // Bepaal doel-flight
+  if (flightIdx == null) {
+    // Zoek eerste flight met ruimte, of maak nieuwe
+    flightIdx = FLIGHTS[wId].findIndex(function(f) { return f.length < maxSize; });
+    if (flightIdx < 0) {
+      FLIGHTS[wId].push([]);
+      flightIdx = FLIGHTS[wId].length - 1;
+    }
+  }
+
+  // Check ruimte
+  if (FLIGHTS[wId][flightIdx] && FLIGHTS[wId][flightIdx].length >= maxSize) {
+    toast('Flight ' + (flightIdx + 1) + ' is vol', 'err');
+    return;
+  }
+  if (!FLIGHTS[wId][flightIdx]) FLIGHTS[wId][flightIdx] = [];
+
+  FLIGHTS[wId][flightIdx].push(sid);
+
+  await dbSaveFlights(wId);
+  closeModal('modal-vsa');
+  renderFlights();
+  toast('Speler toegevoegd aan Flight ' + (flightIdx + 1));
+}
+
+// Open gast-modal (naam + handicap invoeren)
+function openGastModal() {
+  closeModal('modal-vsa');
+  var html = '<div style="padding:1rem">' +
+    '<h3 style="margin:0 0 1rem 0;font-size:18px;font-weight:700">Gast-speler toevoegen</h3>' +
+    '<div style="font-size:13px;color:#8b94a3;margin-bottom:1rem">Voor spelers zonder NGF-account die toch meedoen.</div>' +
+    '<div style="margin-bottom:.75rem">' +
+      '<label style="display:block;font-size:11px;color:#8b94a3;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Voor- en achternaam</label>' +
+      '<input type="text" id="gast-naam" placeholder="bv. Piet Jansen" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif"/>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem">' +
+      '<label style="display:block;font-size:11px;color:#8b94a3;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Handicap (NGF/EGA)</label>' +
+      '<input type="number" id="gast-hcp" min="0" max="54" step="0.1" placeholder="bv. 18.4" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif"/>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px">' +
+      '<button class="btn btn-s" onclick="closeModal(\'modal-vsa\')" style="flex:1">Annuleren</button>' +
+      '<button class="btn btn-p" onclick="opslaanGast()" style="flex:1">Toevoegen</button>' +
+    '</div>' +
+  '</div>';
+  document.getElementById('modal-vsa-content').innerHTML = html;
+  openModal('modal-vsa');
+  setTimeout(function() {
+    var n = document.getElementById('gast-naam'); if (n) n.focus();
+  }, 100);
+}
+
+async function opslaanGast() {
+  var naam = (document.getElementById('gast-naam').value || '').trim();
+  var hcpStr = document.getElementById('gast-hcp').value;
+  if (!naam) { toast('Vul een naam in', 'err'); return; }
+  if (!hcpStr) { toast('Vul een handicap in', 'err'); return; }
+  var hcp = parseFloat(hcpStr);
+  if (isNaN(hcp) || hcp < 0 || hcp > 54) { toast('Handicap moet tussen 0 en 54 zijn', 'err'); return; }
+
+  var target = window._flightAddTarget;
+  if (!target) return;
+  var wId = target.wId;
+
+  // Maak inschrijving aan met is_gast=true
+  try {
+    var ing = {
+      wid: wId,
+      sid: null,
+      is_gast: true,
+      gast_naam: naam,
+      gast_hcp: hcp,
+      datum: new Date().toISOString().split('T')[0],
+      status: 'ingeschreven',
+      opm: 'Last-minute gast'
+    };
+    var saved = await supa('inschrijvingen', 'POST', ing);
+    if (!saved || !saved[0]) {
+      toast('Opslaan mislukt', 'err');
+      return;
+    }
+    var newIng = saved[0];
+    INSCHRIJVINGEN.push({
+      id: newIng.id, wid: newIng.wid, sid: null,
+      is_gast: true, gast_naam: newIng.gast_naam, gast_hcp: newIng.gast_hcp,
+      status: newIng.status, datum: newIng.datum, opm: newIng.opm || ''
+    });
+
+    // Voeg toe aan flight
+    var sid = 'gast-' + newIng.id;
+    var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+    var maxSize = (w && w.flt) || 4;
+    var flightIdx = target.flightIdx;
+    if (!FLIGHTS[wId]) FLIGHTS[wId] = [];
+    if (flightIdx == null) {
+      flightIdx = FLIGHTS[wId].findIndex(function(f) { return f.length < maxSize; });
+      if (flightIdx < 0) { FLIGHTS[wId].push([]); flightIdx = FLIGHTS[wId].length - 1; }
+    }
+    if (!FLIGHTS[wId][flightIdx]) FLIGHTS[wId][flightIdx] = [];
+    FLIGHTS[wId][flightIdx].push(sid);
+
+    await dbSaveFlights(wId);
+    closeModal('modal-vsa');
+    renderFlights();
+    toast('Gast ' + naam + ' toegevoegd aan Flight ' + (flightIdx + 1));
+  } catch(e) {
+    console.error('opslaanGast:', e);
+    toast('Fout: ' + e.message, 'err');
+  }
+}
+
 function renderFlights(){
   if(!document.getElementById('fl-content') || !document.getElementById('fl-w')) return;
   var wId=document.getElementById('fl-w').value;if(!wId)return;
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});
-  var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
-  document.getElementById('fl-info').innerHTML='<span class="badge bg">'+sps.length+' ingeschreven</span> <span class="badge bx">'+Math.ceil(sps.length/(w.flt||3))+' flights</span>';
+
+  // Verzamel ALLE ingeschreven spelers (echt + gast)
+  var ings = INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';});
+  var sps = ings.map(function(i) {
+    if (i.is_gast) {
+      return { id: 'gast-' + i.id, voor: i.gast_naam.split(' ')[0] || i.gast_naam, ach: i.gast_naam.split(' ').slice(1).join(' '), hcp: i.gast_hcp, isGast: true };
+    }
+    var u = USERS.find(function(s){return s.id===i.sid;});
+    return u;
+  }).filter(Boolean);
+
+  document.getElementById('fl-info').innerHTML='<span class="badge bg">'+sps.length+' ingeschreven</span> <span class="badge bx">'+Math.ceil(sps.length/(w.flt||3))+' flights</span>' +
+    ' <button class="btn btn-s btn-xs" onclick="openVoegSpelerToeAanFlight(\'' + wId + '\', null)" style="margin-left:8px">+ Speler/Gast</button>';
+
   var flights=FLIGHTS[wId];
-  if(!flights||!flights.length){document.getElementById('fl-content').innerHTML='<div style="text-align:center;padding:2rem;color:var(--txm);font-size:13px">Nog geen indeling.<br><button class="btn btn-p" style="margin-top:.75rem" onclick="autoFlights()">Auto-indeling genereren</button></div>';return;}
+  if(!flights||!flights.length){
+    document.getElementById('fl-content').innerHTML='<div style="text-align:center;padding:2rem;color:var(--txm);font-size:13px">Nog geen indeling.<br><button class="btn btn-p" style="margin-top:.75rem" onclick="autoFlights()">Auto-indeling genereren</button></div>';
+    return;
+  }
+  var maxFlightSize = w.flt || 3;
+
   document.getElementById('fl-content').innerHTML=flights.map(function(f,fi){
     var totalMin=fi*10;var h=8+Math.floor(totalMin/60);var m=totalMin%60;
     var time=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
-    return '<div class="flight-card"><div class="flight-hd"><span class="flight-nr">Flight '+(fi+1)+'</span><span class="flight-time">'+time+'</span></div><div class="flight-players">'+f.map(function(sid){var s=USERS.find(function(x){return x.id===sid;});if(!s)return '';var sh=berekenSpeelhandicap(s.hcp,w.slope,w.cr,w.holes===9?36:72,w.hcpperc/100,w.holes);return '<div class="fp"><div class="av" style="width:24px;height:24px;font-size:10px;background:var(--gl);color:var(--g)">'+s.voor[0]+s.ach[0]+'</div>'+s.voor+' '+s.ach+' <span class="badge bx" style="font-size:10px">SH:'+sh+'</span></div>';}).join('')+'</div></div>';
+
+    var spelersHtml = f.map(function(sid, posIdx){
+      // Speler kan echte gebruiker zijn of gast (sid begint met 'gast-')
+      var isGast = String(sid).indexOf('gast-') === 0;
+      var s, hcp;
+      if (isGast) {
+        var ingId = sid.replace('gast-', '');
+        var ing = INSCHRIJVINGEN.find(function(x) { return String(x.id) === ingId; });
+        if (!ing) return '';
+        s = { voor: ing.gast_naam.split(' ')[0] || ing.gast_naam, ach: ing.gast_naam.split(' ').slice(1).join(' ') };
+        hcp = ing.gast_hcp;
+      } else {
+        s = USERS.find(function(x){return x.id===sid;});
+        if (!s) return '';
+        hcp = s.hcp;
+      }
+      var sh=berekenSpeelhandicap(hcp,w.slope,w.cr,w.holes===9?36:72,w.hcpperc/100,w.holes);
+      var avBg = isGast ? 'rgba(245,158,11,0.2)' : 'var(--gl)';
+      var avColor = isGast ? '#a16207' : 'var(--g)';
+      return '<div class="fp" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid #f1f4f8">' +
+        '<div class="av" style="width:28px;height:28px;font-size:11px;background:' + avBg + ';color:' + avColor + ';border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700">' + s.voor[0] + (s.ach[0]||'') + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:13px;font-weight:600;color:#0c1b2a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(s.voor + ' ' + (s.ach||'')) + (isGast ? ' <span class="badge" style="background:rgba(245,158,11,0.15);color:#a16207;font-size:9px;padding:1px 5px">GAST</span>' : '') + '</div>' +
+          '<div style="font-size:11px;color:#8b94a3">SH ' + sh + ' · HCP ' + Number(hcp).toFixed(1) + '</div>' +
+        '</div>' +
+        '<button onclick="event.stopPropagation();flightVerplaats(\'' + wId + '\',' + fi + ',' + posIdx + ',\'voor\')" ' + (fi===0 && posIdx===0 ? 'disabled' : '') + ' title="Naar flight ervoor" style="background:none;border:1px solid #e6eaf0;border-radius:4px;width:24px;height:24px;cursor:pointer;color:#425466;font-size:12px;display:inline-flex;align-items:center;justify-content:center">↑</button>' +
+        '<button onclick="event.stopPropagation();flightVerplaats(\'' + wId + '\',' + fi + ',' + posIdx + ',\'na\')" title="Naar flight erna" style="background:none;border:1px solid #e6eaf0;border-radius:4px;width:24px;height:24px;cursor:pointer;color:#425466;font-size:12px;display:inline-flex;align-items:center;justify-content:center">↓</button>' +
+        '<button onclick="event.stopPropagation();flightVerwijder(\'' + wId + '\',' + fi + ',' + posIdx + ')" title="Uit flight verwijderen" style="background:none;border:1px solid #fecaca;color:#dc2626;border-radius:4px;width:24px;height:24px;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;justify-content:center">✕</button>' +
+      '</div>';
+    }).join('');
+
+    // Lege plek-knop als flight nog niet vol
+    var legePlekHtml = '';
+    while ((f.length + (legePlekHtml.match(/Lege plek/g)||[]).length) < maxFlightSize) {
+      legePlekHtml += '<div onclick="openVoegSpelerToeAanFlight(\'' + wId + '\',' + fi + ')" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:2px dashed #e6eaf0;border-radius:6px;margin-top:4px;cursor:pointer;color:#8b94a3;font-size:12px;font-weight:500" onmouseover="this.style.borderColor=\'#16a34a\';this.style.color=\'#16a34a\'" onmouseout="this.style.borderColor=\'#e6eaf0\';this.style.color=\'#8b94a3\'">+ Lege plek (klik om te vullen)</div>';
+      if (legePlekHtml.split('Lege plek').length > 5) break; // safety
+    }
+
+    return '<div class="flight-card" style="margin-bottom:10px"><div class="flight-hd" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(22,163,74,0.05);border-radius:6px 6px 0 0"><span class="flight-nr" style="font-weight:700;color:#0c1b2a">Flight ' + (fi+1) + '</span><span class="flight-time" style="font-size:12px;color:#8b94a3">' + time + '</span></div><div class="flight-players" style="padding:4px 8px">' + spelersHtml + legePlekHtml + '</div></div>';
   }).join('');
 }
 
@@ -6320,6 +6606,24 @@ function getRonde(){
 // ============================================================
 
 // Overschrijf renderScoreInvoer met uitgebreide versie
+
+// Map een inschrijving naar speler-object (werkt voor echte gebruiker en gast)
+function inschrijvingNaarSpeler(ing) {
+  if (!ing) return null;
+  if (ing.is_gast) {
+    var naamParts = (ing.gast_naam || '').trim().split(/\s+/);
+    return {
+      id: 'gast-' + ing.id,
+      voor: naamParts[0] || ing.gast_naam || 'Gast',
+      ach: naamParts.slice(1).join(' ') || '',
+      hcp: Number(ing.gast_hcp) || 0,
+      rol: 'Speler',
+      isGast: true
+    };
+  }
+  return USERS.find(function(u) { return u.id === ing.sid; });
+}
+
 function renderScoreInvoer() {
   var scWEl = document.getElementById('sc-w');
   if (!scWEl) return;  // Element bestaat niet (bv. andere view)
@@ -7262,7 +7566,7 @@ function omPuntenSchaal(positie, aantalDeelnemers) {
 function berekenOrderOfMerit(wId) {
   var w = WEDSTRIJDEN.find(function(x){return x.id===wId;}); if(!w)return;
   var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
-  var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
+  var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(inschrijvingNaarSpeler).filter(Boolean);
   var ronde=0;
   var rows=sps.map(function(s){
     var shv=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,(w.hcpperc||100)/100,w.holes);
@@ -8666,7 +8970,7 @@ function switchTab(tab){
     var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});
     if(w){
       var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
-      var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
+      var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(inschrijvingNaarSpeler).filter(Boolean);
       var el2=document.getElementById('stab-lb');if(el2)el2.innerHTML=buildLeaderboard(wId,getRonde(),baan,sps,w);
     }
   }
@@ -9263,7 +9567,7 @@ function renderRanglijst(){
   if(!wId){document.getElementById('sp-rang-content').innerHTML='<p style="font-size:13px;color:var(--txm)">Kies een wedstrijd om de ranglijst te bekijken.</p>';return;}
   var w=WEDSTRIJDEN.find(function(x){return x.id===wId;});if(!w){return;}
   var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);
-  var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);
+  var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId&&i.status==='ingeschreven';}).map(inschrijvingNaarSpeler).filter(Boolean);
 
   // Texas Scramble: team leaderboard in plaats van per speler
   if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
@@ -14850,5 +15154,12 @@ try {
 
 
 <div id="toast" class="toast"></div>
+
+<div id="modal-vsa" class="modal" style="display:none">
+  <div class="modal-bg" onclick="closeModal('modal-vsa')"></div>
+  <div class="modal-box" style="max-width:500px">
+    <div id="modal-vsa-content"></div>
+  </div>
+</div>
 </body>
 </html>
