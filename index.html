@@ -11092,9 +11092,12 @@ function gwOpenDetail(id) {
   // Mijn scoreknop als geen scores
   var mijnSc = (g.scores && g.scores[u.id]) || [];
   var heeftScores = mijnSc.filter(function(s){return s!=='';}).length > 0;
-  var scoreKnopHtml = '<div style="margin-bottom:.75rem">' +
+  var scoreKnopHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem">' +
     '<button class="btn btn-p btn-full" onclick="gwOpenScorekaart(\'' + g.id + '\')">' +
-    (heeftScores ? '&#9998; Scorekaart bijwerken' : '&#9971; Scores invoeren') + '</button></div>';
+      (heeftScores ? '&#9998; Scorekaart' : '&#9971; Scores invoeren') + '</button>' +
+    '<button class="btn btn-full" onclick="gwOpenLeaderboard(\'' + g.code + '\')" style="background:#0c1b2a;color:#fff;border-color:#0c1b2a">' +
+      '&#128250; Live LB' + '</button>' +
+  '</div>';
 
   // Deelnemers
   var deelHtml = '<div class="card" style="margin-bottom:.75rem"><div class="card-hd">Deelnemers (' + g.deelnemers.length + ')' +
@@ -11110,11 +11113,16 @@ function gwOpenDetail(id) {
       '<div style="font-size:11px;color:var(--txm)">HCP ' + Number(deeln.hcp).toFixed(1) + '</div></div></div>';
   }).join('') + '</div>';
 
-  // Code box
-  var codeHtml = '<div class="card" style="margin-bottom:.75rem"><div class="card-hd">Uitnodigingscode</div>' +
+  // Code box + deel-knoppen
+  var codeHtml = '<div class="card" style="margin-bottom:.75rem"><div class="card-hd">Uitnodigingscode &amp; deel-link</div>' +
     '<div style="text-align:center;padding:.5rem 0">' +
     '<div class="gw-code-badge" onclick="gwKopieerCode(\'' + g.code + '\')">' + g.code + '</div>' +
-    '<div class="gw-code-hint" style="margin-top:6px">Deel deze code via WhatsApp of sms.<br>Klik om te kopiëren.</div></div></div>';
+    '<div class="gw-code-hint" style="margin-top:6px">Klik op de code om te kopiëren.<br>Deel via WhatsApp om mensen te laten meedoen.</div>' +
+    '<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--surf)">' +
+      '<button class="btn btn-s" onclick="gwDeelLeaderboard(\'' + g.code + '\')" style="font-size:12px">' +
+        '&#128279; Live LB-link kopiëren' + '</button>' +
+      '<div class="gw-code-hint" style="margin-top:6px;font-size:11px">Deel met spelers en kijkers — ze zien dan live de stand.</div>' +
+    '</div></div></div>';
 
   var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">' +
     '<button class="btn btn-s btn-xs" onclick="gwTerug()">&#8592; Terug</button>' +
@@ -11575,6 +11583,27 @@ async function gwScorekaartOpslaan() {
     gwOpenDetail(gwId);
   } else {
     skOpslaan();
+  }
+}
+
+
+// Open leaderboard van groepswedstrijd in nieuw tab (TV-mode)
+function gwOpenLeaderboard(code) {
+  var url = './leaderboard.html?gw=' + encodeURIComponent(code);
+  window.open(url, '_blank', 'noopener');
+}
+
+// Kopieer leaderboard-URL naar clipboard (om te delen via WhatsApp)
+function gwDeelLeaderboard(code) {
+  var url = location.origin + location.pathname.replace(/index\.html?$/, '') + 'leaderboard.html?gw=' + encodeURIComponent(code);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() {
+      toast('Live LB-link gekopieerd! Plak in WhatsApp.');
+    }).catch(function() {
+      prompt('Kopieer deze link:', url);
+    });
+  } else {
+    prompt('Kopieer deze link:', url);
   }
 }
 
