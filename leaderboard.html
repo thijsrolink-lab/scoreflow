@@ -57,6 +57,77 @@ body {
   background: #ef4444; border-radius: 50%;
   animation: pulse 1.5s infinite;
 }
+/* Leaderboard rijen */
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem 1.5rem;
+  background: var(--surf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  transition: background .2s, transform .2s;
+}
+
+.lb-row:hover { background: rgba(255,255,255,0.03); }
+
+.lb-row.top {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: linear-gradient(90deg, rgba(251,191,36,0.08), var(--surf) 60%);
+}
+
+.lb-pos {
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.lb-pos.lb-1 { background: linear-gradient(135deg, #fcd34d, #f59e0b); color: #422006; box-shadow: 0 4px 12px rgba(251,191,36,0.3); }
+.lb-pos.lb-2 { background: linear-gradient(135deg, #e5e7eb, #9ca3af); color: #1f2937; }
+.lb-pos.lb-3 { background: linear-gradient(135deg, #fb923c, #c2410c); color: #fff; }
+.lb-pos.lb-n { background: var(--bd); color: var(--txm); }
+
+.lb-naam { flex: 1; min-width: 0; }
+
+.lb-naam-tx {
+  font-size: 17px; font-weight: 600; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+
+.lb-naam-sub {
+  font-size: 12px; color: var(--txm); margin-top: 2px;
+}
+
+.lb-score {
+  font-size: 28px; font-weight: 800;
+  color: #fff; text-align: right;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0; min-width: 80px;
+}
+
+.lb-score.under { color: #4ade80; }
+.lb-score.over { color: #f87171; }
+
+.gw-tag {
+  display: inline-block;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: .05em;
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .lb-row { padding: .75rem 1rem; gap: .85rem; }
+  .lb-pos { width: 36px; height: 36px; font-size: 15px; }
+  .lb-naam-tx { font-size: 15px; }
+  .lb-score { font-size: 22px; min-width: 60px; }
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
@@ -473,31 +544,59 @@ function renderGwLeaderboard() {
 
   // Render leaderboard
   var hasScores = rows.some(function(r) { return r.has; });
+  var totaalSpelers = rows.length;
+  var totHoles = totaalSpelers * g.holes;
+  var ingevuldHoles = rows.reduce(function(a, r) { return a + r.gespeeld; }, 0);
+  var pct = totHoles > 0 ? Math.round((ingevuldHoles / totHoles) * 100) : 0;
+  var klaar = rows.filter(function(r) { return r.gespeeld === g.holes; }).length;
+
   var html = '';
 
+  // Top stats banner
+  if (hasScores || totaalSpelers > 0) {
+    html += '<div style="display:flex;justify-content:center;gap:2rem;flex-wrap:wrap;margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px">';
+    html += '<div style="text-align:center"><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;font-weight:600">Voortgang</div><div style="font-size:24px;font-weight:800;color:#fff;margin-top:2px">' + pct + '%</div></div>';
+    html += '<div style="text-align:center"><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;font-weight:600">Klaar</div><div style="font-size:24px;font-weight:800;color:#4ade80;margin-top:2px">' + klaar + '/' + totaalSpelers + '</div></div>';
+    html += '<div style="text-align:center"><div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;font-weight:600">Vorm</div><div style="font-size:18px;font-weight:700;color:#fff;margin-top:6px">' + escHtml(g.vorm) + '</div></div>';
+    html += '</div>';
+  }
+
   if (!hasScores) {
-    html = '<div class="lb-loading">Nog geen scores ingevoerd.</div>';
+    html += '<div class="lb-loading"><div style="font-size:32px;margin-bottom:8px">⛳</div><div style="font-size:16px;font-weight:600;color:#fff;margin-bottom:6px">Nog geen scores</div><div style="font-size:13px">Wacht tot de eerste spelers hun scores invoeren.</div></div>';
   } else {
-    // Per deelnemer een rij (zoals admin lb)
-    html += '<div style="display:flex;flex-direction:column;gap:8px">';
+    html += '<div style="display:flex;flex-direction:column;gap:10px">';
     rows.forEach(function(r, i) {
       var pos = i + 1;
       var posCls = pos === 1 ? 'lb-1' : pos === 2 ? 'lb-2' : pos === 3 ? 'lb-3' : 'lb-n';
       var goud = pos <= 3;
-      var scoreStr = r.has ? (g.vorm === 'Stableford' ? r.sfPts + ' pt' : (r.nettoVsPar > 0 ? '+' + r.nettoVsPar : r.nettoVsPar === 0 ? 'E' : '' + r.nettoVsPar)) : '—';
+      var scoreStr, scoreSub = '';
+      if (r.has) {
+        if (g.vorm === 'Stableford') {
+          scoreStr = r.sfPts;
+          scoreSub = '<div style="font-size:11px;color:var(--txm);font-weight:500;margin-top:-2px">punten</div>';
+        } else {
+          scoreStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : r.nettoVsPar === 0 ? 'E' : '' + r.nettoVsPar;
+          scoreSub = '<div style="font-size:11px;color:var(--txm);font-weight:500;margin-top:-2px">netto ' + r.netto + '</div>';
+        }
+      } else {
+        scoreStr = '—';
+      }
       var scoreClass = r.has && g.vorm !== 'Stableford' ? (r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '') : '';
 
-      html += '<div class="lb-row' + (goud ? ' top' : '') + '">' +
-        '<div class="lb-pos ' + posCls + '">' + pos + '</div>' +
-        '<div class="lb-naam">' +
-          '<div class="lb-naam-tx">' + escHtml(r.naam) +
-            (r.isOrg ? ' <span class="gw-tag" style="background:rgba(245,158,11,0.2);color:#fbbf24;font-size:9px;padding:2px 6px;border-radius:4px;text-transform:uppercase;font-weight:700;letter-spacing:.05em">Org</span>' : '') +
-            (r.isGast ? ' <span class="gw-tag" style="background:rgba(139,148,163,0.2);color:#94a3b8;font-size:9px;padding:2px 6px;border-radius:4px;text-transform:uppercase;font-weight:700;letter-spacing:.05em">Gast</span>' : '') +
-          '</div>' +
-          '<div class="lb-naam-sub">SH ' + r.sh + ' · ' + r.gespeeld + '/' + g.holes + ' holes' + (r.has ? ' · bruto ' + r.bruto : '') + '</div>' +
-        '</div>' +
-        '<div class="lb-score ' + scoreClass + '">' + scoreStr + '</div>' +
-      '</div>';
+      html += '<div class="lb-row' + (goud ? ' top' : '') + '">';
+      html += '<div class="lb-pos ' + posCls + '">' + pos + '</div>';
+      html += '<div class="lb-naam">';
+      html += '<div class="lb-naam-tx">' + escHtml(r.naam);
+      if (r.isOrg) html += '<span class="gw-tag" style="background:rgba(245,158,11,0.2);color:#fbbf24">Org</span>';
+      if (r.isGast) html += '<span class="gw-tag" style="background:rgba(139,148,163,0.2);color:#94a3b8">Gast</span>';
+      html += '</div>';
+      html += '<div class="lb-naam-sub">SH ' + r.sh + ' · ' + r.gespeeld + '/' + g.holes + ' holes' + (r.has ? ' · bruto ' + r.bruto : '') + '</div>';
+      html += '</div>';
+      html += '<div style="text-align:right;flex-shrink:0;min-width:80px">';
+      html += '<div class="lb-score ' + scoreClass + '" style="margin:0">' + scoreStr + '</div>';
+      html += scoreSub;
+      html += '</div>';
+      html += '</div>';
     });
     html += '</div>';
   }
