@@ -163,7 +163,7 @@ html, body {
   width: 100%;
 }
 
-.lb-pos { width: 32px; height: 32px; font-size: 13px; flex-shrink: 0; }
+.lb-pos { width: 30px; height: 30px; font-size: 13px; flex-shrink: 0; }
   .lb-naam-tx { font-size: 15px; }
   .lb-naam-sub { font-size: 11px; margin-top: 1px; }
   .lb-score { font-size: 22px; min-width: 0; }
@@ -657,15 +657,22 @@ function renderGwLeaderboard() {
       html += '<div class="lb-row' + (goud ? ' top' : '') + '">';
       html += '<div class="lb-pos ' + posCls + '">' + pos + '</div>';
       html += '<div class="lb-naam">';
-      html += '<div class="lb-naam-tx">' + escHtml(r.naam);
-      if (r.isOrg) html += '<span class="gw-tag" style="background:rgba(245,158,11,0.2);color:#fbbf24">Org</span>';
-      if (r.isGast) html += '<span class="gw-tag" style="background:rgba(139,148,163,0.2);color:#94a3b8">Gast</span>';
+      html += '<div class="lb-naam-tx"><span class="lb-naam-text">' + escHtml(r.naam) + '</span>';
+      if (r.isOrg) html += '<span class="gw-tag" style="background:rgba(245,158,11,0.2);color:#fbbf24;flex-shrink:0">Org</span>';
+      if (r.isGast) html += '<span class="gw-tag" style="background:rgba(139,148,163,0.2);color:#94a3b8;flex-shrink:0">Gast</span>';
       html += '</div>';
       html += '<div class="lb-naam-sub">SH ' + r.sh + ' · ' + r.gespeeld + '/' + g.holes + (r.has ? ' · bruto ' + r.bruto : '') + '</div>';
       html += '</div>';
-      html += '<div style="text-align:right;flex-shrink:0;min-width:80px">';
-      html += '<div class="lb-score ' + scoreClass + '" style="margin:0">' + scoreStr + '</div>';
-      html += scoreSub;
+      html += '<div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:1px">';
+      if (r.has && g.vorm === 'Stableford') {
+        html += '<div class="lb-score">' + r.sfPts + ' <span style="font-size:13px;color:var(--txm);font-weight:600">pt</span></div>';
+        html += '<div style="font-size:10px;color:var(--txm)">netto ' + r.netto + '</div>';
+      } else if (r.has) {
+        html += '<div class="lb-score ' + scoreClass + '">' + scoreStr + '</div>';
+        html += '<div style="font-size:10px;color:var(--txm)">netto ' + r.netto + '</div>';
+      } else {
+        html += '<div class="lb-score" style="color:#475569">—</div>';
+      }
       html += '</div>';
       html += '</div>';
     });
