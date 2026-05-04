@@ -6327,7 +6327,7 @@ async function flightVerplaats(wId, flightIdx, posIdx, richting) {
     FLIGHTS[wId].pop();
   }
 
-  await dbSaveFlights(wId);
+  await slaFlightsOp(wId, FLIGHTS[wId]);
   renderFlights();
   // Ook tab refresh als we daar zijn
   if (typeof renderFlightsInTab === 'function') {
@@ -6349,7 +6349,7 @@ async function flightVerwijder(wId, flightIdx, posIdx) {
     FLIGHTS[wId].pop();
   }
 
-  await dbSaveFlights(wId);
+  await slaFlightsOp(wId, FLIGHTS[wId]);
   renderFlights();
   if (typeof renderFlightsInTab === 'function') renderFlightsInTab(wId);
   toast('Speler uit flight verwijderd');
@@ -6428,7 +6428,7 @@ async function voegSpelerToeAanFlight(sid) {
 
   FLIGHTS[wId][flightIdx].push(sid);
 
-  await dbSaveFlights(wId);
+  await slaFlightsOp(wId, FLIGHTS[wId]);
   closeModal('modal-vsa');
   renderFlights();
   if (typeof renderFlightsInTab === 'function') renderFlightsInTab(wId);
@@ -6510,7 +6510,7 @@ async function opslaanGast() {
     if (!FLIGHTS[wId][flightIdx]) FLIGHTS[wId][flightIdx] = [];
     FLIGHTS[wId][flightIdx].push(sid);
 
-    await dbSaveFlights(wId);
+    await slaFlightsOp(wId, FLIGHTS[wId]);
     closeModal('modal-vsa');
     renderFlights();
     if (typeof renderFlightsInTab === 'function') renderFlightsInTab(wId);
