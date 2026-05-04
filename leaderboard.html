@@ -258,21 +258,23 @@ html, body {
 </head>
 <body>
 
-<div class="lb-hd">
-  <div class="lb-hd-left">
-    <div class="lb-eyebrow">LIVE</div>
-    <div class="lb-titel" id="lb-titel">Leaderboard</div>
-    <div class="lb-sub" id="lb-sub">Bezig met laden...</div>
+<div class="lb-container">
+  <div class="lb-hd">
+    <div class="lb-hd-left">
+      <div class="lb-eyebrow">LIVE</div>
+      <div class="lb-titel" id="lb-titel">Leaderboard</div>
+      <div class="lb-sub" id="lb-sub">Bezig met laden...</div>
+    </div>
+    <div class="lb-meta">
+      <div class="lb-club" id="lb-club">De Hooge Rotterdamsche</div>
+      <div class="lb-refresh"><span class="lb-refresh-dot"></span><span id="lb-refresh-text">Auto-refresh elke 15s</span></div>
+    </div>
   </div>
-  <div class="lb-meta">
-    <div class="lb-club" id="lb-club">De Hooge Rotterdamsche</div>
-    <div class="lb-refresh"><span class="lb-refresh-dot"></span><span id="lb-refresh-text">Auto-refresh elke 15s</span></div>
-  </div>
+
+  <div id="lb-content" class="lb-loading">Wedstrijd laden...</div>
+
+  <div id="lb-sponsor"></div>
 </div>
-
-<div id="lb-content" class="lb-loading">Wedstrijd laden...</div>
-
-<div id="lb-sponsor"></div>
 
 <div class="lb-controls">
   <button class="lb-ctrl-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
