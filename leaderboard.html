@@ -76,10 +76,17 @@ html, body {
 /* Desktop container — pakt volledige breedte */
 .lb-container {
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   padding: 1.5rem 2rem;
   box-sizing: border-box;
+}
+
+@media (min-width: 1200px) {
+  .lb-container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
 }
 
 #lb-content {
@@ -147,17 +154,6 @@ html, body {
   vertical-align: middle;
 }
 
-@media (max-width: 768px) {
-  .lb-container { padding: 0.75rem 0.5rem; }
-  .lb-row { padding: .65rem .75rem; gap: .55rem; }
-  /* Desktop container — pakt volledige breedte */
-.lb-container {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1.5rem 2rem;
-  box-sizing: border-box;
-}
 
 #lb-content {
   width: 100%;
