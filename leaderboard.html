@@ -58,12 +58,12 @@ html, body {
 .lb-row {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  padding: 1rem 1.5rem;
+  gap: .85rem;
+  padding: .85rem 1rem;
   background: var(--surf);
   border: 1px solid var(--bd);
   border-radius: var(--r);
-  transition: background .2s, transform .2s;
+  transition: background .2s;
 }
 
 .lb-row:hover { background: rgba(255,255,255,0.03); }
@@ -87,9 +87,9 @@ html, body {
 }
 
 .lb-pos {
-  width: 44px; height: 44px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; font-weight: 800; flex-shrink: 0;
+  font-size: 14px; font-weight: 800; flex-shrink: 0;
   font-family: 'Inter', sans-serif;
 }
 
@@ -101,10 +101,24 @@ html, body {
 .lb-naam { flex: 1; min-width: 0; }
 
 .lb-naam-tx {
-  font-size: 17px; font-weight: 600; color: #fff;
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  word-break: break-word;
+  font-size: 16px; font-weight: 600; color: #fff;
+  display: flex; align-items: center; gap: 6px;
   line-height: 1.2;
+  white-space: nowrap;
+}
+
+.lb-naam-tx > .lb-naam-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-naam-sub {
+  font-size: 11px;
+  color: var(--txm);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lb-naam-sub {
@@ -112,10 +126,11 @@ html, body {
 }
 
 .lb-score {
-  font-size: 28px; font-weight: 800;
-  color: #fff; text-align: right;
+  font-size: 22px; font-weight: 800;
+  color: #4ade80; text-align: right;
   font-family: 'Inter', sans-serif;
-  flex-shrink: 0; min-width: 80px;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .lb-score.under { color: #4ade80; }

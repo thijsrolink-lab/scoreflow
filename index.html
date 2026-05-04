@@ -11391,13 +11391,14 @@ function gwBouwLeaderboardTab(g, baan, u) {
 
     html += '<div style="display:flex;align-items:center;gap:12px;padding:.85rem 1rem;border-bottom:1px solid #f1f4f8;background:' + (isJij ? 'rgba(22,163,74,0.04)' : '#fff') + '">';
     html += '<div class="lb-pos ' + posCls + '">' + pos + '</div>';
-    html += '<div style="flex:1;min-width:0">';
-    html += '<div style="font-weight:' + (isJij ? '700' : '500') + ';font-size:14px;color:#0c1b2a">' + escHtml(r.d.naam) +
-      (isJij ? ' <span style="font-size:11px;color:#16a34a">(jij)</span>' : '') +
-      (r.d.isOrganisator ? ' <span class="gw-organisator-tag" style="font-size:9px;padding:1px 6px">Org</span>' : '') +
-      (r.d.isGast ? ' <span class="gw-gast-tag" style="font-size:9px;padding:1px 6px">Gast</span>' : '') +
+    html += '<div style="flex:1;min-width:0;overflow:hidden">';
+    html += '<div style="font-weight:' + (isJij ? '700' : '500') + ';font-size:14px;color:#0c1b2a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px">' +
+      '<span style="overflow:hidden;text-overflow:ellipsis">' + escHtml(r.d.naam) + '</span>' +
+      (isJij ? '<span style="font-size:11px;color:#16a34a;flex-shrink:0">(jij)</span>' : '') +
+      (r.d.isOrganisator ? '<span class="gw-organisator-tag" style="font-size:9px;padding:1px 6px;flex-shrink:0">Org</span>' : '') +
+      (r.d.isGast ? '<span class="gw-gast-tag" style="font-size:9px;padding:1px 6px;flex-shrink:0">Gast</span>' : '') +
       '</div>';
-    html += '<div style="font-size:11px;color:#8b94a3">SH ' + r.sh + ' · ' + r.gespeeld + '/' + g.holes + ' holes' + (r.has ? ' · bruto ' + r.bruto : '') + '</div>';
+    html += '<div style="font-size:11px;color:#8b94a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">SH ' + r.sh + ' · ' + r.gespeeld + '/' + g.holes + ' holes' + (r.has ? ' · bruto ' + r.bruto : '') + '</div>';
     html += '</div>';
     html += '<div style="text-align:right">';
     html += '<div style="font-size:18px;font-weight:800;color:' + (r.has ? '#16a34a' : '#cbd5e1') + '">' + scoreStr + '</div>';
