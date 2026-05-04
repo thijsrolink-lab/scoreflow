@@ -4034,7 +4034,11 @@ function renderFlightsInTab(wId) {
       '<span style="font-weight:600;color:#0c1b2a">' + perFlight + '</span> per flight &middot; ' +
       '<span style="font-weight:600;color:#16a34a">' + benodigde + '</span> flights nodig' +
     '</div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+      '<label style="font-size:13px;color:#425466">Per flight:</label>' +
+      '<select onchange="setFlightGrootte(\'' + wId + '\', this.value)" style="padding:8px 12px;font-size:14px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif;min-height:40px">' +
+        [2,3,4,5].map(function(n) { return '<option value="' + n + '"' + (n === perFlight ? ' selected' : '') + '>' + n + '</option>'; }).join('') +
+      '</select>' +
       '<select id="fl-sort" style="padding:8px 12px;font-size:14px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif;min-height:40px">' +
         '<option value="snake">Snake (gebalanceerd)</option>' +
         '<option value="hcp-asc">HCP laag→hoog</option>' +
@@ -4127,6 +4131,25 @@ function renderFlightsInTab(wId) {
 function slaFlightsOpVoorWedstrijd(wId) {
   if (typeof FLIGHTS === 'undefined') return;
   var flights = FLIGHTS[wId] || [];
+  var w = WEDSTRIJDEN.find(function(x){return x.id === wId;});
+  var maxSize = (w && w.flt) || 4;
+
+  // Validatie: zijn er flights groter dan max?
+  var teGroot = flights.filter(function(f) { return f.length > maxSize; });
+  var leeg = flights.filter(function(f) { return f.length === 0; });
+
+  if (teGroot.length > 0) {
+    var indices = teGroot.map(function(f) { return flights.indexOf(f) + 1; });
+    var msg = 'Flight ' + indices.join(', ') + ' hebben meer dan ' + maxSize + ' spelers. Verplaats spelers eerst, of pas de max flight-grootte aan in de wedstrijd-instellingen.';
+    if (!confirm(msg + '\n\nToch opslaan?')) return;
+  }
+
+  if (leeg.length > 0 && flights.length > 1) {
+    // Verwijder lege flights stilletjes
+    flights = flights.filter(function(f) { return f.length > 0; });
+    FLIGHTS[wId] = flights;
+  }
+
   if (typeof slaFlightsOp === 'function') {
     slaFlightsOp(wId, flights);
   } else {
@@ -6247,6 +6270,24 @@ function renderFlightsInit(){
 }
 
 
+
+// Stel flight-grootte (max spelers per flight) in voor wedstrijd
+async function setFlightGrootte(wId, n) {
+  n = parseInt(n);
+  if (isNaN(n) || n < 2 || n > 6) { toast('Ongeldige waarde', 'err'); return; }
+  var w = WEDSTRIJDEN.find(function(x){ return x.id === wId; });
+  if (!w) return;
+  w.flt = n;
+  try {
+    await supa('wedstrijden', 'PATCH', { flt: n }, { id: 'eq.' + wId });
+    toast('Flight-grootte: ' + n);
+    if (typeof renderFlightsInTab === 'function') renderFlightsInTab(wId);
+    if (typeof renderFlights === 'function') renderFlights();
+  } catch(e) {
+    toast('Opslaan mislukt: ' + e.message, 'err');
+  }
+}
+
 // ─── Flight management: verplaats / verwijder / lege plek invullen ─────
 async function flightVerplaats(wId, flightIdx, posIdx, richting) {
   if (!FLIGHTS[wId]) return;
@@ -6269,10 +6310,12 @@ async function flightVerplaats(wId, flightIdx, posIdx, richting) {
     doelIdx = flightIdx + 1;
   }
 
-  // Check of doel-flight ruimte heeft
+  // Waarschuwing als doel-flight al groter wordt dan max — maar wel toestaan
   if (FLIGHTS[wId][doelIdx].length >= maxSize) {
-    toast('Flight ' + (doelIdx + 1) + ' is vol (max ' + maxSize + ')', 'err');
-    return;
+    var nieuwAantal = FLIGHTS[wId][doelIdx].length + 1;
+    if (!confirm('Flight ' + (doelIdx + 1) + ' heeft dan ' + nieuwAantal + ' spelers (max is ' + maxSize + '). Toch verplaatsen?')) {
+      return;
+    }
   }
 
   // Verplaats: uit huidig, in doel
@@ -6374,10 +6417,12 @@ async function voegSpelerToeAanFlight(sid) {
     }
   }
 
-  // Check ruimte
+  // Waarschuwing als flight overvol wordt — maar toestaan
   if (FLIGHTS[wId][flightIdx] && FLIGHTS[wId][flightIdx].length >= maxSize) {
-    toast('Flight ' + (flightIdx + 1) + ' is vol', 'err');
-    return;
+    var nieuwAantal2 = FLIGHTS[wId][flightIdx].length + 1;
+    if (!confirm('Flight ' + (flightIdx + 1) + ' heeft dan ' + nieuwAantal2 + ' spelers (max is ' + maxSize + '). Toch toevoegen?')) {
+      return;
+    }
   }
   if (!FLIGHTS[wId][flightIdx]) FLIGHTS[wId][flightIdx] = [];
 
