@@ -6272,7 +6272,10 @@ function initScoreView(){
   renderScoreInvoer();
 }
 
-function getRonde(){return parseInt(document.getElementById('sc-ronde').value)||0;}
+function getRonde(){
+  var el = document.getElementById('sc-ronde');
+  return el ? (parseInt(el.value) || 0) : 0;
+}
 
 // ============================================================
 // SCORING UI — tabs per wedstrijdvorm
@@ -6280,7 +6283,9 @@ function getRonde(){return parseInt(document.getElementById('sc-ronde').value)||
 
 // Overschrijf renderScoreInvoer met uitgebreide versie
 function renderScoreInvoer() {
-  var wId = document.getElementById('sc-w').value; if (!wId) return;
+  var scWEl = document.getElementById('sc-w');
+  if (!scWEl) return;  // Element bestaat niet (bv. andere view)
+  var wId = scWEl.value; if (!wId) return;
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; }); if (!w) return;
   var ronde = getRonde();
   var baan = getBaan(w.holes, null, null, w.welkeNegen); baan.slope = w.slope; baan.cr = w.cr;
@@ -6335,7 +6340,8 @@ function renderScoreInvoer() {
     return '<div id="stab-' + t.id + '" style="display:none"></div>';
   }).join('');
 
-  document.getElementById('sc-content').innerHTML = tabsHtml + invoerHtml + legeTabsHtml;
+  var scContent = document.getElementById('sc-content');
+  if (scContent) scContent.innerHTML = tabsHtml + invoerHtml + legeTabsHtml;
 }
 
 // bouwScoreInvoerTabel vervangen door compacte versie
