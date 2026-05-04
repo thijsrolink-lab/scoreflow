@@ -8757,79 +8757,6 @@ function renderSpelerKalender(){
   var heroEl = document.getElementById('sp-hero');
   if (heroEl) heroEl.innerHTML = heroHtml;
 
-  // ── 3. Lijst header ───────────────────────────────────────
-  // Lijst: alle actieve wedstrijden behalve de hero + afgelaste apart gemarkeerd
-  var others = wsActief.slice(next ? 1 : 0).concat(wsAfgelast);
-  var listHeadHtml =
-    '<div class="sp-list-head">' +
-      '<h4>Aankomende wedstrijden' +
-        (others.length > 0 ? ' <span class="count">' + others.length + '</span>' : '') +
-      '</h4>' +
-    '</div>';
-  var listHeadEl = document.getElementById('sp-list-head');
-  if (listHeadEl) listHeadEl.innerHTML = listHeadHtml;
-
-  // ── 4. Wedstrijd rijen ────────────────────────────────────
-  var listEl = document.getElementById('sp-wedstrijden-list');
-  if (!listEl) return;
-
-  if (others.length === 0) {
-    if (ws.length === 0) {
-      // Alleen lege state als er helemaal geen wedstrijden zijn
-      // (bij 1 wedstrijd hebben we de hero al)
-      listEl.innerHTML = '<div class="sp-empty">' +
-        '<span class="icon">⛳</span>' +
-        'Geen aankomende wedstrijden gepland.' +
-      '</div>';
-    } else {
-      listEl.innerHTML = '';
-    }
-    return;
-  }
-
-  listEl.innerHTML = others.map(function(w) {
-    var d = new Date(w.datum);
-    var mijnIng = (INSCHRIJVINGEN || []).find(function(i) {
-      return i.wid === w.id && i.sid === u.id && i.status !== 'afgemeld';
-    });
-    var ic = (INSCHRIJVINGEN || []).filter(function(i) {
-      return i.wid === w.id && i.status === 'ingeschreven';
-    }).length;
-
-    var statusBadge = '';
-    var fase = wedstrijdFase(w);
-    if (fase === 'afgelast') {
-      statusBadge = '<span class="sp-w-badge afgelast">Afgelast</span>';
-    } else if (fase === 'live') {
-      statusBadge = '<span class="sp-w-badge live"><span class="sp-live-dot-sm"></span>Live</span>';
-    } else if (mijnIng) {
-      if (mijnIng.status === 'ingeschreven') {
-        statusBadge = '<span class="sp-w-badge ingeschreven">Ingeschreven</span>';
-      } else if (mijnIng.status === 'wachtlijst') {
-        statusBadge = '<span class="sp-w-badge wachtlijst">Wachtlijst</span>';
-      }
-    }
-
-    var rowExtraClass = fase === 'afgelast' ? ' afgelast' : '';
-    return '<div class="sp-w-row' + rowExtraClass + '" onclick="spelerOpenWedstrijd(\'' + w.id + '\')">' +
-      '<div class="sp-w-date">' +
-        '<div class="m">' + MN[d.getMonth()].slice(0, 3).toUpperCase() + '</div>' +
-        '<div class="d">' + d.getDate() + '</div>' +
-        '<div class="dow">' + ['ZO','MA','DI','WO','DO','VR','ZA'][d.getDay()] + '</div>' +
-      '</div>' +
-      '<div class="sp-w-info">' +
-        '<div class="naam">' + escHtml(w.naam) + '</div>' +
-        '<div class="meta">' +
-          escHtml(w.vorm || '') +
-          (w.tijd ? '<span class="sep">·</span>' + escHtml(w.tijd) : '') +
-          '<span class="sep">·</span>' + ic + '/' + (w.max || '?') + ' ingeschreven' +
-        '</div>' +
-      '</div>' +
-      '<div class="sp-w-status">' + statusBadge + '</div>' +
-      '<span class="sp-w-arrow">→</span>' +
-    '</div>';
-  }).join('');
-
   // ── 5. Tab-view 'Mijn wedstrijden' / 'Alle wedstrijden' ───
   if (typeof renderSpMijnWedstrijden === 'function') {
     if (_spWedTab === 'alle') renderSpAlleWedstrijden();
@@ -13624,8 +13551,6 @@ try {
     <div id="sp-kalender" class="sp-view on">
       <div id="sp-welcome"></div>
       <div id="sp-hero"></div>
-      <div id="sp-list-head"></div>
-      <div id="sp-wedstrijden-list"></div>
       <div id="sp-wed-lijst" style="margin-top:1.5rem"></div>
     </div>
 
