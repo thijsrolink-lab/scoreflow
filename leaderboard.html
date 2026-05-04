@@ -375,7 +375,7 @@ function coSponsorenVoorWedstrijd(wId) {
 }
 
 function getBaan9(welkeNegen) {
-  var w = welkeNegen === 'in' ? 9 : 0;  // start-offset (0=UIT, 9=IN)
+  var w = welkeNegen === 'in' ? 9 : 0;
   return {
     naam: BAAN_18.naam + ' (' + (welkeNegen === 'in' ? 'IN, hole 10-18' : 'UIT, hole 1-9') + ')',
     holes: 9,
@@ -385,14 +385,19 @@ function getBaan9(welkeNegen) {
   };
 }
 
-function getBaan9(welkeNegen) {
-  var w = welkeNegen === 'in' ? 9 : 0;  // start-offset (0=UIT, 9=IN)
+function getBaan(holes, cPar, cSI, welkeNegen) {
+  var b;
+  if (holes === 9) {
+    b = (typeof getBaan9 === 'function') ? getBaan9(welkeNegen) : BAAN_18;
+  } else {
+    b = BAAN_18;
+  }
   return {
-    naam: BAAN_18.naam + ' (' + (welkeNegen === 'in' ? 'IN, hole 10-18' : 'UIT, hole 1-9') + ')',
-    holes: 9,
-    par: BAAN_18.par.slice(w, w+9),
-    si: BAAN_18.si.slice(w, w+9),
-    welkeNegen: welkeNegen || 'uit'
+    holes: b.holes,
+    par: cPar || b.par,
+    si: cSI || b.si,
+    parTotaal: (cPar || b.par).reduce(function(a, x) { return a + x; }, 0),
+    welkeNegen: b.welkeNegen
   };
 }
 
