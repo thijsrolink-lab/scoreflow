@@ -386,14 +386,18 @@ function teamHandicapScramble(spelers, perc, formule) {
   var n = sortHcp.length;
   if (n === 0) return 0;
   if (formule === 'a') {
-    var weights;
-    if (n >= 4) weights = [0.10, 0.15, 0.20, 0.25];
-    else if (n === 3) weights = [0.15, 0.20, 0.25];
-    else if (n === 2) weights = [0.20, 0.25];
-    else weights = [0.25];
+    // 10:15:20:25 verhoudingen, 60/75/90/100% schaal naar teamgrootte
+    var ratios, totalPct;
+    var base = [2, 3, 4, 5];
+    if (n >= 4) { ratios = base; totalPct = 0.60; }
+    else if (n === 3) { ratios = base.slice(1); totalPct = 0.75; }
+    else if (n === 2) { ratios = base.slice(2); totalPct = 0.90; }
+    else { ratios = [base[3]]; totalPct = 1.00; }
+    var sumRatios = ratios.reduce(function(a, b) { return a + b; }, 0);
+    var factor = totalPct / sumRatios;
     var som = 0;
-    for (var i = 0; i < n && i < weights.length; i++) {
-      som += sortHcp[i] * weights[i];
+    for (var i = 0; i < n && i < ratios.length; i++) {
+      som += sortHcp[i] * ratios[i] * factor;
     }
     return Math.round(som);
   }

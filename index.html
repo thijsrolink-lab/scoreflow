@@ -4975,7 +4975,9 @@ function bogeyResultaat(totaal) {
 // Teamhandicap = (A + B*0.6 + C*0.4 + D*0.2) / 4  (4-man)
 // Texas Scramble team-handicap berekening — twee formules beschikbaar
 // 'app' = huidige (gewogen 1.0/0.6/0.4/0.2 / aantal × perc) — origineel
-// 'a' = drop laagste gewichten: 4-mans 10/15/20/25 → 3-mans 15/20/25 → 2-mans 20/25
+// 'a'   = 10:15:20:25 verhouding (2:3:4:5), schaal naar grootte:
+//         4-mans=60%, 3-mans=75%, 2-mans=90%, 1-mans=100%
+//         Kleiner team = meer strokes (compensatie voor minder team-voordeel)
 function teamHandicapScramble(spelers, perc, formule) {
   perc = perc || 1.0;
   formule = formule || 'app';
@@ -4985,22 +4987,34 @@ function teamHandicapScramble(spelers, perc, formule) {
   if (n === 0) return 0;
 
   if (formule === 'a') {
-    // Benadering A: 10/15/20/25 (beste→slechtste), drop laagste % bij minder spelers
-    // 4-mans: [0.10, 0.15, 0.20, 0.25] (totaal 70%)
-    // 3-mans: [0.15, 0.20, 0.25] (totaal 60%)
-    // 2-mans: [0.20, 0.25] (totaal 45%)
-    // 1-mans: [0.25]
-    var weights;
-    if (n >= 4) weights = [0.10, 0.15, 0.20, 0.25];
-    else if (n === 3) weights = [0.15, 0.20, 0.25];
-    else if (n === 2) weights = [0.20, 0.25];
-    else weights = [0.25];
-
-    var som = 0;
-    for (var i = 0; i < n && i < weights.length; i++) {
-      som += sortHcp[i] * weights[i];
+    // Benadering 'a': 10:15:20:25 verhoudingen (= 2:3:4:5)
+    // Schaal naar totaal-percentage afhankelijk van teamgrootte
+    // Kleinere teams krijgen MEER strokes (compensatie minder team-voordeel)
+    //   4-mans: 60% van som-handicaps  → 10/15/20/25 × (60/70) ≈ 8.6/12.9/17.1/21.4
+    //   3-mans: 75% → drop laagste 10%, schaal 15:20:25 (= 60) naar 75 → 18.75/25/31.25
+    //   2-mans: 90% → drop 10%,15%, schaal 20:25 (= 45) naar 90 → 40/50
+    //   1-mans: 100% (volle handicap, geen team-voordeel)
+    var ratios, totalPct;
+    var base = [2, 3, 4, 5]; // 10:15:20:25
+    if (n >= 4) {
+      ratios = base;
+      totalPct = 0.60;
+    } else if (n === 3) {
+      ratios = base.slice(1); // [3, 4, 5]
+      totalPct = 0.75;
+    } else if (n === 2) {
+      ratios = base.slice(2); // [4, 5]
+      totalPct = 0.90;
+    } else {
+      ratios = [base[3]]; // [5]
+      totalPct = 1.00;
     }
-    // Geen extra perc op deze formule — de percentages ZIJN de perc
+    var sumRatios = ratios.reduce(function(a, b) { return a + b; }, 0);
+    var factor = totalPct / sumRatios;
+    var som = 0;
+    for (var i = 0; i < n && i < ratios.length; i++) {
+      som += sortHcp[i] * ratios[i] * factor;
+    }
     return Math.round(som);
   }
 
@@ -15212,12 +15226,16 @@ try {
       <div class="field">
         <label>Team-handicap berekening</label>
         <select id="mwb-tsformule">
-          <option value="app">Gewogen × 35% (huidige formule)</option>
-          <option value="a">10/15/20/25 van handicaps (4-mans, drop bij minder spelers)</option>
+          <option value="app">Gewogen × 35% (origineel — platte team-SH)</option>
+          <option value="a">10:15:20:25 met grootte-compensatie (NGF-stijl)</option>
         </select>
         <small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">
-          <strong>Gewogen × 35%</strong>: gewogen som [1.0, 0.6, 0.4, 0.2] × 35%. Geeft alle teams een platte SH.<br>
-          <strong>10/15/20/25</strong>: beste→slechtste speler. 4-mans = 70% van som. 3-mans = 60%. 2-mans = 45%.
+          <strong>Gewogen × 35%</strong>: gewogen som [1.0, 0.6, 0.4, 0.2] / aantal × 35%. Platte team-SH ongeacht grootte.<br>
+          <strong>10:15:20:25 met compensatie</strong>: beste→slechtste verhouding 2:3:4:5. Schaal naar teamgrootte:<br>
+          &nbsp;&nbsp;• 4-mans = 60% van som-handicaps (meest team-voordeel)<br>
+          &nbsp;&nbsp;• 3-mans = 75% (één speler minder = meer strokes)<br>
+          &nbsp;&nbsp;• 2-mans = 90%<br>
+          &nbsp;&nbsp;• 1-mans = 100% (volle handicap)
         </small>
       </div>
       <div class="g2" style="margin-top:0.75rem">
