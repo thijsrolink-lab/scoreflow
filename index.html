@@ -4534,7 +4534,8 @@ async function supaLogout() {
 
 function dbGebruikerNaarApp(g) {
   return { id: g.id, voor: g.voor, ach: g.ach, email: g.email, rol: g.rol,
-    hcp: g.hcp, lid: g.lid, ltype: g.ltype, gs: g.gs, jaar: g.jaar, tel: g.tel, pw: '(supabase)' };
+    hcp: g.hcp, lid: g.lid, ltype: g.ltype, gs: g.gs, jaar: g.jaar, tel: g.tel,
+    pw: g.pw || '' };
 }
 function dbWedstrijdNaarApp(w) {
   return {
@@ -5108,25 +5109,47 @@ async function doLogin(){
   var pw=document.getElementById('login-pw').value;
   var errEl=document.getElementById('login-err');
 
-  // Check lokale demo users (wachtwoord check)
-  var demoUser=DEMO_USERS.find(function(u){return u.email.toLowerCase()===email&&u.pw===pw;});
-  if(!demoUser){
-    // Fallback: check in USERS (voor het geval pw nog aanwezig is)
-    var fallback=USERS.find(function(u){return u.email.toLowerCase()===email&&u.pw===pw;});
-    if(!fallback){errEl.textContent='Onbekend e-mailadres of onjuist wachtwoord.';return;}
-    errEl.textContent='';
-    startSessie(fallback);
+  errEl.textContent = 'Bezig met inloggen...';
+
+  // Stap 1: probeer login via DB direct (zonder eerst alle data te laden)
+  // Dit werkt voor zowel demo-users (in DB) als gewone gebruikers
+  try {
+    var rs = await supa('gebruikers', 'GET', null, {
+      select: '*',
+      email: 'eq.' + email,
+      pw: 'eq.' + pw,
+      limit: '1'
+    });
+    if (rs && rs.length > 0) {
+      // Gevonden in DB — laad alle data en start sessie
+      errEl.textContent = '';
+      await laadAlleData();
+      var liveUser = USERS.find(function(u){return u.email.toLowerCase()===email;});
+      if (liveUser) {
+        startSessie(liveUser);
+        return;
+      }
+      // Fallback: gebruik DB-resultaat zelf
+      startSessie(dbGebruikerNaarApp(rs[0]));
+      return;
+    }
+  } catch(e) {
+    console.warn('DB login check failed:', e.message);
+    // Ga door met fallback
+  }
+
+  // Stap 2: fallback naar DEMO_USERS array (voor backwards compat / pre-migration)
+  var demoUser = DEMO_USERS.find(function(u){return u.email.toLowerCase()===email&&u.pw===pw;});
+  if (demoUser) {
+    errEl.textContent = '';
+    await laadAlleData();
+    var liveUser2 = USERS.find(function(u){return u.email.toLowerCase()===email;});
+    startSessie(liveUser2 || demoUser);
     return;
   }
 
-  // Demo login geslaagd — laad altijd eerst alle data uit Supabase
-  // Zodat spelers de juiste UUID krijgen (niet de lokale hardcoded id)
-  errEl.textContent='';
-  await laadAlleData();
-
-  // Zoek live user uit USERS (nu met Supabase UUID)
-  var liveUser=USERS.find(function(u){return u.email.toLowerCase()===email;});
-  startSessie(liveUser||demoUser);
+  // Niks gevonden
+  errEl.textContent = 'Onbekend e-mailadres of onjuist wachtwoord.';
 }
 
 function loginAs(email,pw){
