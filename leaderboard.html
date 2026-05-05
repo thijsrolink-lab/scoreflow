@@ -175,63 +175,82 @@ html, body {
 .lb-team-card:hover { background: rgba(255,255,255,0.06); }
 .lb-team-head {
   padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
   cursor: pointer;
   user-select: none;
 }
-.lb-team-info { flex: 1; min-width: 0; }
-.lb-team-flight {
+.lb-team-toprow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.lb-team-flight-badge {
+  flex: 1;
   font-size: 11px;
   color: #4ade80;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   line-height: 1;
 }
-.lb-team-naam {
-  font-size: 16px;
-  color: #fff;
-  font-weight: 500;
-  margin-top: 4px;
-  line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.lb-team-sub {
-  font-size: 12px;
-  color: rgba(255,255,255,0.5);
-  margin-top: 3px;
-}
-.lb-team-score {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-.lb-team-netto {
-  font-size: 28px;
-  font-weight: 800;
-  color: #4ade80;
-  line-height: 1;
-  font-family: 'Inter', sans-serif;
-  text-align: right;
-}
-.lb-team-vspar {
-  font-size: 12px;
-  font-weight: 600;
-  margin-top: 3px;
-  text-align: right;
-}
-.lb-team-vspar.lb-under { color: #4ade80; }
-.lb-team-vspar.lb-over { color: #f87171; }
-.lb-team-vspar.lb-even { color: rgba(255,255,255,0.6); }
 .lb-team-arrow {
   color: rgba(255,255,255,0.4);
   font-size: 14px;
   transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.lb-team-spelers {
+  font-size: 15px;
+  color: #fff;
+  font-weight: 500;
+  line-height: 1.35;
+  margin-bottom: 12px;
+  word-break: break-word;
+}
+.lb-team-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.lb-stat {
+  text-align: center;
+  min-width: 0;
+}
+.lb-stat-label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+.lb-stat-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  font-family: 'Inter', sans-serif;
+}
+.lb-stat-netto .lb-stat-label {
+  color: #4ade80;
+}
+.lb-stat-netto-val {
+  color: #4ade80 !important;
+  font-size: 24px !important;
+}
+.lb-stat-val.lb-under { color: #4ade80; }
+.lb-stat-val.lb-over { color: #f87171; }
+.lb-stat-val.lb-even { color: rgba(255,255,255,0.6); }
+.lb-team-progress {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  text-align: center;
+  margin-top: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 .lb-team-detail {
   border-top: 1px solid rgba(255,255,255,0.08);
@@ -652,31 +671,50 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     html += '<div class="lb-team-card">';
     // Klikbare hoofdrij
     html += '<div class="lb-team-head" onclick="toggleTvFlight(\'' + detailId + '\', \'' + arrowId + '\')">';
-    html += '<div class="lb-pos ' + pcls + '">' + p + '</div>';
 
-    // Team-info
-    html += '<div class="lb-team-info">';
-    html += '<div class="lb-team-flight">FLIGHT ' + r.flight + '</div>';
-    html += '<div class="lb-team-naam">' + escHtml(r.teamNaam) + '</div>';
-    var subline = 'SH ' + r.teamSh;
-    if (r.has) subline += ' &middot; Bruto ' + r.bruto;
-    subline += ' &middot; ' + r.gespeeld + '/' + baan.holes + ' holes';
-    html += '<div class="lb-team-sub">' + subline + '</div>';
+    // BOVEN-RIJ: positie + flight badge + uitklap-pijl
+    html += '<div class="lb-team-toprow">';
+    html += '<div class="lb-pos ' + pcls + '">' + p + '</div>';
+    html += '<div class="lb-team-flight-badge">FLIGHT ' + r.flight + '</div>';
+    html += '<div class="lb-team-arrow" id="' + arrowId + '">▼</div>';
     html += '</div>';
 
-    // Netto + uitklap
-    html += '<div class="lb-team-score">';
+    // SPELER-NAMEN op eigen regel (volle breedte)
+    html += '<div class="lb-team-spelers">' + escHtml(r.teamNaam) + '</div>';
+
+    // STATS-RIJ: SH | Bruto | Netto | +/- par
+    html += '<div class="lb-team-stats">';
+
+    html += '<div class="lb-stat">';
+    html += '<div class="lb-stat-label">SH</div>';
+    html += '<div class="lb-stat-val">' + r.teamSh + '</div>';
+    html += '</div>';
+
+    html += '<div class="lb-stat">';
+    html += '<div class="lb-stat-label">Bruto</div>';
+    html += '<div class="lb-stat-val">' + (r.has ? r.bruto : '—') + '</div>';
+    html += '</div>';
+
+    html += '<div class="lb-stat lb-stat-netto">';
+    html += '<div class="lb-stat-label">Netto</div>';
+    html += '<div class="lb-stat-val lb-stat-netto-val">' + (r.has ? r.netto : '—') + '</div>';
+    html += '</div>';
+
+    html += '<div class="lb-stat">';
+    html += '<div class="lb-stat-label">+/- par</div>';
     if (r.has) {
       var nvpStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : (r.nettoVsPar < 0 ? r.nettoVsPar : 'E');
       var nvpCls = r.nettoVsPar < 0 ? 'lb-under' : r.nettoVsPar > 0 ? 'lb-over' : 'lb-even';
-      html += '<div class="lb-team-netto">' + r.netto + '</div>';
-      html += '<div class="lb-team-vspar ' + nvpCls + '">' + nvpStr + '</div>';
+      html += '<div class="lb-stat-val ' + nvpCls + '">' + nvpStr + '</div>';
     } else {
-      html += '<div class="lb-team-netto" style="color:rgba(255,255,255,0.3)">—</div>';
-      html += '<div class="lb-team-vspar" style="color:rgba(255,255,255,0.3)">nog geen</div>';
+      html += '<div class="lb-stat-val" style="color:rgba(255,255,255,0.3)">—</div>';
     }
-    html += '<div class="lb-team-arrow" id="' + arrowId + '">▼</div>';
-    html += '</div>'; // /score
+    html += '</div>';
+
+    html += '</div>'; // /stats
+
+    // GESPEELD-INDICATOR onderaan
+    html += '<div class="lb-team-progress">' + r.gespeeld + ' / ' + baan.holes + ' holes gespeeld</div>';
 
     html += '</div>'; // /head clickable
 
