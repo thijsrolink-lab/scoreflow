@@ -3975,7 +3975,18 @@ function renderInschrijvingenInTab(wId) {
   '</div>';
 
   if(heeftToegang('inschrijvingen')){
-    html += '<div style="margin-bottom:1rem"><button class="wd-btn wd-btn-primary" onclick="openAdminInschrijfModalVoorWedstrijd(\'' + escHtml(wId) + '\')">+ Speler inschrijven</button></div>';
+    // Check of huidige gebruiker al ingeschreven is
+    var alIngeschreven = INSCHRIJVINGEN.some(function(i) {
+      return i.wid === wId && i.sid === _currentUser.id && i.status === 'ingeschreven';
+    });
+    var mijnNaam = _currentUser.voor + ' ' + _currentUser.ach;
+    html += '<div style="margin-bottom:1rem;display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button class="wd-btn wd-btn-primary" onclick="openAdminInschrijfModalVoorWedstrijd(\'' + escHtml(wId) + '\')">+ Speler inschrijven</button>' +
+      (alIngeschreven
+        ? '<button class="wd-btn" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534" disabled>✓ Jij doet mee (' + escHtml(mijnNaam) + ')</button>'
+        : '<button class="wd-btn" style="background:#fef3e0;border:1px solid #fde68a;color:#92400e" onclick="inschrijfMijzelf(\'' + escHtml(wId) + '\')">+ Mijzelf inschrijven</button>'
+      ) +
+    '</div>';
   }
 
   // Tabel met alle inschrijvingen voor deze wedstrijd
@@ -10126,6 +10137,61 @@ function formatDatum(d) {
     var dt = (typeof d === 'string') ? new Date(d) : d;
     return dt.getDate() + ' ' + ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'][dt.getMonth()] + ' ' + dt.getFullYear();
   } catch(e) { return String(d); }
+}
+
+// Inschrijven als ingelogde gebruiker — werkt voor alle rollen
+async function inschrijfMijzelf(wId) {
+  if (!_currentUser) { toast('Niet ingelogd', 'err'); return; }
+  if (!confirm('Wil je jezelf (' + _currentUser.voor + ' ' + _currentUser.ach + ') inschrijven voor deze wedstrijd?')) return;
+
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) { toast('Wedstrijd niet gevonden', 'err'); return; }
+
+  // HCP check (skip voor admin-rollen — laat ze zelf beslissen)
+  if (_currentUser.rol === 'Speler' && w.hcpmax) {
+    if (_currentUser.hcp < (w.hcpmin || 0) || _currentUser.hcp > w.hcpmax) {
+      if (!confirm('Je HCP (' + _currentUser.hcp + ') valt buiten toelating (' + (w.hcpmin || 0) + '-' + w.hcpmax + '). Toch inschrijven?')) return;
+    }
+  }
+
+  // Vol? → wachtlijst
+  var ingeschreven = INSCHRIJVINGEN.filter(function(i) { return i.wid === wId && i.status === 'ingeschreven'; }).length;
+  var status = (w.max && ingeschreven >= w.max) ? 'wachtlijst' : 'ingeschreven';
+
+  // Bestaande inschrijving updaten of nieuwe maken
+  var bestaand = INSCHRIJVINGEN.find(function(i) { return i.wid === wId && i.sid === _currentUser.id; });
+
+  try {
+    if (bestaand) {
+      bestaand.status = status;
+      bestaand.datum = new Date().toISOString().split('T')[0];
+      await supa('inschrijvingen', 'PATCH', {
+        status: status,
+        datum: bestaand.datum
+      }, { id: 'eq.' + bestaand.id });
+      toast('Bijgewerkt naar: ' + status);
+    } else {
+      var nw = {
+        wid: wId,
+        sid: _currentUser.id,
+        datum: new Date().toISOString().split('T')[0],
+        status: status,
+        opm: ''
+      };
+      var res = await supa('inschrijvingen', 'POST', nw);
+      if (res && res[0]) {
+        INSCHRIJVINGEN.push(dbIngNaarApp(res[0]));
+        toast(status === 'ingeschreven' ? 'Ingeschreven!' : 'Op wachtlijst');
+      }
+    }
+    // Refresh views
+    if (typeof renderInschrijvingen === 'function') renderInschrijvingen();
+    if (typeof renderInschrijvingenInTab === 'function') renderInschrijvingenInTab(wId);
+    if (typeof renderWedstrijdDetail === 'function' && window._currentDetailWid) renderWedstrijdDetail(window._currentDetailWid);
+  } catch(e) {
+    console.error('inschrijfMijzelf:', e);
+    toast('Inschrijven mislukt: ' + e.message, 'err');
+  }
 }
 
 async function doSelfInschrijven(wId) {
