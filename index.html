@@ -8584,24 +8584,26 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
     scores = filterScoresVoorBlind(scores, w);
     var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
 
-    // Ben ik in dit team?
     var isMij = _currentUser && spelers.some(function(s) { return s.id === _currentUser.id; });
 
     return {
       flight: fi + 1,
+      flightIdx: fi,
       spelers: spelers,
       teamSh: teamSh,
       netto: sp.netto, bruto: sp.bruto,
       nettoVsPar: sp.nettoVsPar,
       gespeeld: sp.gespeeld,
       has: sp.gespeeld > 0,
-      isMij: isMij
+      isMij: isMij,
+      scores: scores,
+      perHole: sp.perHole
     };
   }).filter(Boolean);
 
   rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
 
-  var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+  var html = '<div style="display:flex;flex-direction:column;gap:6px" id="lb-team-list">';
   rows.forEach(function(r, i) {
     var p = i+1;
     var posKleur = p===1 ? 'background:#fef3c7;color:#92400e' :
@@ -8610,8 +8612,14 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
                            'background:#f1f4f8;color:#6b7280';
     var mijHighlight = r.isMij ? 'background:#f0fdf4;border-color:#86efac' : 'background:#fff;border-color:#e6eaf0';
     var teamShort = r.spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', ');
+    var rowId = 'lb-flight-' + r.flightIdx;
+    var detailId = 'lb-flight-detail-' + r.flightIdx;
+    var defaultOpen = r.isMij; // eigen flight default open
 
-    html += '<div style="' + mijHighlight + ';border:1px solid;border-radius:10px;padding:0.65rem 0.85rem;display:flex;align-items:center;gap:0.65rem">';
+    // Hoofd-rij (klikbaar)
+    html += '<div style="' + mijHighlight + ';border:1px solid;border-radius:10px;overflow:hidden">';
+    html += '<div onclick="toggleLbFlight(\'' + detailId + '\', \'' + rowId + '-arrow\')" style="padding:0.65rem 0.85rem;display:flex;align-items:center;gap:0.65rem;cursor:pointer;user-select:none">';
+
     // Positie
     html += '<div style="' + posKleur + ';width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">' + p + '</div>';
 
@@ -8621,11 +8629,18 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
     if (r.isMij) html += '<span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-size:9px">JIJ</span>';
     html += '</div>';
     html += '<div style="font-size:13px;color:#0c1b2a;font-weight:500;line-height:1.25;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(teamShort) + '</div>';
-    html += '<div style="font-size:11px;color:#8b94a3;margin-top:1px">SH ' + r.teamSh + ' &middot; ' + r.gespeeld + '/' + baan.holes + ' holes</div>';
+    // Subline met SH + Bruto + gespeeld
+    var subline = 'SH ' + r.teamSh;
+    if (r.has) {
+      subline += ' &middot; Bruto ' + r.bruto;
+    }
+    subline += ' &middot; ' + r.gespeeld + '/' + baan.holes + ' holes';
+    html += '<div style="font-size:11px;color:#8b94a3;margin-top:1px">' + subline + '</div>';
     html += '</div>';
 
-    // Score (rechts)
-    html += '<div style="text-align:right;flex-shrink:0">';
+    // Score (rechts) + uitklap-pijl
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
+    html += '<div style="text-align:right">';
     if (r.has) {
       var nvpStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : (r.nettoVsPar < 0 ? r.nettoVsPar : 'E');
       var nvpKleur = r.nettoVsPar < 0 ? '#16a34a' : r.nettoVsPar > 0 ? '#dc2626' : '#6b7280';
@@ -8636,12 +8651,77 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
       html += '<div style="font-size:11px;color:#cbd5e1;margin-top:2px">nog geen</div>';
     }
     html += '</div>';
+    // Uitklap-pijl
+    html += '<div id="' + rowId + '-arrow" style="color:#8b94a3;font-size:14px;transition:transform 0.2s;transform:' + (defaultOpen ? 'rotate(180deg)' : 'rotate(0deg)') + '">▼</div>';
+    html += '</div>'; // /right
+    html += '</div>'; // /clickable header
 
-    html += '</div>';
+    // Uitklap detail (scorekaart per hole)
+    html += '<div id="' + detailId + '" style="display:' + (defaultOpen ? 'block' : 'none') + ';border-top:1px solid #e6eaf0;background:#fafbfc;padding:0.6rem 0.5rem;overflow-x:auto">';
+    if (r.has || r.scores.some(function(s) { return s !== '' && s !== null; })) {
+      html += buildLbFlightScorekaart(r, baan, w);
+    } else {
+      html += '<div style="text-align:center;padding:1rem;color:#8b94a3;font-size:12px">Nog geen scores ingevoerd</div>';
+    }
+    html += '</div>'; // /detail
+
+    html += '</div>'; // /flight card
   });
   html += '</div>';
-  html += '<div style="font-size:11px;color:#8b94a3;text-align:center;margin-top:0.75rem">Gesorteerd op netto score</div>';
+  html += '<div style="font-size:11px;color:#8b94a3;text-align:center;margin-top:0.75rem">Tap op een flight voor scorekaart-detail</div>';
   return html;
+}
+
+// Helper: render scorekaart-tabel per hole voor een flight in het leaderboard
+function buildLbFlightScorekaart(r, baan, w) {
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  // Header: Hole nummers
+  html += '<thead><tr><th style="text-align:left;color:#8b94a3;font-weight:600;padding:3px 4px">Hole</th>';
+  for (var i = 0; i < baan.holes; i++) {
+    html += '<th style="text-align:center;color:#8b94a3;font-weight:600;padding:3px 4px;min-width:24px">' + (i + 1) + '</th>';
+  }
+  html += '<th style="text-align:center;color:#0c1b2a;font-weight:700;padding:3px 6px">Tot</th>';
+  html += '</tr></thead><tbody>';
+  // Par-rij
+  html += '<tr><td style="color:#8b94a3;padding:3px 4px">Par</td>';
+  baan.par.forEach(function(p) {
+    html += '<td style="text-align:center;color:#8b94a3;padding:3px 4px">' + p + '</td>';
+  });
+  html += '<td style="text-align:center;color:#8b94a3;font-weight:600;padding:3px 6px">' + baan.parTotaal + '</td>';
+  html += '</tr>';
+  // Score-rij
+  html += '<tr><td style="color:#0c1b2a;font-weight:600;padding:3px 4px">Team</td>';
+  var brutoTotal = 0;
+  r.scores.forEach(function(s, i) {
+    if (s !== '' && s !== null) {
+      var n = Number(s);
+      brutoTotal += n;
+      var par = baan.par[i];
+      var diff = n - par;
+      var bg = '', col = '#0c1b2a';
+      if (diff <= -2) { bg = 'background:#16a34a'; col = '#fff'; }
+      else if (diff === -1) { bg = 'background:#bbf7d0'; col = '#166534'; }
+      else if (diff === 1) { bg = 'background:#fed7aa'; col = '#9a3412'; }
+      else if (diff >= 2) { bg = 'background:#fecaca'; col = '#991b1b'; }
+      html += '<td style="text-align:center;padding:3px 4px"><span style="' + bg + ';color:' + col + ';display:inline-block;min-width:22px;padding:2px 4px;border-radius:4px;font-weight:600">' + n + '</span></td>';
+    } else {
+      html += '<td style="text-align:center;color:#cbd5e1;padding:3px 4px">—</td>';
+    }
+  });
+  html += '<td style="text-align:center;color:#0c1b2a;font-weight:700;padding:3px 6px">' + (brutoTotal || '—') + '</td>';
+  html += '</tr>';
+  html += '</tbody></table>';
+  return html;
+}
+
+// Toggle: open/dicht detail-row in team-leaderboard
+function toggleLbFlight(detailId, arrowId) {
+  var detail = document.getElementById(detailId);
+  var arrow = document.getElementById(arrowId);
+  if (!detail) return;
+  var isOpen = detail.style.display !== 'none';
+  detail.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
 // ── Speler ziet team scorekaart van eigen flight (Texas Scramble) ──
