@@ -6132,15 +6132,17 @@ async function bouwEnSlaWedstrijdOp(status) {
     data.id = _editId;
     var i = WEDSTRIJDEN.findIndex(function(x) { return x.id === _editId; });
     if (i > -1) Object.assign(WEDSTRIJDEN[i], data);
+    var bewerkteW = (i > -1) ? WEDSTRIJDEN[i] : null;
     dbSaveWedstrijd(data).catch(function(e) { console.warn('dbSaveWedstrijd:', e.message); });
+    var savedEditId = _editId;
     _editId = null;
     // Koppel sponsoren (hoofdsponsor + co + hole)
-  var sponsorEl = document.getElementById('fhsponsor');
-  var hoofdId = sponsorEl ? (sponsorEl.value || null) : null;
-  if (typeof koppelAlleSponsorenAanWedstrijd === 'function' && w && w.id) {
-    koppelAlleSponsorenAanWedstrijd(w.id, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || []);
-  }
-  toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
+    var sponsorEl = document.getElementById('fhsponsor');
+    var hoofdId = sponsorEl ? (sponsorEl.value || null) : null;
+    if (typeof koppelAlleSponsorenAanWedstrijd === 'function' && savedEditId) {
+      koppelAlleSponsorenAanWedstrijd(savedEditId, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || []);
+    }
+    toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
     adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
     return;
   }
