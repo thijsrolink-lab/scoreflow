@@ -3000,7 +3000,7 @@ async function dbSaveSponsor(sp) {
       periode_start: sp.periodeStart || null,
       periode_eind: sp.periodeEind || null,
       notitie: sp.notitie || null,
-      bijgewerkt_op: new Date().toISOString()
+      bijgewerkt: new Date().toISOString()
     };
     if (sp.id && String(sp.id).includes('-')) {
       await supa('sponsoren', 'PATCH', data, { id: 'eq.' + sp.id });
@@ -4664,7 +4664,7 @@ async function dbSaveScore(wId, sid, ronde, holeIdx, score) {
         'Prefer': 'resolution=merge-duplicates',
       },
       body: JSON.stringify({ wid: wId, sid: sid, ronde: ronde, hole: holeIdx + 1,
-        score: score || null, bijgewerkt_op: new Date().toISOString() }),
+        score: score || null, bijgewerkt: new Date().toISOString() }),
     });
     if (!res.ok) {
       var errText = await res.text();
@@ -8476,7 +8476,7 @@ async function dbSaveTeamScore(wId, ronde, teamKey, holeIdx, score) {
         wid: wId, sid: sid, ronde: ronde,
         hole: holeIdx + 1,
         score: score === '' ? null : score,
-        bijgewerkt_op: new Date().toISOString()
+        bijgewerkt: new Date().toISOString()
       };
       var res = await fetch(SUPA_URL + '/rest/v1/scores?on_conflict=wid,sid,ronde,hole', {
         method: 'POST',
@@ -14004,7 +14004,7 @@ async function dbSaveCompetitie(comp) {
       ecl_hcp_perc: comp.eclHcpPerc || 75,
       wids: comp.wids || [],
       status: comp.status || 'actief',
-      bijgewerkt_op: new Date().toISOString()
+      bijgewerkt: new Date().toISOString()
     };
     if (comp.id && String(comp.id).includes('-')) {
       // Bestaande competitie (UUID)
@@ -14063,7 +14063,7 @@ async function laadCompetities() {
 
 // ─── Groepswedstrijden DB-koppeling ──────────────────────
 async function dbSaveGroepswedstrijd(gw) {
-  // Bouw minimale data — bijgewerkt_op alleen erbij als tabel die kolom heeft
+  // Bouw minimale data — bijgewerkt alleen erbij als tabel die kolom heeft
   function bouwData(includeBijgewerkt) {
     var d = {
       code: gw.code,
@@ -14081,7 +14081,7 @@ async function dbSaveGroepswedstrijd(gw) {
       organisator_id: gw.organisatorId || (_currentUser ? _currentUser.id : null),
       status: gw.status || 'actief'
     };
-    if (includeBijgewerkt) d.bijgewerkt_op = new Date().toISOString();
+    if (includeBijgewerkt) d.bijgewerkt = new Date().toISOString();
     return d;
   }
 
@@ -14101,9 +14101,9 @@ async function dbSaveGroepswedstrijd(gw) {
     return await probeerSave(true);
   } catch(e) {
     var msg = e.message || '';
-    // Fallback: probeer zonder bijgewerkt_op als die kolom ontbreekt
+    // Fallback: probeer zonder bijgewerkt als die kolom ontbreekt
     if (msg.indexOf('bijgewerkt') >= 0 || msg.indexOf('PGRST204') >= 0) {
-      console.warn('Retry zonder bijgewerkt_op:', msg);
+      console.warn('Retry zonder bijgewerkt:', msg);
       try {
         return await probeerSave(false);
       } catch(e2) {
