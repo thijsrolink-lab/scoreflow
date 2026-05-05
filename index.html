@@ -8741,12 +8741,19 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     return '<select class="drive-sel" data-wid="' + wId + '" data-flight="' + mijnFlightIdx + '" data-hole="' + (holeIdx + 1) + '" onchange="updateDriver(this)" style="font-size:11px;padding:3px 6px;border:1px solid var(--bd);border-radius:4px;background:#fff;width:100%;font-family:inherit">' + opts + '</select>';
   } : null;
 
-  html += bouwSpelerHoleRijen({
-    scores: scores,
-    baan: baan,
-    onchangeAttr: 'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);"',
-    getHoleExtra: driverDropdownExtra
-  });
+  console.log('[SK-DEBUG] vóór bouwSpelerHoleRijen, baan:', baan, 'scores:', scores);
+  try {
+    html += bouwSpelerHoleRijen({
+      scores: scores,
+      baan: baan,
+      onchangeAttr: 'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);"',
+      getHoleExtra: driverDropdownExtra
+    });
+    console.log('[SK-DEBUG] na bouwSpelerHoleRijen, html lengte:', html.length);
+  } catch(e) {
+    console.error('[SK-DEBUG] crash in bouwSpelerHoleRijen:', e);
+    html += '<div style="padding:1rem;background:#fef2f2;border:1px solid #fecaca;color:#991b1b">Crash bij bouwen scorekaart: ' + e.message + '</div>';
+  }
 
   // Info
   html += '<div style="font-size:12px;color:var(--txm);margin-top:.75rem;padding:.6rem .75rem;background:var(--gl);border-radius:var(--r);border-left:3px solid var(--lime)">';
@@ -8775,7 +8782,9 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     }
   }
 
+  console.log('[SK-DEBUG] zet innerHTML, html lengte:', html.length, 'container:', container);
   container.innerHTML = html;
+  console.log('[SK-DEBUG] innerHTML gezet, container.children.length:', container.children.length);
 
   // Auto-refresh: poll DB elke 15s om scores van teamleden te syncen
   if (typeof _teamScoreRefreshTimer !== 'undefined' && _teamScoreRefreshTimer) {
