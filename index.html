@@ -4714,13 +4714,21 @@ async function dbSaveGebruiker(g) {
   try {
     var data = { voor: g.voor, ach: g.ach, email: g.email, rol: g.rol,
       hcp: g.hcp, lid: g.lid, ltype: g.ltype, gs: g.gs, jaar: g.jaar, tel: g.tel };
+    // Wachtwoord alleen meesturen als expliciet ingesteld (niet bij elke save)
+    if (g.pw && g.pw !== '(supabase)' && typeof g.pw === 'string' && g.pw.length > 0) {
+      data.pw = g.pw;
+    }
     if (g.id && String(g.id).includes('-')) {
       await supa('gebruikers', 'PATCH', data, { id: 'eq.' + g.id });
+      return g;
     } else {
       var res = await supa('gebruikers', 'POST', data);
       return res && res[0] ? dbGebruikerNaarApp(res[0]) : g;
     }
-  } catch(e) { console.warn('dbSaveGebruiker:', e.message); }
+  } catch(e) {
+    console.warn('dbSaveGebruiker:', e.message);
+    throw e;
+  }
 }
 
 function startRealtimeLb(wId) {
@@ -6101,10 +6109,23 @@ function renderSpelers(){
 function editSpeler(id){
   var s=USERS.find(function(x){return x.id===id;});if(!s)return;
   openModal('modal-speler');
-  document.getElementById('ms-voor').value=s.voor;document.getElementById('ms-ach').value=s.ach;
-  document.getElementById('ms-email').value=s.email;document.getElementById('ms-tel').value=s.tel;
-  document.getElementById('ms-hcp').value=s.hcp;document.getElementById('ms-jaar').value=s.jaar;
-  document.getElementById('ms-lid').value=s.lid;
+  document.getElementById('ms-voor').value=s.voor||'';
+  document.getElementById('ms-ach').value=s.ach||'';
+  document.getElementById('ms-email').value=s.email||'';
+  document.getElementById('ms-tel').value=s.tel||'';
+  document.getElementById('ms-hcp').value=s.hcp||0;
+  document.getElementById('ms-jaar').value=s.jaar||'';
+  document.getElementById('ms-lid').value=s.lid||'';
+  // Login-velden
+  var inlogEl = document.getElementById('ms-inlog');
+  if (inlogEl) inlogEl.value = s.email || '';
+  var pwEl = document.getElementById('ms-pw');
+  if (pwEl) pwEl.value = '';  // altijd leeg laten — alleen invullen om te wijzigen
+  var rolEl = document.getElementById('ms-rol');
+  if (rolEl) rolEl.value = s.rol || 'Speler';
+  // Login-block alleen tonen voor superadmin
+  var loginBlock = document.querySelector('.ms-login-block');
+  if (loginBlock) loginBlock.style.display = (_currentUser && _currentUser.rol === 'Superadmin') ? '' : 'none';
   document.getElementById('modal-speler').dataset.edit=id;
 }
 
@@ -6115,16 +6136,77 @@ function delSpeler(id){
     .catch(function(e){console.warn('delSpeler:',e.message);});
 }
 
-function saveSpeler(){
+async function saveSpeler(){
   var voor=document.getElementById('ms-voor').value.trim();
   var ach=document.getElementById('ms-ach').value.trim();
   if(!voor||!ach){toast('Vul naam in.','err');return;}
-  var eid=parseInt(document.getElementById('modal-speler').dataset.edit)||0;
-  var data={voor:voor,ach:ach,email:document.getElementById('ms-email').value,tel:document.getElementById('ms-tel').value,hcp:parseFloat(document.getElementById('ms-hcp').value)||18,gs:document.getElementById('ms-gs').value,jaar:parseInt(document.getElementById('ms-jaar').value)||1980,lid:document.getElementById('ms-lid').value||('2025-'+String(Date.now()).slice(-4)),ltype:document.getElementById('ms-ltype').value,deelnames:0};
-  if(eid){var i=USERS.findIndex(function(x){return x.id===eid;});if(i>-1)USERS[i]=Object.assign(USERS[i],data);}
-  else USERS.push(Object.assign({id:Date.now(),rol:'Speler',pw:'welkom123'},data));
+  var eid=document.getElementById('modal-speler').dataset.edit||'';
+
+  // Inlognaam: gebruik ms-inlog veld; valt terug op email als superadmin het niet wijzigde
+  var inlog = (document.getElementById('ms-inlog')||{}).value;
+  var emailWaarde = (inlog || document.getElementById('ms-email').value || '').trim().toLowerCase();
+  var pwInput = ((document.getElementById('ms-pw')||{}).value || '').trim();
+  var rolInput = ((document.getElementById('ms-rol')||{}).value || '').trim();
+
+  var data = {
+    voor:voor, ach:ach,
+    email: emailWaarde,
+    tel: document.getElementById('ms-tel').value,
+    hcp: parseFloat(document.getElementById('ms-hcp').value)||18,
+    gs: document.getElementById('ms-gs').value,
+    jaar: parseInt(document.getElementById('ms-jaar').value)||1980,
+    lid: document.getElementById('ms-lid').value||('2025-'+String(Date.now()).slice(-4)),
+    ltype: document.getElementById('ms-ltype').value,
+    deelnames: 0
+  };
+
+  // Alleen superadmin mag rol/wachtwoord aanpassen
+  var isSuper = _currentUser && _currentUser.rol === 'Superadmin';
+  if (isSuper) {
+    if (rolInput) data.rol = rolInput;
+    if (pwInput) data.pw = pwInput;
+  }
+
+  try {
+    if (eid) {
+      // Bestaand: update lokaal + DB
+      var i = USERS.findIndex(function(x){return x.id===eid;});
+      if (i > -1) {
+        USERS[i] = Object.assign(USERS[i], data);
+        // DB save
+        if (typeof dbSaveGebruiker === 'function') {
+          await dbSaveGebruiker(USERS[i]);
+        }
+      }
+      toast('Speler bijgewerkt' + (pwInput && isSuper ? ' (wachtwoord gewijzigd)' : ''));
+    } else {
+      // Nieuw
+      var nieuw = Object.assign({rol:'Speler', pw: pwInput || 'welkom123'}, data);
+      if (rolInput && isSuper) nieuw.rol = rolInput;
+      // DB save eerst (krijgt ID terug)
+      if (typeof dbSaveGebruiker === 'function') {
+        var saved = await dbSaveGebruiker(nieuw);
+        if (saved && saved.id) {
+          USERS.push(saved);
+        } else {
+          nieuw.id = Date.now();
+          USERS.push(nieuw);
+        }
+      } else {
+        nieuw.id = Date.now();
+        USERS.push(nieuw);
+      }
+      toast('Speler toegevoegd. Wachtwoord: ' + (pwInput || 'welkom123'));
+    }
+  } catch(e) {
+    console.error('saveSpeler:', e);
+    toast('Opslaan mislukt: ' + e.message, 'err');
+    return;
+  }
+
   document.getElementById('modal-speler').dataset.edit='';
-  closeModal('modal-speler');renderSpelers();toast(eid?'Speler bijgewerkt.':'Speler toegevoegd. Standaard wachtwoord: welkom123');
+  closeModal('modal-speler');
+  renderSpelers();
 }
 
 // ============================================================
@@ -15106,7 +15188,18 @@ try {
       <div class="field"><label>Lidmaatschapsnummer</label><input id="ms-lid" type="text" placeholder="2025-0042"/></div>
       <div class="field"><label>Type lidmaatschap</label><select id="ms-ltype"><option>Volledig lid</option><option>Weekendlid</option><option>Junior</option><option>Senior</option><option>Gast</option></select></div>
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
+
+    <!-- Login-instellingen (superadmin) -->
+    <div class="ms-login-block" style="margin-top:1rem;padding:1rem;background:rgba(22,163,74,0.04);border:1px solid rgba(22,163,74,0.15);border-radius:8px">
+      <div style="font-size:11px;color:#16a34a;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:.75rem">🔑 Login-instellingen</div>
+      <div class="g2">
+        <div class="field"><label>Inlognaam</label><input id="ms-inlog" type="text" placeholder="bijv. koen of koen@hooge.nl" autocapitalize="none" autocorrect="off"/><div class="field-hint" style="font-size:10px;color:#8b94a3;margin-top:2px">Mag een naam zijn (zonder @) of een e-mailadres</div></div>
+        <div class="field"><label>Nieuw wachtwoord</label><input id="ms-pw" type="text" placeholder="laat leeg om niet te wijzigen" autocapitalize="none" autocorrect="off"/><div class="field-hint" style="font-size:10px;color:#8b94a3;margin-top:2px">Alleen invullen als je het wachtwoord wilt wijzigen</div></div>
+      </div>
+      <div class="field"><label>Rol</label><select id="ms-rol"><option value="Speler">Speler</option><option value="Wedstrijdleider">Wedstrijdleider</option><option value="Secretaris">Secretaris</option><option value="Superadmin">Superadmin</option></select></div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem">
       <button class="btn btn-s" onclick="closeModal('modal-speler')">Annuleren</button>
       <button class="btn btn-p" onclick="saveSpeler()">Opslaan</button>
     </div>
