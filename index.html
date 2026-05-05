@@ -4711,8 +4711,10 @@ async function dbSaveWedstrijd(w) {
       holes: w.holes, vorm: w.vorm, rondes: w.rondes, flt: w.flt || 3, status: w.status,
       max_deelnemers: w.max, hcp_max: w.hcpmax, hcp_min: w.hcpmin || 0,
       hcp_perc: w.hcpperc, esc: w.esc, startgeld: w.startgeld,
-      skins_pot: w.skinsPot || 0, inschrijf_open: w.inschrijfOpen,
-      inschrijf_sluit: w.inschrijfSluit, omschrijving: w.omschrijving, kleur: w.kleur, afgelast_reden: w.afgelast_reden || null,
+      skins_pot: w.skinsPot || 0,
+      inschrijf_open: w.inschrijfOpen || null,
+      inschrijf_sluit: w.inschrijfSluit || null,
+      omschrijving: w.omschrijving, kleur: w.kleur, afgelast_reden: w.afgelast_reden || null,
       drive_min: w.driveMin != null ? w.driveMin : null,
       drive_max: w.driveMax != null ? w.driveMax : null,
       blind_holes: w.blindHoles || 0,
@@ -6067,7 +6069,7 @@ function buildOv(){
 function saveConcept(){
   var naam=document.getElementById('fn').value||'Nieuwe wedstrijd';
   var btn=document.querySelector('#vorm-tg .tgb.on');
-  WEDSTRIJDEN.push({id:Date.now(),naam:naam,datum:document.getElementById('fd').value||'2025-12-01',baan:document.getElementById('fb').value||'De Hooge Rotterdamsche',vorm:btn?btn.dataset.vorm:'Strokeplay',status:'concept',max:parseInt(document.getElementById('fmax').value)||72,ing:0,kleur:'ceb',cr:parseFloat(document.getElementById('fcr').value)||72.1,slope:parseInt(document.getElementById('fsl').value)||131,holes:parseInt(document.getElementById('fh').value)||18,flt:parseInt(document.getElementById('fflt').value)||3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:document.getElementById('fomschr').value||'',inschrijfOpen:document.getElementById('fop').value||'',inschrijfSluit:document.getElementById('fsluit').value||''});
+  WEDSTRIJDEN.push({id:Date.now(),naam:naam,datum:document.getElementById('fd').value||'2025-12-01',baan:document.getElementById('fb').value||'De Hooge Rotterdamsche',vorm:btn?btn.dataset.vorm:'Strokeplay',status:'concept',max:parseInt(document.getElementById('fmax').value)||72,ing:0,kleur:'ceb',cr:parseFloat(document.getElementById('fcr').value)||72.1,slope:parseInt(document.getElementById('fsl').value)||131,holes:parseInt(document.getElementById('fh').value)||18,flt:parseInt(document.getElementById('fflt').value)||3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:document.getElementById('fomschr').value||'',inschrijfOpen:document.getElementById('fop').value||null,inschrijfSluit:document.getElementById('fsluit').value||null});
   _editId=null;toast('Opgeslagen als concept.');adminNav('wedstrijden');
 }
 
@@ -6107,8 +6109,8 @@ function bouwWedstrijdUitFormulier(status) {
     tijd: document.getElementById('ft').value || '08:00',
     kleur: status === 'gepubliceerd' ? 'ceg' : 'ceb',
     omschrijving: document.getElementById('fomschr').value || '',
-    inschrijfOpen: document.getElementById('fop').value || '',
-    inschrijfSluit: document.getElementById('fsluit').value || '',
+    inschrijfOpen: document.getElementById('fop').value || null,
+    inschrijfSluit: document.getElementById('fsluit').value || null,
     blindHoles: parseInt((document.getElementById('fblind') || {}).value || 0) || 0,
     driveMin: parseInt((document.getElementById('fdrivemin') || {}).value) || null,
     driveMax: parseInt((document.getElementById('fdrivemax') || {}).value) || null,
