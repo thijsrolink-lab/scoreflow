@@ -9507,9 +9507,12 @@ function renderSpelerKalender(){
   if (welEl) welEl.innerHTML = welkomHtml;
 
   // ── 2. Hero: eerstvolgende wedstrijd ─────────────────────
-  // Filter uit afgelaste wedstrijden voor de "eerstvolgende" selectie
-  // (maar toon wel apart als banner hieronder)
-  var wsActief = ws.filter(function(w) { return wedstrijdFase(w) !== 'afgelast'; });
+  // Filter uit afgelaste én afgeronde wedstrijden voor de "eerstvolgende" selectie
+  // (afgerond blijft wel zichtbaar in de lijst, maar niet als hero)
+  var wsActief = ws.filter(function(w) {
+    var f = wedstrijdFase(w);
+    return f !== 'afgelast' && f !== 'afgerond';
+  });
   var wsAfgelast = ws.filter(function(w) { return wedstrijdFase(w) === 'afgelast'; });
 
   var next = wsActief[0];
