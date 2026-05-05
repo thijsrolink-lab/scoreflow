@@ -8647,6 +8647,8 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     return;
   }
   console.log('[SK-DEBUG] container OK, vorm:', w && w.vorm);
+  console.log('[SK-DEBUG] FLIGHTS keys:', Object.keys(FLIGHTS || {}));
+  console.log('[SK-DEBUG] FLIGHTS[wId]:', FLIGHTS && FLIGHTS[wId]);
 
   var flights = FLIGHTS[wId] || [];
   var mijnFlightIdx = -1;
@@ -8770,7 +8772,10 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     }
   }
 
+  console.log('[SK-DEBUG] HTML lengte:', html ? html.length : 'undef');
+  console.log('[SK-DEBUG] container.id:', container.id, 'parent:', container.parentNode && container.parentNode.id);
   container.innerHTML = html;
+  console.log('[SK-DEBUG] na innerHTML, container.children:', container.children.length, 'innerHTML start:', container.innerHTML.substring(0, 200));
 
   // Auto-refresh: poll DB elke 15s om scores van teamleden te syncen
   if (typeof _teamScoreRefreshTimer !== 'undefined' && _teamScoreRefreshTimer) {
