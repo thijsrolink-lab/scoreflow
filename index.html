@@ -8640,8 +8640,13 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
 
 // ── Speler ziet team scorekaart van eigen flight (Texas Scramble) ──
 function renderSpelerTeamScorekaart(wId, w, baan, u) {
+  console.log('[SK-DEBUG] renderSpelerTeamScorekaart aanroepen, wId:', wId);
   var container = document.getElementById('sp-scorekaart-content');
-  if (!container) return;
+  if (!container) {
+    console.warn('[SK-DEBUG] sp-scorekaart-content container niet gevonden');
+    return;
+  }
+  console.log('[SK-DEBUG] container OK, vorm:', w && w.vorm);
 
   var flights = FLIGHTS[wId] || [];
   var mijnFlightIdx = -1;
@@ -10456,6 +10461,7 @@ function renderSpScorekaartTab(w, fase) {
 
   // Toegankelijkheid check (2u voor start tot middernacht)
   var toegankelijk = (typeof scorekaartToegankelijk === 'function') ? scorekaartToegankelijk(w) : (fase === 'live' || fase === 'afgerond');
+  console.log('[SK-DEBUG] renderSpScorekaartTab — fase:', fase, 'toegankelijk:', toegankelijk, 'w.id:', w && w.id, 'w.naam:', w && w.naam);
 
   if (fase === 'concept') {
     return '<div class="sp-wd-empty"><div class="icon">📋</div><h3>Wedstrijd nog niet gepubliceerd</h3><p>De scorekaart komt beschikbaar zodra de wedstrijd live is.</p></div>';
@@ -10646,7 +10652,12 @@ var _skScores = [];
 
 function initScorekaart() {
   var wId = document.getElementById('sk-w').value;
-  if (!wId) { document.getElementById('sp-scorekaart-content').innerHTML = ''; return; }
+  console.log('[SK-DEBUG] initScorekaart — wId:', wId);
+  if (!wId) {
+    console.warn('[SK-DEBUG] initScorekaart: geen wId');
+    document.getElementById('sp-scorekaart-content').innerHTML = '<p style="color:red">Debug: geen sk-w waarde</p>';
+    return;
+  }
   var u = _currentUser;
   var ing = INSCHRIJVINGEN.find(function(i) { return i.wid === wId && i.sid === u.id && i.status === 'ingeschreven'; });
   if (!ing) { document.getElementById('sp-scorekaart-content').innerHTML = '<p style="color:var(--txm);font-size:13px">Je bent niet ingeschreven voor deze wedstrijd.</p>'; return; }
