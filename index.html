@@ -11962,7 +11962,7 @@ function gwRenderScorekaartView() {
       '<div class="sp-section-title" style="margin-bottom:0;flex:1">' + escHtml(g.naam) + '</div>' +
       (isOrg ? '<span class="gw-organisator-tag">Organisator</span>' : '') +
     '</div>';
-  var hdrEl = document.getElementById('sp-scorekaart-header');
+  var hdrEl = document.getElementById('sp-scorekaart-legacy-header');
   if (hdrEl) hdrEl.innerHTML = headerHtml;
 
   // Geen switcher meer — alle spelers staan onder elkaar in invoer-tab
@@ -15070,10 +15070,10 @@ try {
       <div id="sp-groep-detail-content"></div>
     </div>
 
-    <!-- Scorekaart view (voor groepswedstrijd) -->
+    <!-- Scorekaart view (voor groepswedstrijd — legacy, IDs hernoemd om dubbele te voorkomen) -->
     <div id="sp-scorekaart" class="sp-view">
-      <div id="sp-scorekaart-header"></div>
-      <div id="sp-scorekaart-content"></div>
+      <div id="sp-scorekaart-legacy-header"></div>
+      <div id="sp-scorekaart-legacy-content"></div>
     </div>
 
 <!-- Berichten -->
