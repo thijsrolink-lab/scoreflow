@@ -6131,12 +6131,52 @@ function openNieuwSpeler(){
 function renderSpelers(){
   var q=(document.getElementById('sp-q').value||'').toLowerCase();
   var ft=document.getElementById('sp-ft').value||'';
-  var spelers=USERS.filter(function(u){return u.rol==='Speler';});
-  var list=spelers.filter(function(s){return(!q||(s.voor+' '+s.ach).toLowerCase().indexOf(q)>=0||s.lid.indexOf(q)>=0)&&(!ft||s.ltype===ft);});
+  // Toon ALLE gebruikers (niet alleen rol=Speler) — wedstrijdleiders/secretarissen
+  // kunnen ook gewoon leden zijn die spelen
+  var spelers = USERS.slice();
+  // Filter op zoekterm + lidmaatschapstype
+  var list = spelers.filter(function(s){
+    if (!s) return false;
+    var hcpStr = (s.hcp != null) ? String(s.hcp) : '';
+    var lidStr = s.lid || '';
+    var match = !q || (s.voor + ' ' + s.ach).toLowerCase().indexOf(q) >= 0 || lidStr.toLowerCase().indexOf(q) >= 0 || (s.email||'').toLowerCase().indexOf(q) >= 0;
+    return match && (!ft || s.ltype === ft);
+  });
+  // Sorteer op naam
+  list.sort(function(a,b){ return ((a.ach||'') + (a.voor||'')).localeCompare((b.ach||'') + (b.voor||'')); });
+
   var cols=['#e8f5ee','#E6F1FB','#faf3e0','#fbeaf0','#EEEDFE','#fce8e8'];
   document.getElementById('sp-body').innerHTML=list.map(function(s){
-    var bg=cols[s.id%cols.length];
-    return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:30px;height:30px;font-size:11px;background:'+bg+';color:var(--g)">'+s.voor[0]+s.ach[0]+'</div><div><div style="font-weight:500">'+s.voor+' '+s.ach+'</div><div style="font-size:11px;color:var(--txm)">'+s.email+'</div></div></div></td><td><span class="badge '+(s.hcp<=10?'bg':s.hcp<=20?'bb':'bx')+'">'+s.hcp.toFixed(1)+'</span></td><td><span class="badge bx">'+s.ltype+'</span></td><td style="color:var(--txm)">'+s.email+'</td><td style="color:var(--txm)">'+s.lid+'</td><td style="color:var(--txm)">'+s.deelnames+'</td><td><div style="display:flex;gap:4px"><button class="btn btn-s btn-xs" onclick="editSpeler(\'' + s.id + '\')">Bewerk</button><button class="btn btn-d btn-xs" onclick="delSpeler(\'' + s.id + '\')">&#215;</button></div></td></tr>';
+    // Hash voor avatar-kleur (werkt ook met UUID-strings)
+    var hash = 0;
+    var idStr = String(s.id||'');
+    for (var i = 0; i < idStr.length; i++) hash = (hash + idStr.charCodeAt(i)) % cols.length;
+    var bg = cols[hash];
+
+    var hcp = (s.hcp != null) ? Number(s.hcp) : 0;
+    var hcpBadgeClass = hcp <= 10 ? 'bg' : hcp <= 20 ? 'bb' : 'bx';
+    var hcpStr = (s.hcp != null) ? hcp.toFixed(1) : '—';
+
+    // Rol-badge: alleen tonen als anders dan Speler
+    var rolBadge = '';
+    if (s.rol && s.rol !== 'Speler') {
+      var rolBg, rolColor;
+      if (s.rol === 'Superadmin') { rolBg = 'rgba(239,68,68,0.12)'; rolColor = '#dc2626'; }
+      else if (s.rol === 'Wedstrijdleider') { rolBg = 'rgba(22,163,74,0.12)'; rolColor = '#16a34a'; }
+      else if (s.rol === 'Secretaris') { rolBg = 'rgba(245,158,11,0.12)'; rolColor = '#a16207'; }
+      else { rolBg = '#f1f4f8'; rolColor = '#425466'; }
+      rolBadge = '<span style="background:' + rolBg + ';color:' + rolColor + ';font-size:9px;padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-left:6px;vertical-align:middle">' + escHtml(s.rol) + '</span>';
+    }
+
+    return '<tr>' +
+      '<td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:30px;height:30px;font-size:11px;background:' + bg + ';color:var(--g)">' + escHtml((s.voor||'?')[0] + (s.ach||'')[0]) + '</div><div><div style="font-weight:500">' + escHtml(s.voor + ' ' + s.ach) + rolBadge + '</div><div style="font-size:11px;color:var(--txm)">' + escHtml(s.email||'') + '</div></div></div></td>' +
+      '<td><span class="badge ' + hcpBadgeClass + '">' + hcpStr + '</span></td>' +
+      '<td><span class="badge bx">' + escHtml(s.ltype||'—') + '</span></td>' +
+      '<td style="color:var(--txm)">' + escHtml(s.email||'') + '</td>' +
+      '<td style="color:var(--txm)">' + escHtml(s.lid||'') + '</td>' +
+      '<td style="color:var(--txm)">' + (s.deelnames||0) + '</td>' +
+      '<td><div style="display:flex;gap:4px"><button class="btn btn-s btn-xs" onclick="editSpeler(\'' + s.id + '\')">Bewerk</button><button class="btn btn-d btn-xs" onclick="delSpeler(\'' + s.id + '\')">&#215;</button></div></td>' +
+    '</tr>';
   }).join('');
 }
 
