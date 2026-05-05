@@ -2509,6 +2509,179 @@ body.offline { padding-top: 38px; }
   border: 1.5px solid #e6eaf0;
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   UNIFIED APP SHELL CSS
+   ═══════════════════════════════════════════════════════════ */
+#screen-app { padding: 0; background: #f8faf8; min-height: 100vh; }
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 100%;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #e6eaf0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.app-header-left { display: flex; align-items: center; gap: 0.65rem; }
+.app-logo { display: flex; flex-direction: column; }
+.app-logo-text { font-size: 16px; font-weight: 800; color: #16a34a; line-height: 1; letter-spacing: -0.02em; }
+.app-logo-club { font-size: 11px; color: #8b94a3; line-height: 1.3; margin-top: 2px; }
+
+.app-header-right { display: flex; align-items: center; gap: 0.65rem; }
+.app-user-info { display: flex; flex-direction: column; align-items: flex-end; }
+.app-user-name { font-size: 13px; font-weight: 600; color: #0c1b2a; line-height: 1; }
+.app-user-rol {
+  font-size: 10px; color: #16a34a; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em;
+  background: rgba(22,163,74,0.08); padding: 2px 8px;
+  border-radius: 100px; margin-top: 3px;
+}
+.app-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #16a34a; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; flex-shrink: 0;
+}
+.app-btn-logout {
+  background: none; border: 1px solid #e6eaf0;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #8b94a3;
+  transition: all 0.15s;
+}
+.app-btn-logout:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+/* Main content area */
+.app-main {
+  flex: 1;
+  padding: 1rem;
+  padding-bottom: 6rem; /* ruimte voor bottom-nav */
+  overflow-x: hidden;
+}
+
+.app-tab-content { animation: appTabFade 0.2s ease-out; }
+@keyframes appTabFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.app-tab-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #8b94a3;
+  font-size: 14px;
+}
+
+/* Bottom nav (mobiel) */
+.app-nav {
+  display: flex;
+  background: #fff;
+  border-top: 1px solid #e6eaf0;
+  padding: 0.4rem 0;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.04);
+}
+
+.app-nav-item {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #8b94a3;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+
+.app-nav-item span {
+  font-size: 10px;
+  letter-spacing: -0.01em;
+}
+
+.app-nav-item.active {
+  color: #16a34a;
+}
+
+.app-nav-item:hover { color: #16a34a; }
+
+.app-nav-item svg {
+  flex-shrink: 0;
+}
+
+/* Desktop: sidebar layout */
+@media (min-width: 1024px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "header header"
+      "nav main";
+  }
+  .app-header { grid-area: header; }
+  .app-nav {
+    grid-area: nav;
+    position: static;
+    flex-direction: column;
+    border-top: none;
+    border-right: 1px solid #e6eaf0;
+    padding: 1rem 0.5rem;
+    box-shadow: none;
+    align-items: stretch;
+  }
+  .app-nav-item {
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 0.65rem 0.85rem;
+    gap: 12px;
+    border-radius: 8px;
+    margin-bottom: 2px;
+    font-size: 14px;
+  }
+  .app-nav-item span { font-size: 14px; }
+  .app-nav-item.active {
+    background: rgba(22,163,74,0.08);
+    color: #16a34a;
+  }
+  .app-main {
+    grid-area: main;
+    padding: 1.5rem 2rem;
+    padding-bottom: 1.5rem;
+    max-width: 1400px;
+  }
+}
+
+/* Mobiel: kleine schermen */
+@media (max-width: 380px) {
+  .app-logo-club { display: none; }
+  .app-user-info { display: none; }
+  .app-nav-item span { font-size: 9px; }
+}
 </style>
 
 <script>
@@ -5180,13 +5353,10 @@ function startSessie(user){
       tijd: Date.now()
     }));
   } catch(e) { console.warn('Sessie bewaren mislukt:', e.message); }
-  if(user.rol==='Speler'){
-    toonScherm('speler');
-    initSpelerPortaal();
-  } else {
-    toonScherm('admin');
-    initAdminInterface();
-  }
+
+  // Unified app — werkt voor alle rollen
+  toonScherm('app');
+  initUnifiedApp();
 }
 
 // Auto-login bij refresh — gebruikt opgeslagen sessie
@@ -9363,6 +9533,82 @@ function exportCSV(){
 // ============================================================
 // SPELER PORTAAL
 // ============================================================
+
+// ═══════════════════════════════════════════════════════════
+// UNIFIED APP — initialisatie en routing
+// ═══════════════════════════════════════════════════════════
+
+function initUnifiedApp() {
+  var u = _currentUser;
+  if (!u) return;
+
+  // Header invullen
+  var avEl = document.getElementById('app-avatar');
+  var nameEl = document.getElementById('app-user-name');
+  var rolEl = document.getElementById('app-user-rol');
+  if (avEl) avEl.textContent = (u.voor||'?')[0] + (u.ach||'')[0];
+  if (nameEl) nameEl.textContent = u.voor + ' ' + u.ach;
+  if (rolEl) rolEl.textContent = u.rol;
+
+  // Beheer-tab alleen tonen voor wedstrijdleider+
+  var beheerTab = document.querySelector('.app-nav-beheer');
+  if (beheerTab) {
+    var canBeheer = (u.rol === 'Superadmin' || u.rol === 'Wedstrijdleider' || u.rol === 'Secretaris');
+    beheerTab.style.display = canBeheer ? '' : 'none';
+  }
+
+  // Tab-click handlers
+  document.querySelectorAll('.app-nav-item').forEach(function(btn) {
+    btn.onclick = function() {
+      var tab = btn.dataset.appTab;
+      if (tab) appNav(tab);
+    };
+  });
+
+  // Laad data en navigeer naar default tab
+  var loadPromise = USERS.length > 8 ? Promise.resolve() : laadAlleData();
+  loadPromise.then(function() {
+    appNav('wedstrijden');
+  }).catch(function(e) {
+    console.warn('initUnifiedApp data load:', e.message);
+    appNav('wedstrijden');
+  });
+}
+
+// Tab navigatie
+function appNav(tabId) {
+  // Verberg alle tab-content
+  document.querySelectorAll('.app-tab-content').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  // Mark active button
+  document.querySelectorAll('.app-nav-item').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.appTab === tabId);
+  });
+  // Toon target
+  var target = document.getElementById('app-tab-' + tabId);
+  if (!target) return;
+  target.style.display = '';
+
+  // Render content per tab — gebruik bestaande functies waar mogelijk
+  try {
+    if (tabId === 'wedstrijden') {
+      target.innerHTML = '<div class="app-tab-loading">Wedstrijden komen in sessie 2...</div>';
+    } else if (tabId === 'scores') {
+      target.innerHTML = '<div class="app-tab-loading">Mijn scores komen in sessie 3...</div>';
+    } else if (tabId === 'ranglijst') {
+      target.innerHTML = '<div class="app-tab-loading">Ranglijst komt in sessie 3...</div>';
+    } else if (tabId === 'profiel') {
+      target.innerHTML = '<div class="app-tab-loading">Profiel komt in sessie 4...</div>';
+    } else if (tabId === 'beheer') {
+      target.innerHTML = '<div class="app-tab-loading">Beheer-sub-nav komt in sessie 4...</div>';
+    }
+  } catch(e) {
+    console.error('appNav error:', e);
+    target.innerHTML = '<div class="app-tab-loading" style="color:#dc2626">Fout bij laden: ' + e.message + '</div>';
+  }
+}
+
 function initSpelerPortaal(){
   var u=_currentUser;
   document.getElementById('sp-naam-display').textContent=u.voor+' '+u.ach;
@@ -15435,6 +15681,87 @@ try {
   <div class="modal-bg" onclick="closeModal('modal-vsa')"></div>
   <div class="modal-box" style="max-width:500px">
     <div id="modal-vsa-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     UNIFIED APP SHELL (refactor — vervangt screen-speler en screen-admin)
+     ═══════════════════════════════════════════════════════════ -->
+<div id="screen-app" class="screen">
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="app-header-left">
+        <div class="app-logo">
+          <span class="app-logo-text">Lekker Golfen</span>
+          <span class="app-logo-club" id="app-club">De Hooge Rotterdamsche</span>
+        </div>
+      </div>
+      <div class="app-header-right">
+        <div class="app-user-info">
+          <div class="app-user-name" id="app-user-name">—</div>
+          <div class="app-user-rol" id="app-user-rol">—</div>
+        </div>
+        <div class="app-avatar" id="app-avatar">–</div>
+        <button class="app-btn-logout" onclick="logout()" title="Uitloggen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content area -->
+    <main class="app-main" id="app-main">
+      <!-- Wedstrijden tab content -->
+      <div class="app-tab-content" id="app-tab-wedstrijden" style="display:none">
+        <div class="app-tab-loading">Wedstrijden laden...</div>
+      </div>
+
+      <!-- Mijn scores tab content -->
+      <div class="app-tab-content" id="app-tab-scores" style="display:none">
+        <div class="app-tab-loading">Mijn scores laden...</div>
+      </div>
+
+      <!-- Ranglijst tab content -->
+      <div class="app-tab-content" id="app-tab-ranglijst" style="display:none">
+        <div class="app-tab-loading">Ranglijst laden...</div>
+      </div>
+
+      <!-- Profiel tab content -->
+      <div class="app-tab-content" id="app-tab-profiel" style="display:none">
+        <div class="app-tab-loading">Profiel laden...</div>
+      </div>
+
+      <!-- Beheer tab content (alleen voor wl+) -->
+      <div class="app-tab-content" id="app-tab-beheer" style="display:none">
+        <div class="app-tab-loading">Beheer laden...</div>
+      </div>
+    </main>
+
+    <!-- Bottom-nav (mobiel) — wordt sidebar op desktop via CSS -->
+    <nav class="app-nav" id="app-nav">
+      <button class="app-nav-item active" data-app-tab="wedstrijden">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+        <span>Wedstrijden</span>
+      </button>
+      <button class="app-nav-item" data-app-tab="scores">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Mijn scores</span>
+      </button>
+      <button class="app-nav-item" data-app-tab="ranglijst">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+        <span>Ranglijst</span>
+      </button>
+      <button class="app-nav-item" data-app-tab="profiel">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profiel</span>
+      </button>
+      <button class="app-nav-item app-nav-beheer" data-app-tab="beheer" style="display:none">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Beheer</span>
+      </button>
+    </nav>
   </div>
 </div>
 </body>
