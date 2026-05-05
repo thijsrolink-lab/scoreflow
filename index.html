@@ -4813,11 +4813,17 @@ var BAAN_18 = {
 // Voor 9-holes wedstrijden: pak juiste helft van BAAN_18 (De Hooge)
 function getBaan9(welkeNegen) {
   var w = welkeNegen === 'in' ? 9 : 0;  // start-offset (0=UIT, 9=IN)
+  var siRaw = BAAN_18.si.slice(w, w+9);
+  // Hernummer SI van 1-18 naar 1-9 ranking voor stroke-verdeling op 9 holes
+  // Anders krijgt extraSlagenPerHole te weinig strokes verdeeld
+  var sorted = siRaw.slice().sort(function(a, b) { return a - b; });
+  var siRank = siRaw.map(function(s) { return sorted.indexOf(s) + 1; });
   return {
     naam: BAAN_18.naam + ' (' + (welkeNegen === 'in' ? 'IN, hole 10-18' : 'UIT, hole 1-9') + ')',
     holes: 9,
     par: BAAN_18.par.slice(w, w+9),
-    si: BAAN_18.si.slice(w, w+9),
+    si: siRank,        // 9-holes SI (1-9 ranking)
+    siOrigineel: siRaw, // bewaar 18-holes SI voor evt weergave
     welkeNegen: welkeNegen || 'uit'
   };
 }
