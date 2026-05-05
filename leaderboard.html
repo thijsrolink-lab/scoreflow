@@ -543,11 +543,16 @@ function coSponsorenVoorWedstrijd(wId) {
 
 function getBaan9(welkeNegen) {
   var w = welkeNegen === 'in' ? 9 : 0;
+  var siRaw = BAAN_18.si.slice(w, w+9);
+  // Hernummer SI 1-18 → 1-9 ranking voor correcte stroke-verdeling op 9 holes
+  var sorted = siRaw.slice().sort(function(a, b) { return a - b; });
+  var siRank = siRaw.map(function(s) { return sorted.indexOf(s) + 1; });
   return {
     naam: BAAN_18.naam + ' (' + (welkeNegen === 'in' ? 'IN, hole 10-18' : 'UIT, hole 1-9') + ')',
     holes: 9,
     par: BAAN_18.par.slice(w, w+9),
-    si: BAAN_18.si.slice(w, w+9),
+    si: siRank,
+    siOrigineel: siRaw,
     welkeNegen: welkeNegen || 'uit'
   };
 }
