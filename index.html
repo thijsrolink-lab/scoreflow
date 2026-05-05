@@ -3592,6 +3592,8 @@ function openWdBeheer(wId) {
     if (isTS) {
       document.getElementById('mwb-drivemin').value = w.driveMin != null ? w.driveMin : 4;
       document.getElementById('mwb-drivemax').value = w.driveMax != null ? w.driveMax : 5;
+      var tsFormuleEl = document.getElementById('mwb-tsformule');
+      if (tsFormuleEl) tsFormuleEl.value = w.tsFormule || 'app';
     }
   }
   var mwbBlind = document.getElementById('mwb-blind');
@@ -3640,6 +3642,8 @@ async function opslaanWdBeheer() {
   if (isTS) {
     w.driveMin = dminEl ? parseInt(dminEl.value) : null;
     w.driveMax = dmaxEl ? parseInt(dmaxEl.value) : null;
+    var tsFormuleEl2 = document.getElementById('mwb-tsformule');
+    if (tsFormuleEl2) w.tsFormule = tsFormuleEl2.value || 'app';
   }
   var mwbBlind2 = document.getElementById('mwb-blind');
   w.blindHoles = mwbBlind2 ? parseInt(mwbBlind2.value) || 0 : 0;
@@ -4565,7 +4569,8 @@ function dbWedstrijdNaarApp(w) {
     driveMax: w.drive_max != null ? w.drive_max : null,
     blindHoles: w.blind_holes || 0,
     welkeNegen: w.welke_negen || 'uit',
-    publiekLeaderboard: !!w.publiek_leaderboard,};
+    publiekLeaderboard: !!w.publiek_leaderboard,
+    tsFormule: w.ts_formule || 'app',};
 }
 function dbIngNaarApp(i) {
   return {
@@ -4712,7 +4717,8 @@ async function dbSaveWedstrijd(w) {
       drive_max: w.driveMax != null ? w.driveMax : null,
       blind_holes: w.blindHoles || 0,
       welke_negen: w.welkeNegen || 'uit',
-      publiek_leaderboard: !!w.publiekLeaderboard,};
+      publiek_leaderboard: !!w.publiekLeaderboard,
+      ts_formule: w.tsFormule || 'app',};
     if (w.id && String(w.id).includes('-')) {
       await supa('wedstrijden', 'PATCH', data, { id: 'eq.' + w.id });
     } else {
@@ -4967,13 +4973,41 @@ function bogeyResultaat(totaal) {
 // ── Texas Scramble ─────────────────────────────────────────
 // Team: iedereen slaat af, beste bal gekozen, vandaar verder
 // Teamhandicap = (A + B*0.6 + C*0.4 + D*0.2) / 4  (4-man)
-function teamHandicapScramble(spelers, perc) {
+// Texas Scramble team-handicap berekening — twee formules beschikbaar
+// 'app' = huidige (gewogen 1.0/0.6/0.4/0.2 / aantal × perc) — origineel
+// 'a' = drop laagste gewichten: 4-mans 10/15/20/25 → 3-mans 15/20/25 → 2-mans 20/25
+function teamHandicapScramble(spelers, perc, formule) {
   perc = perc || 1.0;
+  formule = formule || 'app';
+
+  var sortHcp = spelers.map(function(s) { return s.hcp || 0; }).sort(function(a, b) { return a - b; });
+  var n = sortHcp.length;
+  if (n === 0) return 0;
+
+  if (formule === 'a') {
+    // Benadering A: 10/15/20/25 (beste→slechtste), drop laagste % bij minder spelers
+    // 4-mans: [0.10, 0.15, 0.20, 0.25] (totaal 70%)
+    // 3-mans: [0.15, 0.20, 0.25] (totaal 60%)
+    // 2-mans: [0.20, 0.25] (totaal 45%)
+    // 1-mans: [0.25]
+    var weights;
+    if (n >= 4) weights = [0.10, 0.15, 0.20, 0.25];
+    else if (n === 3) weights = [0.15, 0.20, 0.25];
+    else if (n === 2) weights = [0.20, 0.25];
+    else weights = [0.25];
+
+    var som = 0;
+    for (var i = 0; i < n && i < weights.length; i++) {
+      som += sortHcp[i] * weights[i];
+    }
+    // Geen extra perc op deze formule — de percentages ZIJN de perc
+    return Math.round(som);
+  }
+
+  // Default 'app': originele formule
   var gewichten = [1.0, 0.6, 0.4, 0.2];
-  var sortHcp = spelers.map(function(s) { return s.hcp; }).sort(function(a, b) { return a - b; });
-  var som = sortHcp.reduce(function(a, h, i) { return a + h * (gewichten[i] || 0.2); }, 0);
-  var teamHcp = Math.round((som / spelers.length) * perc);
-  return teamHcp;
+  var som2 = sortHcp.reduce(function(a, h, i) { return a + h * (gewichten[i] || 0.2); }, 0);
+  return Math.round((som2 / n) * perc);
 }
 function berekenTeamStroke(scores, baan, teamSH, escType) {
   // Scores zijn al de gekozen beste bal per hole
@@ -8159,7 +8193,7 @@ function uiTexasScramble(wId, ronde, baan, sps, w) {
     }).filter(Boolean);
     if (!spelers.length) return null;
 
-    var teamHcp = teamHandicapScramble(spelers, perc);
+    var teamHcp = teamHandicapScramble(spelers, perc, (w && w.tsFormule) || 'app');
     var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
     var teamKey = 'team-' + fi;
     var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
@@ -8461,7 +8495,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     }).filter(Boolean);
     if (!spelers.length) return null;
 
-    var teamHcp = teamHandicapScramble(spelers, perc);
+    var teamHcp = teamHandicapScramble(spelers, perc, (w && w.tsFormule) || 'app');
     var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
     var teamKey = 'team-' + fi;
     var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
@@ -8518,7 +8552,7 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
     }).filter(Boolean);
     if (!spelers.length) return null;
 
-    var teamHcp = teamHandicapScramble(spelers, perc);
+    var teamHcp = teamHandicapScramble(spelers, perc, (w && w.tsFormule) || 'app');
     var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
     var teamKey = 'team-' + fi;
     var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
@@ -8612,7 +8646,7 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
   }).filter(Boolean);
 
   var perc = (w.hcpperc || 100) / 100;
-  var teamHcp = teamHandicapScramble(spelers, perc);
+  var teamHcp = teamHandicapScramble(spelers, perc, (w && w.tsFormule) || 'app');
   var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
   var teamKey = 'team-' + mijnFlightIdx;
 
@@ -9832,7 +9866,7 @@ function renderRanglijst(){
         return USERS.find(function(s) { return s.id === sid; });
       }).filter(Boolean);
       if (!spelers.length) return null;
-      var teamHcp = teamHandicapScramble(spelers, perc);
+      var teamHcp = teamHandicapScramble(spelers, perc, (w && w.tsFormule) || 'app');
       var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
       var teamKey = 'team-' + fi;
       var scores = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][teamKey]);
@@ -11137,7 +11171,7 @@ function renderLiveLeaderboard() {
         return sps.find(function(s) { return s.id === sid; });
       }).filter(Boolean);
       if (!spelers.length) return null;
-      var teamHcp = teamHandicapScramble(spelers, perc);
+      var teamHcp = teamHandicapScramble(spelers, perc, (w && w.tsFormule) || 'app');
       var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
       var teamKey = 'team-' + fi;
       var scores = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][teamKey]);
@@ -15174,8 +15208,19 @@ try {
     </div>
 
     <div id="mwb-drive-quota" style="display:none;border-top:1px solid #e6eaf0;padding-top:1rem;margin-top:1rem">
-      <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.5rem 0">Drive-quota (Texas Scramble)</h4>
-      <div class="g2">
+      <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b94a3;margin:0 0 0.5rem 0">Texas Scramble instellingen</h4>
+      <div class="field">
+        <label>Team-handicap berekening</label>
+        <select id="mwb-tsformule">
+          <option value="app">Gewogen × 35% (huidige formule)</option>
+          <option value="a">10/15/20/25 van handicaps (4-mans, drop bij minder spelers)</option>
+        </select>
+        <small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">
+          <strong>Gewogen × 35%</strong>: gewogen som [1.0, 0.6, 0.4, 0.2] × 35%. Geeft alle teams een platte SH.<br>
+          <strong>10/15/20/25</strong>: beste→slechtste speler. 4-mans = 70% van som. 3-mans = 60%. 2-mans = 45%.
+        </small>
+      </div>
+      <div class="g2" style="margin-top:0.75rem">
         <div class="field"><label>Min. drives per speler</label><input id="mwb-drivemin" type="number" min="0" max="18" value="4"/></div>
         <div class="field"><label>Max. drives per speler</label><input id="mwb-drivemax" type="number" min="1" max="18" value="5"/></div>
       </div>
