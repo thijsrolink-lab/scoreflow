@@ -159,6 +159,12 @@ html, body {
 @media (max-width: 768px) {
   .lb-container { padding: 0.5rem 0.5rem; }
   .lb-row { padding: .65rem .75rem; gap: .55rem; }
+  /* Verberg secundaire kolommen op smal scherm — info komt inline onder teamnaam */
+  .lb-col-bruto, .lb-col-vspar, .lb-col-gespeeld { display: none !important; }
+  .lb-col-bruto-th, .lb-col-vspar-th, .lb-col-gespeeld-th { display: none !important; }
+  .lb-mobile-sub { display: block !important; }
+  /* Compactere kolommen */
+  table.lb th, table.lb td { padding: .5rem .35rem !important; font-size: 13px !important; }
   .lb-pos { width: 30px; height: 30px; font-size: 13px; flex-shrink: 0; }
   .lb-naam-tx { font-size: 15px; }
   .lb-naam-sub { font-size: 11px; margin-top: 1px; }
@@ -496,19 +502,29 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
 
   var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Texas Scramble leaderboard — gesorteerd op netto score per team</div>';
   html += '<table class="tbl"><thead><tr>' +
-    '<th style="width:32px">#</th><th>Team</th><th>SH</th><th>Netto</th><th>Bruto</th><th>+/- par</th><th>Gespeeld</th>' +
+    '<th style="width:32px">#</th><th>Team</th><th>SH</th><th>Netto</th><th class="lb-col-bruto-th">Bruto</th><th class="lb-col-vspar-th">+/- par</th><th class="lb-col-gespeeld-th">Gespeeld</th>' +
     '</tr></thead><tbody>';
   rows.forEach(function(r, i) {
     var p = i+1; var pcls = p===1?'lb-1':p===2?'lb-2':p===3?'lb-3':'lb-n';
     html += '<tr>';
     html += '<td><div class="lb-pos ' + pcls + '">' + p + '</div></td>';
-    html += '<td><div style="font-size:11px;color:var(--gm);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Flight ' + r.flight + '</div><div style="font-weight:500">' + escHtml(r.teamNaam) + '</div></td>';
+    var vsParCls = (r.has && r.nettoVsPar < 0) ? 'under' : (r.has && r.nettoVsPar > 0 ? 'over' : '');
+    var vsParTxt = r.has ? formatVsPar(r.nettoVsPar) : '—';
+    var gespeeldTxt = r.gespeeld + '/' + baan.holes;
+    // Mobiel: extra info onder team-naam (alleen zichtbaar op smal scherm via CSS)
+    html += '<td>' +
+      '<div style="font-size:11px;color:var(--gm);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Flight ' + r.flight + '</div>' +
+      '<div style="font-weight:500">' + escHtml(r.teamNaam) + '</div>' +
+      '<div class="lb-mobile-sub" style="display:none;font-size:11px;color:var(--txm);margin-top:3px">' +
+        '<span class="' + vsParCls + '">' + vsParTxt + '</span> · ' +
+        '<span>' + gespeeldTxt + '</span>' +
+      '</div>' +
+    '</td>';
     html += '<td style="color:var(--txm)">' + r.teamSh + '</td>';
     html += '<td style="font-weight:600;color:var(--g);font-size:16px">' + (r.has ? r.netto : '—') + '</td>';
-    html += '<td style="color:var(--txm)">' + (r.has ? r.bruto : '—') + '</td>';
-    html += '<td class="' + (r.has && r.nettoVsPar < 0 ? 'under' : r.has && r.nettoVsPar > 0 ? 'over' : '') + '">' +
-      (r.has ? formatVsPar(r.nettoVsPar) : '—') + '</td>';
-    html += '<td style="color:var(--txm)">' + r.gespeeld + '/' + baan.holes + '</td>';
+    html += '<td class="lb-col-bruto" style="color:var(--txm)">' + (r.has ? r.bruto : '—') + '</td>';
+    html += '<td class="lb-col-vspar ' + vsParCls + '">' + vsParTxt + '</td>';
+    html += '<td class="lb-col-gespeeld" style="color:var(--txm)">' + gespeeldTxt + '</td>';
     html += '</tr>';
   });
   return html + '</tbody></table>';
