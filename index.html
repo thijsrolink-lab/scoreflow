@@ -8643,14 +8643,21 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
 
 // ── Speler ziet team scorekaart van eigen flight (Texas Scramble) ──
 function renderSpelerTeamScorekaart(wId, w, baan, u) {
+  console.log('[SK-DEBUG] renderSpelerTeamScorekaart called, wId:', wId, 'vorm:', w && w.vorm);
   var container = document.getElementById('sp-scorekaart-content');
-  if (!container) return;
+  if (!container) {
+    console.warn('[SK-DEBUG] sp-scorekaart-content container niet gevonden!');
+    return;
+  }
+  console.log('[SK-DEBUG] container gevonden, gaat renderen...');
 
   var flights = FLIGHTS[wId] || [];
+  console.log('[SK-DEBUG] flights voor wId:', flights, 'mijn id:', u && u.id);
   var mijnFlightIdx = -1;
   flights.forEach(function(f, idx) {
     if (f.indexOf(u.id) >= 0) mijnFlightIdx = idx;
   });
+  console.log('[SK-DEBUG] mijnFlightIdx:', mijnFlightIdx);
 
   if (mijnFlightIdx < 0) {
     container.innerHTML = '<div style="padding:1.5rem;text-align:center;background:var(--surf);border-radius:var(--r);color:var(--txm);font-size:13px">' +
@@ -10649,7 +10656,12 @@ var _skScores = [];
 
 function initScorekaart() {
   var wId = document.getElementById('sk-w').value;
-  if (!wId) { document.getElementById('sp-scorekaart-content').innerHTML = ''; return; }
+  console.log('[SK-DEBUG] initScorekaart called, wId:', wId);
+  if (!wId) {
+    console.warn('[SK-DEBUG] geen wId, return');
+    document.getElementById('sp-scorekaart-content').innerHTML = '<p style="color:#dc2626">Debug: geen wedstrijd-ID</p>';
+    return;
+  }
   var u = _currentUser;
   var ing = INSCHRIJVINGEN.find(function(i) { return i.wid === wId && i.sid === u.id && i.status === 'ingeschreven'; });
   if (!ing) { document.getElementById('sp-scorekaart-content').innerHTML = '<p style="color:var(--txm);font-size:13px">Je bent niet ingeschreven voor deze wedstrijd.</p>'; return; }
