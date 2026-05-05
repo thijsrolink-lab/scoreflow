@@ -859,14 +859,20 @@ function renderGwLeaderboard() {
   document.getElementById('lb-sub').textContent = dStr + ' · ' + g.vorm + ' · ' + g.holes + ' holes' + (g.baan ? ' · ' + g.baan : '');
   document.getElementById('lb-club').textContent = g.baan || 'Groepswedstrijd';
 
-  // Baan setup (De Hooge gele tee — dezelfde defaults als in app)
-  var baan = {
-    holes: g.holes,
-    par: g.holes === 9 ? [4,4,4,3,5,4,4,4,4] : [4,4,4,3,5,4,4,4,4,5,3,5,3,4,3,4,4,4],
-    si: g.holes === 9 ? [8,10,14,18,12,16,2,4,6] : [8,10,14,18,12,16,2,4,6,9,17,1,15,3,11,5,13,7],
-    slope: 131,
-    cr: g.holes === 9 ? 36.05 : 72.1
-  };
+  // Baan setup (De Hooge gele tee — gebruik getBaan() voor juiste UIT/IN per welke_negen)
+  var baan;
+  if (g.holes === 9) {
+    baan = getBaan9(g.welkeNegen || g.welke_negen || 'uit');
+  } else {
+    baan = getBaan(18);
+  }
+  baan.slope = 131;
+  // CR per kant: UIT-9 = 35.5, IN-9 = 34.5, 18h = 71 (gele tee, heren)
+  if (g.holes === 9) {
+    baan.cr = (g.welkeNegen === 'in' || g.welke_negen === 'in') ? 34.5 : 35.5;
+  } else {
+    baan.cr = 71;
+  }
   baan.parTotaal = baan.par.reduce(function(a,b) { return a+b; }, 0);
 
   // Bereken stand per deelnemer
