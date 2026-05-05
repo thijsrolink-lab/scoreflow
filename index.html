@@ -8689,14 +8689,15 @@ function buildLbFlightScorekaart(r, baan, w) {
   });
   html += '<td style="text-align:center;color:#8b94a3;font-weight:600;padding:3px 6px">' + baan.parTotaal + '</td>';
   html += '</tr>';
-  // Score-rij
+  // Score-rij — beperk loop tot baan.holes (scores-array kan langer zijn dan 9 voor 9-holes wedstrijden)
   html += '<tr><td style="color:#0c1b2a;font-weight:600;padding:3px 4px">Team</td>';
   var brutoTotal = 0;
-  r.scores.forEach(function(s, i) {
-    if (s !== '' && s !== null) {
+  for (var hi = 0; hi < baan.holes; hi++) {
+    var s = r.scores[hi];
+    if (s !== '' && s !== null && s !== undefined) {
       var n = Number(s);
       brutoTotal += n;
-      var par = baan.par[i];
+      var par = baan.par[hi];
       var diff = n - par;
       var bg = '', col = '#0c1b2a';
       if (diff <= -2) { bg = 'background:#16a34a'; col = '#fff'; }
@@ -8707,7 +8708,7 @@ function buildLbFlightScorekaart(r, baan, w) {
     } else {
       html += '<td style="text-align:center;color:#cbd5e1;padding:3px 4px">—</td>';
     }
-  });
+  }
   html += '<td style="text-align:center;color:#0c1b2a;font-weight:700;padding:3px 6px">' + (brutoTotal || '—') + '</td>';
   html += '</tr>';
   html += '</tbody></table>';
