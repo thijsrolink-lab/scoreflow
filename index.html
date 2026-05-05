@@ -2589,16 +2589,13 @@ function wedstrijdFase(w) {
 function scorekaartToegankelijk(w) {
   if (!w) return false;
   var fase = wedstrijdFase(w);
+  // Open zodra wedstrijd live of afgerond is
+  // Niet open: concept of afgelast
   if (fase === 'afgelast' || fase === 'concept') return false;
-
-  var now = Date.now();
-  var startTs = wedstrijdStartTs(w);
-  var eindeTs = wedstrijdEindeTs(w);
-  if (!startTs || !eindeTs) return false;
-
-  var twoHoursBefore = startTs - 2 * 60 * 60 * 1000;
-  // Open window: [start-2u, middernacht)
-  return now >= twoHoursBefore && now < eindeTs;
+  // Live: open voor invoer
+  // Afgerond: open voor inzage (read-only via fase-check elders)
+  // Gepubliceerd: ook open — wedstrijdleider zet 'm op live wanneer ready
+  return fase === 'live' || fase === 'afgerond' || fase === 'gepubliceerd';
 }
 
 // Kan admin dit veld nog bewerken?
@@ -8643,21 +8640,14 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
 
 // ── Speler ziet team scorekaart van eigen flight (Texas Scramble) ──
 function renderSpelerTeamScorekaart(wId, w, baan, u) {
-  console.log('[SK-DEBUG] renderSpelerTeamScorekaart called, wId:', wId, 'vorm:', w && w.vorm);
   var container = document.getElementById('sp-scorekaart-content');
-  if (!container) {
-    console.warn('[SK-DEBUG] sp-scorekaart-content container niet gevonden!');
-    return;
-  }
-  console.log('[SK-DEBUG] container gevonden, gaat renderen...');
+  if (!container) return;
 
   var flights = FLIGHTS[wId] || [];
-  console.log('[SK-DEBUG] flights voor wId:', flights, 'mijn id:', u && u.id);
   var mijnFlightIdx = -1;
   flights.forEach(function(f, idx) {
     if (f.indexOf(u.id) >= 0) mijnFlightIdx = idx;
   });
-  console.log('[SK-DEBUG] mijnFlightIdx:', mijnFlightIdx);
 
   if (mijnFlightIdx < 0) {
     container.innerHTML = '<div style="padding:1.5rem;text-align:center;background:var(--surf);border-radius:var(--r);color:var(--txm);font-size:13px">' +
@@ -8741,19 +8731,12 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     return '<select class="drive-sel" data-wid="' + wId + '" data-flight="' + mijnFlightIdx + '" data-hole="' + (holeIdx + 1) + '" onchange="updateDriver(this)" style="font-size:11px;padding:3px 6px;border:1px solid var(--bd);border-radius:4px;background:#fff;width:100%;font-family:inherit">' + opts + '</select>';
   } : null;
 
-  console.log('[SK-DEBUG] vóór bouwSpelerHoleRijen, baan:', baan, 'scores:', scores);
-  try {
-    html += bouwSpelerHoleRijen({
-      scores: scores,
-      baan: baan,
-      onchangeAttr: 'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);"',
-      getHoleExtra: driverDropdownExtra
-    });
-    console.log('[SK-DEBUG] na bouwSpelerHoleRijen, html lengte:', html.length);
-  } catch(e) {
-    console.error('[SK-DEBUG] crash in bouwSpelerHoleRijen:', e);
-    html += '<div style="padding:1rem;background:#fef2f2;border:1px solid #fecaca;color:#991b1b">Crash bij bouwen scorekaart: ' + e.message + '</div>';
-  }
+  html += bouwSpelerHoleRijen({
+    scores: scores,
+    baan: baan,
+    onchangeAttr: 'data-wid="' + wId + '" data-ronde="0" data-team="' + teamKey + '" onchange="updateTeamScore(this);setTimeout(function(){initScorekaart();},150);"',
+    getHoleExtra: driverDropdownExtra
+  });
 
   // Info
   html += '<div style="font-size:12px;color:var(--txm);margin-top:.75rem;padding:.6rem .75rem;background:var(--gl);border-radius:var(--r);border-left:3px solid var(--lime)">';
@@ -8782,9 +8765,7 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     }
   }
 
-  console.log('[SK-DEBUG] zet innerHTML, html lengte:', html.length, 'container:', container);
   container.innerHTML = html;
-  console.log('[SK-DEBUG] innerHTML gezet, container.children.length:', container.children.length);
 
   // Auto-refresh: poll DB elke 15s om scores van teamleden te syncen
   if (typeof _teamScoreRefreshTimer !== 'undefined' && _teamScoreRefreshTimer) {
@@ -10665,12 +10646,7 @@ var _skScores = [];
 
 function initScorekaart() {
   var wId = document.getElementById('sk-w').value;
-  console.log('[SK-DEBUG] initScorekaart called, wId:', wId);
-  if (!wId) {
-    console.warn('[SK-DEBUG] geen wId, return');
-    document.getElementById('sp-scorekaart-content').innerHTML = '<p style="color:#dc2626">Debug: geen wedstrijd-ID</p>';
-    return;
-  }
+  if (!wId) { document.getElementById('sp-scorekaart-content').innerHTML = ''; return; }
   var u = _currentUser;
   var ing = INSCHRIJVINGEN.find(function(i) { return i.wid === wId && i.sid === u.id && i.status === 'ingeschreven'; });
   if (!ing) { document.getElementById('sp-scorekaart-content').innerHTML = '<p style="color:var(--txm);font-size:13px">Je bent niet ingeschreven voor deze wedstrijd.</p>'; return; }
