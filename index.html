@@ -11922,7 +11922,7 @@ function gwOpenDetail(id) {
 
   // Bouw baan voor scoring (De Hooge gele tee)
   var baan = getBaan(g.holes, null, null, g.welkeNegen);
-  baan.slope = 131; baan.cr = (g.holes === 9 ? 36.05 : 72.1);
+  baan.slope = 131; baan.cr = (g.holes === 9 ? (g.welkeNegen === 'in' ? 34.5 : 35.5) : 72.1);
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
 
   // Leaderboard
@@ -12042,7 +12042,7 @@ function gwRenderScorekaartView() {
 
   // Baan setup (De Hooge gele tee — toekomstig configureerbaar per club)
   var baan = getBaan(g.holes, null, null, g.welkeNegen);
-  baan.slope = 131; baan.cr = (g.holes === 9 ? 36.05 : 72.1);
+  baan.slope = 131; baan.cr = (g.holes === 9 ? (g.welkeNegen === 'in' ? 34.5 : 35.5) : 72.1);
   baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
 
   // Header (terug + naam)
