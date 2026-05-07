@@ -484,6 +484,25 @@ var _currentUser = null;
 var urlParams = new URLSearchParams(window.location.search);
 var WID = urlParams.get('w') || urlParams.get('wid') || urlParams.get('wedstrijd');
 var GW_CODE = urlParams.get('gw') || urlParams.get('groep');
+
+// Ondersteun ook compact UUID-formaat (32 hex zonder streepjes)
+// — chat-apps knippen lange URLs met streepjes soms af
+function normaliseerUUID(s) {
+  if (!s) return null;
+  s = s.toLowerCase().trim();
+  // Al juiste formaat?
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(s)) {
+    return s;
+  }
+  // Compact 32-char zonder streepjes? Voeg streepjes toe.
+  if (/^[0-9a-f]{32}$/.test(s)) {
+    return s.slice(0,8) + '-' + s.slice(8,12) + '-' + s.slice(12,16) + '-' + s.slice(16,20) + '-' + s.slice(20,32);
+  }
+  return null; // ongeldig
+}
+WID = normaliseerUUID(WID);
+var UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var WID_VALID = WID && UUID_REGEX.test(WID);
 var IS_GW = !!GW_CODE;
 var GW_DATA = null;  // Cache voor gw-data
 
@@ -1077,6 +1096,19 @@ async function laadWedstrijdData() {
   // Groepswedstrijd flow: laad via code
   if (IS_GW) {
     return await laadGroepswedstrijdData();
+  }
+
+  // Vroegtijdige check: is de UUID compleet?
+  // Sommige chat-apps (WhatsApp, etc.) knippen lange URLs af
+  if (!WID_VALID) {
+    document.getElementById('lb-content').innerHTML =
+      '<div class="lb-error">' +
+        '<div style="font-size:18px;margin-bottom:0.5rem">⚠️ URL onvolledig</div>' +
+        '<div style="margin-bottom:1rem">De link naar deze wedstrijd is incompleet — waarschijnlijk afgekapt door je chat-app.</div>' +
+        '<div style="font-size:13px;opacity:0.8">Vraag de wedstrijdleider om de link opnieuw te sturen, of open via de Claude.ai-app onder \'Live leaderboard\'.</div>' +
+        (WID ? '<div style="font-size:11px;opacity:0.5;margin-top:1rem">Ontvangen: ' + escHtml(WID) + ' (' + WID.length + ' tekens, moet 36 zijn)</div>' : '') +
+      '</div>';
+    return false;
   }
 
   try {
