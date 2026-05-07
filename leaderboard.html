@@ -994,22 +994,48 @@ function renderGwLeaderboard() {
   document.getElementById('lb-refresh-text').textContent = 'Laatst ververst: ' + nu;
 }
 
-// ─── Supabase fetch ──────────────────────────
-async function supaGET(table, params) {
+// ─── Supabase fetch met retry voor cold-start / rate-limit ──
+async function supaGET(table, params, retries) {
   params = params || {};
+  retries = (retries == null) ? 2 : retries;  // 2 retries = 3 pogingen totaal
   var qs = Object.keys(params).map(function(k) {
     return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
   }).join('&');
   var url = SUPA_URL + '/rest/v1/' + table + (qs ? '?' + qs : '');
-  var res = await fetch(url, {
-    headers: {
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + SUPA_KEY,
-      'Content-Type': 'application/json'
+
+  var lastError;
+  for (var attempt = 0; attempt <= retries; attempt++) {
+    try {
+      var res = await fetch(url, {
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) return await res.json();
+      // 4xx behalve 408/429 zijn permanente fouten — geen retry zinvol
+      if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
+        // Wacht: HTTP 400 is meestal request-fout, maar Supabase geeft 'm soms ook bij cold-start
+        // Dus we retryen alleen als het de eerste poging is
+        if (attempt === 0) {
+          lastError = new Error('HTTP ' + res.status + ' op ' + table);
+          await new Promise(function(r) { setTimeout(r, 500); });
+          continue;
+        }
+        throw new Error('HTTP ' + res.status + ' op ' + table);
+      }
+      // 5xx of 408/429: retry met backoff
+      lastError = new Error('HTTP ' + res.status + ' op ' + table);
+    } catch (e) {
+      lastError = e;
     }
-  });
-  if (!res.ok) throw new Error('HTTP ' + res.status + ' op ' + table);
-  return await res.json();
+    // Backoff: 500ms, 1500ms (exponential-ish)
+    if (attempt < retries) {
+      await new Promise(function(r) { setTimeout(r, 500 * Math.pow(2, attempt)); });
+    }
+  }
+  throw lastError || new Error('Onbekende fout op ' + table);
 }
 
 function dbWedstrijdNaarApp(w) {
