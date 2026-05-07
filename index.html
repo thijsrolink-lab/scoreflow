@@ -3617,7 +3617,7 @@ function openWdBeheer(wId) {
 
 // Open leaderboard in nieuw browservenster (TV-mode)
 function openTvLeaderboard(wId) {
-  var url = './leaderboard.html?w=' + encodeURIComponent(wId);
+  var url = './leaderboard.html?w=' + encodeURIComponent((wId || '').replace(/-/g, ''));
   window.open(url, '_blank', 'noopener');
 }
 
@@ -11254,7 +11254,7 @@ function openLiveLeaderboard(forceWId) {
   }
   if (!wId) { toast('Kies eerst een wedstrijd.', 'err'); return; }
   // Open TV-mode leaderboard in nieuw tab (dezelfde standalone pagina)
-  var url = './leaderboard.html?w=' + encodeURIComponent(wId);
+  var url = './leaderboard.html?w=' + encodeURIComponent((wId || '').replace(/-/g, ''));
   window.open(url, '_blank', 'noopener');
 }
 
