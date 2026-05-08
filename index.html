@@ -2999,8 +2999,7 @@ async function dbSaveSponsor(sp) {
       jaarbedrag: sp.jaarbedrag || null,
       periode_start: sp.periodeStart || null,
       periode_eind: sp.periodeEind || null,
-      notitie: sp.notitie || null,
-      bijgewerkt: new Date().toISOString()
+      notitie: sp.notitie || null
     };
     if (sp.id && String(sp.id).includes('-')) {
       await supa('sponsoren', 'PATCH', data, { id: 'eq.' + sp.id });
