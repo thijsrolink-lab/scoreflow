@@ -8357,7 +8357,7 @@ function uiTexasScramble(wId, ronde, baan, sps, w) {
         html += '<td><strong>' + parSom + '</strong></td></tr>';
 
         html += '<tr class="si-row"><td class="lft">SI</td>';
-        for (var i = range[0]; i < range[1]; i++) html += '<td>' + baan.si[i] + '</td>';
+        for (var i = range[0]; i < range[1]; i++) html += '<td>' + (baan.siOrigineel ? baan.siOrigineel[i] : baan.si[i]) + '</td>';
         html += '<td>—</td></tr>';
 
         html += '<tr><td class="lft"><strong>Team</strong></td>';
@@ -9044,7 +9044,7 @@ function bouwSpelerHoleRijen(opts) {
     var v = scores[i];
     var isVal = v !== '' && v !== null && v !== undefined;
     var par = baan.par[i];
-    var si = baan.si[i];
+    var si = baan.siOrigineel ? baan.siOrigineel[i] : baan.si[i];
     var scoreClass = '';
     var scoreLabel = '';
     if (isVal) {
@@ -11040,7 +11040,7 @@ function renderScorekaart(w, baan, sh, u) {
 
   var holeHtml = '<div class="scorekaart-hole actief">' +
     '<div class="hole-header">' +
-    '<div><div class="hole-nr">Hole ' + (hi+1) + '</div><div style="font-size:12px;color:var(--txm)">Par ' + par + (extraSl > 0 ? ' · +'+ extraSl +' slag' : '') + ' · SI ' + baan.si[hi] + '</div></div>' +
+    '<div><div class="hole-nr">Hole ' + (hi+1) + '</div><div style="font-size:12px;color:var(--txm)">Par ' + par + (extraSl > 0 ? ' · +'+ extraSl +' slag' : '') + ' · SI ' + (baan.siOrigineel ? baan.siOrigineel[hi] : baan.si[hi]) + '</div></div>' +
     (w.vorm === 'Stableford' ? '<div class="sc-punten"><div class="sc-punten-val">' + (punten !== '' ? punten : '—') + '</div><div class="sc-punten-lbl">punten</div></div>' : '') +
     '</div>' +
     '<div class="score-controls">' +
@@ -12119,7 +12119,7 @@ function gwBouwInvoerTab(g, baan, actieveSpId, u) {
   if (hi >= g.holes) hi = g.holes - 1;
 
   var par = baan.par[hi];
-  var si = baan.si[hi];
+  var si = baan.siOrigineel ? baan.siOrigineel[hi] : baan.si[hi];
 
   // Progress dots — kleur PRIMAIR op basis van of IK zelf gescoord heb op deze hole
   //   • Donker groen (actief): jouw huidige hole
@@ -12345,7 +12345,7 @@ function gwBouwScorekaartTab(g, baan, actieveSpId) {
     html += '<td><strong>' + parSom + '</strong></td></tr>';
 
     html += '<tr class="si-row"><td class="lft">SI</td>';
-    for (var i = range[0]; i < range[1]; i++) html += '<td>' + baan.si[i] + '</td>';
+    for (var i = range[0]; i < range[1]; i++) html += '<td>' + (baan.siOrigineel ? baan.siOrigineel[i] : baan.si[i]) + '</td>';
     html += '<td>—</td></tr>';
 
     html += '<tr><td class="lft"><strong>Score</strong></td>';
