@@ -11809,6 +11809,35 @@ function gwVerwijderDeelnemer(uid) {
   gwRenderWizard();
 }
 
+// Verwijder deelnemer uit BESTAANDE (opgeslagen) groepswedstrijd
+async function gwVerwijderUitBestaande(gwId, uid) {
+  var g = GROEPSWEDSTRIJDEN.find(function(x) { return x.id === gwId; });
+  if (!g) return;
+  var deeln = g.deelnemers.find(function(d) { return d.uid === uid; });
+  if (!deeln) return;
+  if (deeln.isOrganisator) { toast('Organisator kan niet worden verwijderd.', 'err'); return; }
+
+  // Bevestiging vragen
+  var heeftScores = g.scores && g.scores[uid] && g.scores[uid].filter(function(s){return s!=='';}).length > 0;
+  var bevestigTekst = 'Weet je zeker dat je ' + deeln.naam + ' wil verwijderen?';
+  if (heeftScores) bevestigTekst += '\n\nLET OP: ' + deeln.naam + ' heeft al scores ingevoerd. Die worden ook verwijderd.';
+  if (!confirm(bevestigTekst)) return;
+
+  // Verwijder uit deelnemers + scores
+  g.deelnemers = g.deelnemers.filter(function(d) { return d.uid !== uid; });
+  if (g.scores && g.scores[uid]) delete g.scores[uid];
+
+  // Save naar DB
+  try {
+    await dbSaveGroepswedstrijd(g);
+    toast(deeln.naam + ' verwijderd.');
+    gwOpenDetail(gwId); // herrender
+  } catch (e) {
+    toast('Verwijderen mislukt: ' + e.message, 'err');
+    console.warn('gwVerwijderUitBestaande:', e);
+  }
+}
+
 // Gast toevoegen via modal
 var _gwGastTemp = null;
 function gwGastOpslaan() {
@@ -11975,12 +12004,18 @@ function gwOpenDetail(id) {
   deelHtml += g.deelnemers.map(function(deeln) {
     var isJij = deeln.uid === u.id;
     var initials = deeln.naam.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+    // Verwijder-knop alleen voor organisator, en niet voor zichzelf
+    var verwijderKnop = (isOrg && !deeln.isOrganisator)
+      ? '<button class="btn btn-d btn-xs" onclick="gwVerwijderUitBestaande(\'' + g.id + '\',\'' + deeln.uid + '\')" title="Verwijder ' + escHtml(deeln.naam) + '" style="margin-left:6px">&#215;</button>'
+      : '';
     return '<div class="gw-deelnemer-rij">' +
       '<div class="av" style="width:30px;height:30px;font-size:11px;background:' + (deeln.isGast?'var(--ambb)':isJij?'var(--g)':'var(--gl)') + ';color:' + (deeln.isGast?'var(--amb)':isJij?'#fff':'var(--g)') + '">' + initials + '</div>' +
       '<div style="flex:1"><div style="font-weight:' + (isJij?500:400) + '">' + escHtml(deeln.naam) +
       (deeln.isOrganisator ? ' <span class="gw-org-tag">Organisator</span>' : '') +
       (deeln.isGast ? ' <span class="gw-gast-tag">Gast</span>' : '') + '</div>' +
-      '<div style="font-size:11px;color:var(--txm)">HCP ' + Number(deeln.hcp).toFixed(1) + '</div></div></div>';
+      '<div style="font-size:11px;color:var(--txm)">HCP ' + Number(deeln.hcp).toFixed(1) + '</div></div>' +
+      verwijderKnop +
+      '</div>';
   }).join('') + '</div>';
 
   // Code box + deel-knoppen
