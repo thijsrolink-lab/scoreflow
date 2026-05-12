@@ -11749,7 +11749,7 @@ function gwStap1() {
       (d.isOrganisator ? ' <span class="gw-org-tag">Organisator</span>' : '') +
       (d.isGast ? ' <span class="gw-gast-tag">Gast</span>' : '') + '</div>' +
       '<div style="font-size:11px;color:var(--txm)">HCP ' + (d.hcp !== null ? Number(d.hcp).toFixed(1) : '—') + '</div></div>' +
-      (!d.isOrganisator ? '<button class="btn btn-d btn-xs" onclick="gwVerwijderDeelnemer(' + d.uid + ',\'' + (d.isGast?'gast':'lid') + '\')">&#215;</button>' : '') +
+      (!d.isOrganisator ? '<button class="btn btn-d btn-xs" onclick="gwVerwijderDeelnemer(\'' + d.uid + '\',\'' + (d.isGast?'gast':'lid') + '\')">&#215;</button>' : '') +
       '</div>';
   }).join('');
 
