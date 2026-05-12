@@ -12084,30 +12084,51 @@ function gwRenderScorekaartView() {
   document.getElementById('sp-scorekaart-legacy-content').innerHTML = switcherHtml + tabsHtml + tabContent;
 }
 
+// ─── Per-speler hole-navigatie: elke speler kiest eigen actieve hole ──
+// State zit op window._gwHoleByUser, key = user-id, value = hole-index (0-based)
+function _gwGetHole(uid) {
+  if (!window._gwHoleByUser) window._gwHoleByUser = {};
+  return window._gwHoleByUser[uid];
+}
+function _gwSetHole(uid, hole) {
+  if (!window._gwHoleByUser) window._gwHoleByUser = {};
+  window._gwHoleByUser[uid] = hole;
+}
+
 // ─── Tab 1: Score invoeren (1 hole groot + big buttons) ──────
 function gwBouwInvoerTab(g, baan, actieveSpId, u) {
-  // Actieve hole (gedeeld over alle spelers)
-  if (window._gwHole == null) {
-    // Default: laatste hole waar nog niet alle spelers gescoord hebben
+  // Actieve hole per ingelogde gebruiker (niet meer globaal gedeeld)
+  var huidigeUid = u && u.id ? u.id : '_anon';
+  var huidigHole = _gwGetHole(huidigeUid);
+  if (huidigHole == null) {
+    // Default: eerste hole waar IK zelf nog niet heb gescoord
+    // (of waar mijn flight nog niet heeft gescoord — fallback: alle spelers)
     var firstIncomplete = -1;
+    var mijnScores = (g.scores && g.scores[huidigeUid]) || [];
     for (var i = 0; i < g.holes; i++) {
-      var alleScored = g.deelnemers.every(function(d) {
-        var sc = (g.scores && g.scores[d.uid]) || [];
-        return sc[i] !== '' && sc[i] != null;
-      });
-      if (!alleScored) { firstIncomplete = i; break; }
+      if (mijnScores[i] === '' || mijnScores[i] == null) {
+        firstIncomplete = i;
+        break;
+      }
     }
-    window._gwHole = firstIncomplete >= 0 ? firstIncomplete : 0;
+    huidigHole = firstIncomplete >= 0 ? firstIncomplete : 0;
+    _gwSetHole(huidigeUid, huidigHole);
   }
-  var hi = window._gwHole;
+  var hi = huidigHole;
   if (hi < 0) hi = 0;
   if (hi >= g.holes) hi = g.holes - 1;
 
   var par = baan.par[hi];
   var si = baan.si[hi];
 
-  // Progress dots (gedeeld) — kleur op basis van hoeveel spelers gescoord hebben
+  // Progress dots — kleur PRIMAIR op basis van of IK zelf gescoord heb op deze hole
+  //   • Donker groen (actief): jouw huidige hole
+  //   • Donker groen met checkmark: jij hebt hier al gescoord
+  //   • Geel: jij niet, iemand anders wel
+  //   • Licht groen: iedereen klaar
+  //   • Grijs: niemand nog
   var dotsHtml = '<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:1rem">';
+  var mijnScores = (g.scores && g.scores[huidigeUid]) || [];
   for (var i = 0; i < g.holes; i++) {
     var nGescoord = g.deelnemers.filter(function(d) {
       var sc = (g.scores && g.scores[d.uid]) || [];
@@ -12115,13 +12136,15 @@ function gwBouwInvoerTab(g, baan, actieveSpId, u) {
     }).length;
     var totaal = g.deelnemers.length;
     var alleKlaar = nGescoord === totaal && totaal > 0;
+    var ikKlaar = mijnScores[i] !== '' && mijnScores[i] != null;
     var actief = i === hi;
     var bg, color;
     if (actief) { bg = '#16a34a'; color = '#fff'; }
     else if (alleKlaar) { bg = '#86efac'; color = '#0a4020'; }
-    else if (nGescoord > 0) { bg = '#fef3c7'; color = '#92400e'; }
+    else if (ikKlaar) { bg = '#bbf7d0'; color = '#166534'; }    // ik heb gescoord, anderen nog niet
+    else if (nGescoord > 0) { bg = '#fef3c7'; color = '#92400e'; }  // anderen wel, ik niet
     else { bg = '#e6eaf0'; color = '#8b94a3'; }
-    dotsHtml += '<button onclick="window._gwHole=' + i + ';gwRenderScorekaartView()" style="width:32px;height:32px;border-radius:50%;border:none;background:' + bg + ';color:' + color + ';font-weight:700;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">' + (i+1) + '</button>';
+    dotsHtml += '<button onclick="_gwSetHole(\'' + huidigeUid + '\',' + i + ');gwRenderScorekaartView()" style="width:32px;height:32px;border-radius:50%;border:none;background:' + bg + ';color:' + color + ';font-weight:700;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">' + (i+1) + '</button>';
   }
   dotsHtml += '</div>';
 
@@ -12216,10 +12239,10 @@ function gwBouwInvoerTab(g, baan, actieveSpId, u) {
 
   // Pijltjes naar vorige/volgende hole
   var navHtml = '<div style="display:flex;gap:8px">';
-  navHtml += '<button onclick="window._gwHole=Math.max(0,(window._gwHole||0)-1);gwRenderScorekaartView()" ' + (hi === 0 ? 'disabled' : '') +
+  navHtml += '<button onclick="_gwSetHole(\'' + huidigeUid + '\',Math.max(0,_gwGetHole(\'' + huidigeUid + '\')||0)-1);gwRenderScorekaartView()" ' + (hi === 0 ? 'disabled' : '') +
     ' style="flex:1;padding:14px;font-size:14px;font-weight:600;border:1px solid #e6eaf0;background:#fff;color:' + (hi === 0 ? '#cbd5e1' : '#0c1b2a') + ';border-radius:8px;cursor:' + (hi === 0 ? 'not-allowed' : 'pointer') + ';font-family:Inter,sans-serif">' +
     '&#8592; Hole ' + hi + '</button>';
-  navHtml += '<button onclick="window._gwHole=Math.min(' + (g.holes-1) + ',(window._gwHole||0)+1);gwRenderScorekaartView()" ' + (hi === g.holes - 1 ? 'disabled' : '') +
+  navHtml += '<button onclick="_gwSetHole(\'' + huidigeUid + '\',Math.min(' + (g.holes-1) + ',(_gwGetHole(\'' + huidigeUid + '\')||0)+1));gwRenderScorekaartView()" ' + (hi === g.holes - 1 ? 'disabled' : '') +
     ' style="flex:1;padding:14px;font-size:14px;font-weight:600;border:1px solid #16a34a;background:' + (hi === g.holes - 1 ? '#fff' : '#16a34a') + ';color:' + (hi === g.holes - 1 ? '#cbd5e1' : '#fff') + ';border-radius:8px;cursor:' + (hi === g.holes - 1 ? 'not-allowed' : 'pointer') + ';font-family:Inter,sans-serif">' +
     'Hole ' + (hi + 2) + ' &#8594;</button>';
   navHtml += '</div>';
@@ -12370,10 +12393,12 @@ async function gwTapScore(uid, hole, score) {
   // Re-render direct (visuele feedback)
   gwRenderScorekaartView();
 
-  // Auto-door naar volgende hole als alle spelers klaar én niet laatste hole
-  if (alleKlaar && score !== '' && hole < g.holes - 1) {
+  // Auto-door naar volgende hole als ik (de invoerder) zelf klaar ben op deze hole
+  // Voorheen: wachten tot ALLE spelers klaar waren — maar nu elke speler eigen hole-keuze
+  var huidigeUid = _currentUser && _currentUser.id ? _currentUser.id : '_anon';
+  if (score !== '' && hole < g.holes - 1) {
     setTimeout(function() {
-      window._gwHole = hole + 1;
+      _gwSetHole(huidigeUid, hole + 1);
       gwRenderScorekaartView();
     }, 600);
   }
