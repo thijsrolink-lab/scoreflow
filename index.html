@@ -8204,7 +8204,7 @@ function uiTexasScramble(wId, ronde, baan, sps, w) {
       'Nog geen flights aangemaakt. Ga eerst naar <strong>Flight-indeling</strong> om de teams in te delen.</div>';
   }
 
-  var perc = (w.hcpperc || 100) / 100;
+  var perc = hcpPercFraction(w);  // safe voor hcpperc=0
 
   // ─── Bereken state per flight ───
   var flightStates = flights.map(function(flightSids, fi) {
@@ -8508,7 +8508,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   var flights = FLIGHTS[wId] || [];
   if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
 
-  var perc = (w.hcpperc || 100) / 100;
+  var perc = hcpPercFraction(w);  // safe voor hcpperc=0
   var rows = flights.map(function(flightSids, fi) {
     var spelers = flightSids.map(function(sid) {
       return sps.find(function(s) { return s.id === sid; });
@@ -8537,22 +8537,36 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     };
   }).filter(Boolean);
 
-  rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+  var metHcp = gebruiktHcp(w);
+  rows.sort(function(a,b) {
+    if (!a.has) return 1; if (!b.has) return -1;
+    return metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto);
+  });
 
-  var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Texas Scramble leaderboard — gesorteerd op netto score per team</div>';
+  var subtitle = metHcp
+    ? 'Texas Scramble leaderboard — gesorteerd op netto score per team'
+    : 'Texas Scramble leaderboard — gesorteerd op bruto score per team';
+  var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">' + subtitle + '</div>';
   html += '<table class="tbl"><thead><tr>' +
-    '<th style="width:32px">#</th><th>Team</th><th>SH</th><th>Netto</th><th>Bruto</th><th>+/- par</th><th>Gespeeld</th>' +
+    '<th style="width:32px">#</th><th>Team</th>' +
+    (metHcp ? '<th>SH</th><th>Netto</th><th>Bruto</th>' : '<th>Bruto</th>') +
+    '<th>+/- par</th><th>Gespeeld</th>' +
     '</tr></thead><tbody>';
   rows.forEach(function(r, i) {
     var p = i+1; var pcls = p===1?'lb-1':p===2?'lb-2':p===3?'lb-3':'lb-n';
+    var vsPar = metHcp ? r.nettoVsPar : (r.bruto - baan.parTotaal);
     html += '<tr>';
     html += '<td><div class="lb-pos ' + pcls + '">' + p + '</div></td>';
     html += '<td><div style="font-size:11px;color:var(--gm);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Flight ' + r.flight + '</div><div style="font-weight:500">' + escHtml(r.teamNaam) + '</div></td>';
-    html += '<td style="color:var(--txm)">' + r.teamSh + '</td>';
-    html += '<td style="font-weight:600;color:var(--g);font-size:16px">' + (r.has ? r.netto : '—') + '</td>';
-    html += '<td style="color:var(--txm)">' + (r.has ? r.bruto : '—') + '</td>';
-    html += '<td class="' + (r.has && r.nettoVsPar < 0 ? 'under' : r.has && r.nettoVsPar > 0 ? 'over' : '') + '">' +
-      (r.has ? formatVsPar(r.nettoVsPar) : '—') + '</td>';
+    if (metHcp) {
+      html += '<td style="color:var(--txm)">' + r.teamSh + '</td>';
+      html += '<td style="font-weight:600;color:var(--g);font-size:16px">' + (r.has ? r.netto : '—') + '</td>';
+      html += '<td style="color:var(--txm)">' + (r.has ? r.bruto : '—') + '</td>';
+    } else {
+      html += '<td style="font-weight:600;color:var(--g);font-size:16px">' + (r.has ? r.bruto : '—') + '</td>';
+    }
+    html += '<td class="' + (r.has && vsPar < 0 ? 'under' : r.has && vsPar > 0 ? 'over' : '') + '">' +
+      (r.has ? formatVsPar(vsPar) : '—') + '</td>';
     html += '<td style="color:var(--txm)">' + r.gespeeld + '/' + baan.holes + '</td>';
     html += '</tr>';
   });
@@ -8565,7 +8579,7 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
   var flights = FLIGHTS[wId] || [];
   if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
 
-  var perc = (w.hcpperc || 100) / 100;
+  var perc = hcpPercFraction(w);  // safe voor hcpperc=0
   var rows = flights.map(function(flightSids, fi) {
     var spelers = flightSids.map(function(sid) {
       return sps.find(function(s) { return s.id === sid; });
@@ -8600,7 +8614,11 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
     };
   }).filter(Boolean);
 
-  rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+  var metHcp = gebruiktHcp(w);
+  rows.sort(function(a,b) {
+    if (!a.has) return 1; if (!b.has) return -1;
+    return metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto);
+  });
 
   var html = '<div style="display:flex;flex-direction:column;gap:6px" id="lb-team-list">';
   rows.forEach(function(r, i) {
@@ -8628,12 +8646,15 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
     if (r.isMij) html += '<span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-size:9px">JIJ</span>';
     html += '</div>';
     html += '<div style="font-size:13px;color:#0c1b2a;font-weight:500;line-height:1.25;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(teamShort) + '</div>';
-    // Subline met SH + Bruto + gespeeld
-    var subline = 'SH ' + r.teamSh;
-    if (r.has) {
-      subline += ' &middot; Bruto ' + r.bruto;
+    // Subline: met HCP toon "SH X · Bruto Y · 8/18 holes"; zonder HCP toon enkel "8/18 holes"
+    var subline = '';
+    if (metHcp) {
+      subline = 'SH ' + r.teamSh;
+      if (r.has) subline += ' &middot; Bruto ' + r.bruto;
+      subline += ' &middot; ' + r.gespeeld + '/' + baan.holes + ' holes';
+    } else {
+      subline = r.gespeeld + '/' + baan.holes + ' holes gespeeld';
     }
-    subline += ' &middot; ' + r.gespeeld + '/' + baan.holes + ' holes';
     html += '<div style="font-size:11px;color:#8b94a3;margin-top:1px">' + subline + '</div>';
     html += '</div>';
 
@@ -8641,9 +8662,11 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
     html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
     html += '<div style="text-align:right">';
     if (r.has) {
-      var nvpStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : (r.nettoVsPar < 0 ? r.nettoVsPar : 'E');
-      var nvpKleur = r.nettoVsPar < 0 ? '#16a34a' : r.nettoVsPar > 0 ? '#dc2626' : '#6b7280';
-      html += '<div style="font-size:22px;font-weight:700;color:#16a34a;line-height:1;font-family:Inter,sans-serif">' + r.netto + '</div>';
+      var hoofdScore = metHcp ? r.netto : r.bruto;
+      var vsPar = metHcp ? r.nettoVsPar : (r.bruto - baan.parTotaal);
+      var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
+      var nvpKleur = vsPar < 0 ? '#16a34a' : vsPar > 0 ? '#dc2626' : '#6b7280';
+      html += '<div style="font-size:22px;font-weight:700;color:#16a34a;line-height:1;font-family:Inter,sans-serif">' + hoofdScore + '</div>';
       html += '<div style="font-size:11px;color:' + nvpKleur + ';font-weight:600;line-height:1.2;margin-top:2px">' + nvpStr + '</div>';
     } else {
       html += '<div style="font-size:22px;color:#cbd5e1;line-height:1">—</div>';
@@ -8753,7 +8776,7 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
     return USERS.find(function(s) { return s.id === sid; });
   }).filter(Boolean);
 
-  var perc = (w.hcpperc || 100) / 100;
+  var perc = hcpPercFraction(w);  // safe voor hcpperc=0
   var teamHcp = teamHandicapScramble(spelers, perc, (w && w.tsFormule) || 'app');
   var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
   var teamKey = 'team-' + mijnFlightIdx;
@@ -9970,7 +9993,7 @@ function renderRanglijst(){
   // Texas Scramble: team leaderboard in plaats van per speler
   if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
     var flights = FLIGHTS[wId] || [];
-    var perc = (w.hcpperc || 100) / 100;
+    var perc = hcpPercFraction(w);  // safe voor hcpperc=0
     var u = _currentUser;
     var mijnFlightIdx = -1;
     flights.forEach(function(f, idx) { if (f.indexOf(u.id) >= 0) mijnFlightIdx = idx; });
@@ -11285,7 +11308,7 @@ function renderLiveLeaderboard() {
   // Texas Scramble: team leaderboard in plaats van individueel
   if (w.vorm === 'Texas Scramble' || w.vorm === 'Scramble') {
     var flights = FLIGHTS[wId] || [];
-    var perc = (w.hcpperc || 100) / 100;
+    var perc = hcpPercFraction(w);  // safe voor hcpperc=0
     var teamRows = flights.map(function(flightSids, fi) {
       var spelers = flightSids.map(function(sid) {
         return sps.find(function(s) { return s.id === sid; });
@@ -11306,26 +11329,32 @@ function renderLiveLeaderboard() {
       }).join(', ');
       return {
         naam: naam, sh: teamSh,
-        netto: sp.netto, sfPts: 0,
-        nettoVsPar: sp.nettoVsPar,
+        netto: sp.netto, bruto: sp.bruto, sfPts: 0,
+        nettoVsPar: sp.nettoVsPar, brutoVsPar: sp.brutoVsPar,
         gespeeld: sp.gespeeld,
         has: sp.gespeeld > 0,
       };
     }).filter(Boolean);
-    teamRows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+    var metHcp = gebruiktHcp(w);
+    teamRows.sort(function(a,b) {
+      if (!a.has) return 1; if (!b.has) return -1;
+      return metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto);
+    });
 
     // Render team rows
     var html = '';
     teamRows.forEach(function(r, i) {
       var p = i+1; var pcls = p===1?'lb-r1':p===2?'lb-r2':p===3?'lb-r3':'lb-rn';
-      var vsPar = r.has ? r.nettoVsPar : 0;
+      var vsPar = r.has ? (metHcp ? r.nettoVsPar : r.brutoVsPar) : 0;
       var vpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
+      var labelSc = metHcp ? 'netto' : 'bruto';
+      var hoofdSc = metHcp ? r.netto : r.bruto;
       html += '<div class="lb-row">';
       html += '<div class="lb-row-pos ' + pcls + '">' + p + '</div>';
       html += '<div class="lb-row-naam">' + r.naam + '</div>';
       html += '<div style="text-align:right">';
-      html += '<div class="lb-row-score ' + vpCls + '">' + (r.has ? formatVsPar(r.nettoVsPar) : '—') + '</div>';
-      html += '<div class="lb-row-holes">' + r.gespeeld + '/' + baan.holes + ' · netto ' + (r.has ? r.netto : '—') + '</div>';
+      html += '<div class="lb-row-score ' + vpCls + '">' + (r.has ? formatVsPar(vsPar) : '—') + '</div>';
+      html += '<div class="lb-row-holes">' + r.gespeeld + '/' + baan.holes + ' · ' + labelSc + ' ' + (r.has ? hoofdSc : '—') + '</div>';
       html += '</div>';
       html += '</div>';
     });
@@ -11613,6 +11642,23 @@ function gwKopieerCode(code) {
   }
 }
 
+
+// ─── HCP-verrekening helper ─────────────────────────────
+// Bepaalt of HCP-verrekening wordt toegepast in scoreberekening en leaderboard.
+// Eén bron van waarheid: hcpperc = 0 betekent "bruto-only / clean leaderboard".
+// Gebruikt door alle 3 de team-leaderboard render functies + scorekaart helpers.
+// LET OP: gebruik geen `|| 100` op parseInt(hcpperc) — 0 is falsy in JS!
+function gebruiktHcp(w) {
+  var perc = parseInt(w && w.hcpperc);
+  return (isNaN(perc) ? 100 : perc) > 0;
+}
+
+// Retourneert de HCP-percentage als fractie (1.0, 0.75, 0.0, etc.)
+// Veilig voor hcpperc=0; default 100% als niet ingesteld.
+function hcpPercFraction(w) {
+  var perc = parseInt(w && w.hcpperc);
+  return (isNaN(perc) ? 100 : perc) / 100;
+}
 
 // ─── Blind holes helpers ──────────────────────────────
 function zichtbareHoles(w) {
@@ -14901,7 +14947,7 @@ try {
               <div class="g3">
                 <div class="field"><label>Max. EGA handicap</label><input id="fhmax" type="number" step="0.1" value="36.0"/><div class="field-hint">Limiet voor inschrijving</div></div>
                 <div class="field"><label>Min. EGA handicap</label><input id="fhmin" type="number" step="0.1" value="0"/></div>
-                <div class="field"><label>Handicap %</label><select id="fhp"><option value="100">100%</option><option value="90">90%</option><option value="75">75% Pro-Am</option><option value="50">50%</option></select></div>
+                <div class="field"><label>Handicap %</label><select id="fhp"><option value="100">100%</option><option value="90">90%</option><option value="75">75% Pro-Am</option><option value="50">50%</option><option value="0">0% — geen verrekening (bruto-only)</option></select></div>
               </div>
               <div class="field"><label>Uitslag tonen</label><div class="tg"><button class="tgb on" onclick="tMulti(this)">Netto</button><button class="tgb on" onclick="tMulti(this)">Bruto</button></div></div>
             </div>

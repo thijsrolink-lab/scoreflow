@@ -586,6 +586,16 @@ function teamHandicapScramble(spelers, perc, formule) {
   return Math.round((som2 / n) * perc);
 }
 
+function gebruiktHcp(w) {
+  var perc = parseInt(w && w.hcpperc);
+  return (isNaN(perc) ? 100 : perc) > 0;
+}
+
+function hcpPercFraction(w) {
+  var perc = parseInt(w && w.hcpperc);
+  return (isNaN(perc) ? 100 : perc) / 100;
+}
+
 function zichtbareHoles(w) {
   var totaal = w.holes || 18;
   var blind = parseInt(w.blindHoles) || 0;
@@ -642,7 +652,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   var flights = FLIGHTS[wId] || [];
   if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
 
-  var perc = (w.hcpperc || 100) / 100;
+  var perc = hcpPercFraction(w);  // safe voor hcpperc=0
   var rows = flights.map(function(flightSids, fi) {
     var spelers = flightSids.map(function(sid) {
       return sps.find(function(s) { return s.id === sid; });
@@ -674,10 +684,17 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     };
   }).filter(Boolean);
 
-  rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+  var metHcp = gebruiktHcp(w);
+  rows.sort(function(a,b) {
+    if (!a.has) return 1; if (!b.has) return -1;
+    return metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto);
+  });
 
   // Header met sortering-uitleg
-  var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem;text-align:center">Texas Scramble — gesorteerd op netto score per team</div>';
+  var subtitle = metHcp
+    ? 'Texas Scramble — gesorteerd op netto score per team'
+    : 'Texas Scramble — gesorteerd op bruto score per team';
+  var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem;text-align:center">' + subtitle + '</div>';
 
   // CARDS layout — mobile-first, ook prima op desktop
   html += '<div class="lb-team-cards">';
@@ -701,29 +718,38 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     // SPELER-NAMEN op eigen regel (volle breedte)
     html += '<div class="lb-team-spelers">' + escHtml(r.teamNaam) + '</div>';
 
-    // STATS-RIJ: SH | Bruto | Netto | +/- par
+    // STATS-RIJ: met HCP: SH | Bruto | Netto | +/- par; zonder HCP: Bruto | +/- par
     html += '<div class="lb-team-stats">';
 
-    html += '<div class="lb-stat">';
-    html += '<div class="lb-stat-label">SH</div>';
-    html += '<div class="lb-stat-val">' + r.teamSh + '</div>';
-    html += '</div>';
+    if (metHcp) {
+      html += '<div class="lb-stat">';
+      html += '<div class="lb-stat-label">SH</div>';
+      html += '<div class="lb-stat-val">' + r.teamSh + '</div>';
+      html += '</div>';
 
-    html += '<div class="lb-stat">';
-    html += '<div class="lb-stat-label">Bruto</div>';
-    html += '<div class="lb-stat-val">' + (r.has ? r.bruto : '—') + '</div>';
-    html += '</div>';
+      html += '<div class="lb-stat">';
+      html += '<div class="lb-stat-label">Bruto</div>';
+      html += '<div class="lb-stat-val">' + (r.has ? r.bruto : '—') + '</div>';
+      html += '</div>';
 
-    html += '<div class="lb-stat lb-stat-netto">';
-    html += '<div class="lb-stat-label">Netto</div>';
-    html += '<div class="lb-stat-val lb-stat-netto-val">' + (r.has ? r.netto : '—') + '</div>';
-    html += '</div>';
+      html += '<div class="lb-stat lb-stat-netto">';
+      html += '<div class="lb-stat-label">Netto</div>';
+      html += '<div class="lb-stat-val lb-stat-netto-val">' + (r.has ? r.netto : '—') + '</div>';
+      html += '</div>';
+    } else {
+      // Clean mode: bruto is de hoofdscore, prominent gemaakt
+      html += '<div class="lb-stat lb-stat-netto">';
+      html += '<div class="lb-stat-label">Bruto</div>';
+      html += '<div class="lb-stat-val lb-stat-netto-val">' + (r.has ? r.bruto : '—') + '</div>';
+      html += '</div>';
+    }
 
+    var vsPar = metHcp ? r.nettoVsPar : (r.bruto - baan.parTotaal);
     html += '<div class="lb-stat">';
     html += '<div class="lb-stat-label">+/- par</div>';
     if (r.has) {
-      var nvpStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : (r.nettoVsPar < 0 ? r.nettoVsPar : 'E');
-      var nvpCls = r.nettoVsPar < 0 ? 'lb-under' : r.nettoVsPar > 0 ? 'lb-over' : 'lb-even';
+      var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
+      var nvpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
       html += '<div class="lb-stat-val ' + nvpCls + '">' + nvpStr + '</div>';
     } else {
       html += '<div class="lb-stat-val" style="color:rgba(255,255,255,0.3)">—</div>';

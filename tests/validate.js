@@ -567,6 +567,75 @@ test('dbSaveWedstrijd en dbWedstrijdNaarApp hebben symmetrische velden', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// HCP-VERREKENING — clean leaderboard zonder HCP (Texas Scramble 20 mei)
+// ═══════════════════════════════════════════════════════════════
+section('HCP-verrekening toggle (hcpperc=0 = bruto-only)');
+
+test('Helper gebruiktHcp bestaat in index.html', () => {
+  return /function\s+gebruiktHcp\s*\(/.test(scriptText) ||
+    'gebruiktHcp helper niet gedefinieerd';
+});
+
+test('Helper gebruiktHcp bestaat in leaderboard.html', () => {
+  const lbPath = path.join(__dirname, '..', 'leaderboard.html');
+  if (!fs.existsSync(lbPath)) return 'leaderboard.html niet gevonden';
+  const lbHtml = fs.readFileSync(lbPath, 'utf8');
+  return /function\s+gebruiktHcp\s*\(/.test(lbHtml) ||
+    'gebruiktHcp helper ontbreekt in standalone leaderboard';
+});
+
+test('Helper retourneert false bij hcpperc=0', () => {
+  // Voer de gebruiktHcp logica uit (BELANGRIJK: niet || 100, want 0 is falsy)
+  const fn = function(w) {
+    var perc = parseInt(w && w.hcpperc);
+    return (isNaN(perc) ? 100 : perc) > 0;
+  };
+  if (fn({hcpperc: 0}) !== false) return 'hcpperc=0 → moet false zijn';
+  if (fn({hcpperc: 100}) !== true) return 'hcpperc=100 → moet true zijn';
+  if (fn({hcpperc: 50}) !== true) return 'hcpperc=50 → moet true zijn';
+  if (fn({}) !== true) return 'leeg → default 100 → moet true zijn';
+  return true;
+});
+
+test("buildTeamLeaderboard gebruikt gebruiktHcp om kolommen te tonen/verbergen", () => {
+  const fnBody = getFnBody(scriptText, 'buildTeamLeaderboard');
+  if (!fnBody) return 'buildTeamLeaderboard niet gevonden';
+  if (!fnBody.includes('gebruiktHcp(w)')) return 'roept gebruiktHcp(w) niet aan';
+  if (!fnBody.includes('metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto)')) {
+    return 'sort houdt geen rekening met metHcp';
+  }
+  return true;
+});
+
+test("buildTeamLeaderboardCompact gebruikt gebruiktHcp", () => {
+  const fnBody = getFnBody(scriptText, 'buildTeamLeaderboardCompact');
+  if (!fnBody) return 'buildTeamLeaderboardCompact niet gevonden';
+  if (!fnBody.includes('gebruiktHcp(w)')) return 'roept gebruiktHcp(w) niet aan';
+  if (!fnBody.includes('hoofdScore')) return 'hoofdScore variabele ontbreekt';
+  return true;
+});
+
+test("renderLiveLeaderboard (TV-mode) gebruikt gebruiktHcp voor TS", () => {
+  const fnBody = getFnBody(scriptText, 'renderLiveLeaderboard');
+  if (!fnBody) return 'renderLiveLeaderboard niet gevonden';
+  // Moet in het Texas Scramble blok metHcp gebruiken
+  if (!fnBody.includes('gebruiktHcp(w)')) return 'roept gebruiktHcp(w) niet aan';
+  if (!fnBody.includes("labelSc = metHcp ? 'netto' : 'bruto'")) {
+    return "label 'netto'/'bruto' wordt niet geswitcht";
+  }
+  return true;
+});
+
+test("Form-veld fhp heeft '0' optie voor geen HCP-verrekening", () => {
+  // Zoek de fhp select
+  const m = html.match(/<select id="fhp">([\s\S]*?)<\/select>/);
+  if (!m) return 'fhp select niet gevonden';
+  if (!m[1].includes('value="0"')) return "optie value='0' ontbreekt in fhp";
+  if (!/geen verrekening|bruto/i.test(m[1])) return "label voor 0-optie is onduidelijk";
+  return true;
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SAMENVATTING
 // ═══════════════════════════════════════════════════════════════
 console.log(`\n${'═'.repeat(60)}`);
