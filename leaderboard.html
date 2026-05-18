@@ -443,20 +443,25 @@ html, body {
 }
 
 .sponsor-banner {
-  background: linear-gradient(135deg, #fefce8, #fde68a);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-top: 2px solid #fbbf24;
   border-radius: var(--rl); padding: 1.25rem 1.5rem;
-  text-align: center; color: #0c1b2a;
+  text-align: center; color: #fff;
 }
 .sponsor-banner-eyebrow {
-  font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
-  color: #92400e; font-weight: 700; margin-bottom: 8px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: .15em;
+  color: #fbbf24; font-weight: 700; margin-bottom: 10px;
 }
-.sponsor-banner-name { font-size: 22px; font-weight: 700; color: #0c1b2a; }
+.sponsor-banner-name {
+  font-size: 22px; font-weight: 700; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; gap: 14px;
+}
 .sponsor-banner-co {
-  margin-top: 12px; padding-top: 12px;
-  border-top: 1px solid rgba(146,64,14,0.2);
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.1);
   display: flex; gap: 1.5rem; justify-content: center; align-items: center;
-  flex-wrap: wrap; font-size: 13px;
+  flex-wrap: wrap; font-size: 13px; color: rgba(255,255,255,0.8);
 }
 
 .lb-loading { text-align: center; padding: 3rem; color: var(--txm); font-size: 14px; }
@@ -818,7 +823,6 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     html += '</div>'; // /card
   });
   html += '</div>';
-  html += '<div style="font-size:11px;color:rgba(255,255,255,0.45);text-align:center;margin-top:0.75rem">Tap op een flight voor scorekaart-detail</div>';
   return html;
 }
 
@@ -942,7 +946,6 @@ function renderSideGamesGrid(wId, opts) {
   var txtSub = dark ? 'rgba(255,255,255,0.55)' : '#8b94a3';
 
   var html = '<div style="margin-top:1.5rem">' +
-    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:' + txtSub + ';font-weight:700;margin-bottom:0.65rem;text-align:center">Uitdagingen op de baan</div>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">';
 
   games.forEach(function(g) {
@@ -1441,7 +1444,7 @@ function renderLB() {
     }
     if (co.length > 0) {
       sb += '<div class="sponsor-banner-co">';
-      sb += '<span style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#92400e;font-weight:700">Mede mogelijk door</span>';
+      sb += '<span style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.5);font-weight:700">Mede mogelijk door</span>';
       co.forEach(function(s) {
         var l = s.logoUrl ? '<img src="' + escHtml(s.logoUrl) + '" style="height:28px;border-radius:3px" onerror="this.style.display=\'none\'"/>' : '';
         sb += '<span style="display:inline-flex;align-items:center;gap:6px">' + l + escHtml(s.naam) + '</span>';
