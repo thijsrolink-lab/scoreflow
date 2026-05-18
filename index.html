@@ -3024,7 +3024,7 @@ async function laadSponsoren() {
     SPONSOREN = (sps || []).map(dbSponsorNaarApp);
     var ws = await supa('wedstrijd_sponsoren', 'GET', null, { select: '*' });
     WEDSTRIJD_SPONSOREN = (ws || []).map(function(r) {
-      return { id: r.id, wedstrijdId: r.wedstrijd_id, sponsorId: r.sponsor_id, type: r.type || 'hoofdsponsor', holeNr: r.hole_nr || null };
+      return { id: r.id, wedstrijdId: r.wedstrijd_id, sponsorId: r.sponsor_id, type: r.type || 'hoofdsponsor', holeNr: r.hole_nr || null, winnerSid: r.winner_sid || null };
     });
     return true;
   } catch(e) { console.warn('laadSponsoren:', e.message); return false; }
@@ -3873,8 +3873,32 @@ function sideGamesVoorWedstrijd(wId) {
   });
   return koppels.map(function(k) {
     var s = SPONSOREN.find(function(x) { return x.id === k.sponsorId; });
-    return s ? { type: k.type, sponsor: s, holeNr: k.holeNr } : null;
+    return s ? { type: k.type, sponsor: s, holeNr: k.holeNr, winnerSid: k.winnerSid || null } : null;
   }).filter(Boolean);
+}
+
+// Winner kiezen voor een side game (Neary/LD/Leary). Wordt aangeroepen vanuit dropdown.
+async function setSideGameWinner(wedstrijdId, sponsorId, type, winnerSid) {
+  try {
+    await supa('wedstrijd_sponsoren', 'PATCH', { winner_sid: winnerSid || null }, {
+      wedstrijd_id: 'eq.' + wedstrijdId,
+      sponsor_id: 'eq.' + sponsorId,
+      type: 'eq.' + type
+    });
+    // Update lokale cache
+    var koppel = (WEDSTRIJD_SPONSOREN || []).find(function(k) {
+      return k.wedstrijdId === wedstrijdId && k.sponsorId === sponsorId && k.type === type;
+    });
+    if (koppel) koppel.winnerSid = winnerSid || null;
+    if (typeof toast === 'function') toast('Winnaar opgeslagen', 'ok');
+    return true;
+  } catch(e) {
+    console.warn('setSideGameWinner:', e.message);
+    if (typeof toast === 'function') {
+      toast('Kon winnaar niet opslaan. Heb je migratie-SQL gerund? ' + e.message, 'err');
+    }
+    return false;
+  }
 }
 
 // State voor de wizard (volgens patroon van _wizHoleSponsoren)
@@ -4751,10 +4775,47 @@ function renderWdUitslagTab(w) {
     leaderboardHtml += renderSponsorCarousel(w.id, { idSuffix: 'admin' });
   }
 
-  // Live LB knop voor publiek scherm
+  // Live LB knop voor publiek scherm + Print PDF
   var lbBtn = '';
   if (typeof openLiveLeaderboard === 'function' && (fase === 'live' || fase === 'afgerond')) {
-    lbBtn = '<div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openLiveLeaderboard(\'' + w.id + '\')">📺 Open op groot scherm</button></div>';
+    lbBtn = '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:1rem">' +
+      '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="printUitslagPDF(\'' + w.id + '\')">🖨️ Print uitslag (PDF)</button>' +
+      '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openLiveLeaderboard(\'' + w.id + '\')">📺 Open op groot scherm</button>' +
+    '</div>';
+  }
+
+  // Side-game winners UI (alleen tonen bij live/afgerond + er zijn side games)
+  var winnersUI = '';
+  if ((fase === 'live' || fase === 'afgerond') && typeof sideGamesVoorWedstrijd === 'function') {
+    var sgs = sideGamesVoorWedstrijd(w.id);
+    if (sgs.length > 0) {
+      winnersUI = '<div style="background:#fff;border:1px solid #e6eaf0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem">' +
+        '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#8b94a3;font-weight:700;margin-bottom:0.75rem">🏆 Winnaars uitdagingen</div>';
+      // Alle spelers in de wedstrijd (via inschrijvingen)
+      var alleSpelers = (INSCHRIJVINGEN || [])
+        .filter(function(i) { return i.wid === w.id && i.status === 'ingeschreven'; })
+        .map(function(i) { return USERS.find(function(u) { return u.id === i.sid; }); })
+        .filter(Boolean)
+        .sort(function(a, b) { return (a.voor + a.ach).localeCompare(b.voor + b.ach); });
+
+      sgs.sort(function(a, b) { return (a.holeNr || 0) - (b.holeNr || 0); });
+      var winRows = sgs.map(function(g) {
+        var meta = sideGameMeta(g.type);
+        var opts = '<option value="">— Selecteer winnaar —</option>';
+        alleSpelers.forEach(function(s) {
+          var sel = (g.winnerSid === s.id) ? ' selected' : '';
+          opts += '<option value="' + s.id + '"' + sel + '>' + escHtml(s.voor + ' ' + s.ach) + '</option>';
+        });
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0">' +
+          '<span style="background:' + meta.kleur + ';color:#fff;font-weight:700;font-size:11px;padding:3px 10px;border-radius:4px;letter-spacing:.03em;text-transform:uppercase;min-width:100px;text-align:center">' + meta.icon + ' ' + escHtml(meta.label) + '</span>' +
+          '<span style="font-size:11px;color:#8b94a3;min-width:48px">Hole ' + g.holeNr + '</span>' +
+          '<span style="font-size:12px;color:#0c1b2a;flex:1">' + escHtml(g.sponsor.naam) + '</span>' +
+          '<select onchange="setSideGameWinner(\'' + w.id + '\',\'' + g.sponsor.id + '\',\'' + g.type + '\',this.value)" style="padding:5px 8px;border:1px solid #e6eaf0;border-radius:6px;font-family:Inter,sans-serif;font-size:12px;min-width:180px">' + opts + '</select>' +
+        '</div>';
+      }).join('<div style="height:1px;background:#f1f4f8"></div>');
+      winnersUI += winRows;
+      winnersUI += '</div>';
+    }
   }
 
   // Multi-ronde rondeselector
@@ -4767,10 +4828,253 @@ function renderWdUitslagTab(w) {
     rondeSelector = '<select id="uitslag-ronde" style="padding:6px 12px;border:1px solid #e6eaf0;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;margin-bottom:1rem" onchange="renderWdTabContent()">' + opts + '</select>';
   }
 
-  return faseHeader + lbBtn + rondeSelector +
+  return faseHeader + lbBtn + winnersUI + rondeSelector +
     '<div class="lb-wrap" style="background:#fff;border:1px solid #e6eaf0;border-radius:12px;overflow:hidden">' +
     leaderboardHtml +
     '</div>';
+}
+
+// ── Print/PDF uitslag — opent nieuwe tab met print-vriendelijke HTML ──
+function printUitslagPDF(wId) {
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) { if (typeof toast === 'function') toast('Wedstrijd niet gevonden', 'err'); return; }
+
+  var baan = getBaan(w.holes, null, null, w.welkeNegen);
+  baan.slope = w.slope; baan.cr = w.cr;
+  baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
+
+  var flights = FLIGHTS[wId] || [];
+  if (!flights.length) { if (typeof toast === 'function') toast('Geen flights aangemaakt', 'err'); return; }
+
+  var metHcp = gebruiktHcp(w);
+  var perc = hcpPercFraction(w);
+
+  // Bouw team rows
+  var rows = flights.map(function(flightSids, fi) {
+    var spelers = flightSids.map(function(sid) {
+      return USERS.find(function(s) { return s.id === sid; });
+    }).filter(Boolean);
+    if (!spelers.length) return null;
+
+    var teamHcp = teamHandicapScramble(spelers, perc, (w && w.tsFormule) || 'app');
+    var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
+    var teamKey = 'team-' + fi;
+    var scores = (SCORES[wId] && SCORES[wId][0] && SCORES[wId][0][teamKey]);
+    if (!scores && spelers.length > 0) {
+      scores = SCORES[wId][0] && SCORES[wId][0][spelers[0].id];
+    }
+    scores = scores || Array(baan.holes).fill('');
+
+    var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
+    var isKlaar = sp.gespeeld >= baan.holes;
+
+    // Verzamel eagles + birdies per team
+    var eagles = [], birdies = [];
+    scores.forEach(function(s, hi) {
+      if (s !== '' && s !== null && s !== undefined && hi < baan.par.length) {
+        var diff = Number(s) - baan.par[hi];
+        if (diff <= -2) eagles.push(hi + 1);
+        else if (diff === -1) birdies.push(hi + 1);
+      }
+    });
+
+    return {
+      flight: fi + 1,
+      spelers: spelers,
+      teamSh: teamSh,
+      netto: sp.netto, bruto: sp.bruto,
+      vsPar: metHcp ? sp.nettoVsPar : (sp.bruto - baan.parTotaal),
+      gespeeld: sp.gespeeld,
+      isKlaar: isKlaar,
+      has: sp.gespeeld > 0,
+      scores: scores,
+      eagles: eagles,
+      birdies: birdies
+    };
+  }).filter(Boolean);
+
+  rows.sort(function(a, b) {
+    if (!a.has) return 1;
+    if (!b.has) return -1;
+    return metHcp ? a.netto - b.netto : a.bruto - b.bruto;
+  });
+
+  var hsp = hoofdsponsorVoorWedstrijd(wId);
+  var co = coSponsorenVoorWedstrijd(wId);
+  var sideGames = sideGamesVoorWedstrijd(wId);
+  sideGames.sort(function(a, b) { return (a.holeNr || 0) - (b.holeNr || 0); });
+
+  // Datum string
+  var dStr = w.datum ? new Date(w.datum).toLocaleDateString('nl-NL', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  }) : '';
+
+  // Verzamel eagle highlights cross-team
+  var alleEagles = [];
+  rows.forEach(function(r) {
+    r.eagles.forEach(function(h) {
+      alleEagles.push({ flight: r.flight, hole: h });
+    });
+  });
+
+  // Bouw HTML
+  var html = '<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">';
+  html += '<title>Uitslag — ' + escHtml(w.naam) + '</title>';
+  html += '<style>' +
+    '@page { size: A4; margin: 1.5cm; }' +
+    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #0c1b2a; margin: 0; padding: 0; line-height: 1.4; }' +
+    '.hdr { text-align: center; padding: 0 0 1rem 0; border-bottom: 3px solid #16a34a; margin-bottom: 1.5rem; }' +
+    '.club { font-size: 11px; text-transform: uppercase; letter-spacing: .15em; color: #8b94a3; font-weight: 600; }' +
+    '.wd-naam { font-size: 28px; font-weight: 800; color: #0c1b2a; margin: 6px 0 4px; }' +
+    '.wd-meta { font-size: 13px; color: #6b7280; }' +
+    '.sec-titel { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: #16a34a; margin: 1.25rem 0 0.75rem; padding-bottom: 4px; border-bottom: 2px solid #d1fae5; }' +
+    '.team-row { display: flex; align-items: flex-start; gap: 14px; padding: 9px 0; border-bottom: 1px solid #e6eaf0; page-break-inside: avoid; }' +
+    '.team-row:last-child { border-bottom: none; }' +
+    '.pos-circle { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; flex-shrink: 0; }' +
+    '.pos-1 { background: #fef3c7; color: #92400e; }' +
+    '.pos-2 { background: #e5e7eb; color: #374151; }' +
+    '.pos-3 { background: #fed7aa; color: #9a3412; }' +
+    '.pos-n { background: #f1f4f8; color: #6b7280; }' +
+    '.team-info { flex: 1; min-width: 0; }' +
+    '.team-flight { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; color: #16a34a; }' +
+    '.team-namen { font-size: 13px; color: #0c1b2a; margin-top: 2px; }' +
+    '.team-extra { font-size: 11px; color: #8b94a3; margin-top: 3px; }' +
+    '.team-score { text-align: right; flex-shrink: 0; min-width: 70px; }' +
+    '.team-score-val { font-size: 22px; font-weight: 800; color: #0c1b2a; line-height: 1; }' +
+    '.team-score-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #8b94a3; font-weight: 600; margin-top: 2px; }' +
+    '.team-score-vspar { font-size: 12px; font-weight: 700; margin-top: 2px; }' +
+    '.under { color: #16a34a; } .over { color: #dc2626; } .even { color: #6b7280; }' +
+    '.highlight-box { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 10px 14px; border-radius: 4px; font-size: 13px; margin-bottom: 8px; }' +
+    '.highlight-blue { background: #eff6ff; border-left-color: #3b82f6; }' +
+    '.sg-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; background: #f8fafa; border: 1px solid #e6eaf0; border-radius: 6px; margin-bottom: 8px; page-break-inside: avoid; }' +
+    '.sg-label { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 3px; color: #fff; text-transform: uppercase; letter-spacing: .03em; min-width: 105px; text-align: center; }' +
+    '.sg-hole { font-size: 11px; color: #8b94a3; min-width: 50px; }' +
+    '.sg-winner { flex: 1; font-size: 13px; font-weight: 600; color: #0c1b2a; }' +
+    '.sg-winner em { color: #cbd5e1; font-style: italic; font-weight: 400; }' +
+    '.sg-sponsor { font-size: 11px; color: #6b7280; display: flex; align-items: center; gap: 8px; }' +
+    '.sg-sponsor img { height: 22px; max-width: 55px; object-fit: contain; }' +
+    '.sponsor-grid { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; align-items: center; padding: 1rem; background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; }' +
+    '.sponsor-grid img { max-height: 40px; max-width: 110px; object-fit: contain; }' +
+    '.sponsor-grid .hsp-name { font-size: 13px; font-weight: 700; color: #0c1b2a; }' +
+    '.sponsor-grid .co-name { font-size: 12px; color: #6b7280; }' +
+    '.fp { font-size: 10px; color: #8b94a3; text-align: center; margin-top: 1.5rem; }' +
+    '@media print { .no-print { display: none; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
+  '</style></head><body>';
+
+  // Header
+  html += '<div class="hdr">' +
+    '<div class="club">De Hooge Rotterdamsche</div>' +
+    '<div class="wd-naam">' + escHtml(w.naam) + '</div>' +
+    '<div class="wd-meta">' + escHtml(dStr) + ' &middot; ' + escHtml(w.vorm) + ' &middot; ' + w.holes + ' holes' +
+      (w.tijd ? ' &middot; ' + escHtml(w.tijd) : '') + (w.baan ? ' &middot; ' + escHtml(w.baan) : '') +
+    '</div>' +
+  '</div>';
+
+  // UITSLAG
+  html += '<div class="sec-titel">🏆 Uitslag</div>';
+  rows.forEach(function(r, idx) {
+    var p = idx + 1;
+    var posCls = p === 1 ? 'pos-1' : p === 2 ? 'pos-2' : p === 3 ? 'pos-3' : 'pos-n';
+    var medal = p === 1 ? '🥇' : p === 2 ? '🥈' : p === 3 ? '🥉' : String(p);
+    var hoofdSc = metHcp ? r.netto : r.bruto;
+    var hoofdLabel = metHcp ? 'NETTO' : 'SCORE';
+    var teamNamen = r.spelers.map(function(s) { return s.voor + ' ' + s.ach; }).join(', ');
+    var extra = ['Flight ' + r.flight];
+    if (metHcp) extra.push('SH ' + r.teamSh);
+    extra.push(r.gespeeld + '/' + baan.holes + ' holes' + (r.isKlaar ? '' : ' (bezig)'));
+    if (r.eagles.length) extra.push(r.eagles.length + ' eagle' + (r.eagles.length > 1 ? 's' : ''));
+    if (r.birdies.length) extra.push(r.birdies.length + ' birdie' + (r.birdies.length > 1 ? 's' : ''));
+
+    html += '<div class="team-row">' +
+      '<div class="pos-circle ' + posCls + '">' + medal + '</div>' +
+      '<div class="team-info">' +
+        '<div class="team-flight">Flight ' + r.flight + '</div>' +
+        '<div class="team-namen">' + escHtml(teamNamen) + '</div>' +
+        '<div class="team-extra">' + extra.slice(1).join(' &middot; ') + '</div>' +
+      '</div>' +
+      '<div class="team-score">';
+    if (r.has) {
+      html += '<div class="team-score-val">' + hoofdSc + '</div>' +
+              '<div class="team-score-lbl">' + hoofdLabel + '</div>';
+      if (r.isKlaar) {
+        var vsParStr = r.vsPar > 0 ? '+' + r.vsPar : (r.vsPar < 0 ? r.vsPar : 'E');
+        var vsParCls = r.vsPar < 0 ? 'under' : r.vsPar > 0 ? 'over' : 'even';
+        html += '<div class="team-score-vspar ' + vsParCls + '">' + vsParStr + '</div>';
+      }
+    } else {
+      html += '<div class="team-score-val" style="color:#cbd5e1">—</div>' +
+              '<div class="team-score-lbl">geen score</div>';
+    }
+    html += '</div></div>';
+  });
+
+  // BIJZONDERE SCORES
+  if (alleEagles.length > 0 || rows.some(function(r) { return r.birdies.length > 0; })) {
+    html += '<div class="sec-titel">⛳ Bijzondere scores</div>';
+    if (alleEagles.length > 0) {
+      html += '<div class="highlight-box"><strong>🦅 Eagles (' + alleEagles.length + '):</strong> ';
+      html += alleEagles.map(function(e) { return 'Flight ' + e.flight + ' op hole ' + e.hole; }).join(' &middot; ');
+      html += '</div>';
+    }
+    var birdiesPerTeam = rows.filter(function(r) { return r.birdies.length > 0; })
+      .sort(function(a, b) { return b.birdies.length - a.birdies.length; });
+    if (birdiesPerTeam.length > 0) {
+      html += '<div class="highlight-box highlight-blue"><strong>🐦 Birdies:</strong> ';
+      html += birdiesPerTeam.map(function(r) { return 'Flight ' + r.flight + ' (' + r.birdies.length + ')'; }).join(' &middot; ');
+      html += '</div>';
+    }
+  }
+
+  // SIDE GAMES
+  if (sideGames.length > 0) {
+    html += '<div class="sec-titel">🎯 Uitdagingen op de baan</div>';
+    sideGames.forEach(function(g) {
+      var meta = sideGameMeta(g.type);
+      var winnaar = '';
+      if (g.winnerSid) {
+        var spU = USERS.find(function(u) { return u.id === g.winnerSid; });
+        if (spU) winnaar = spU.voor + ' ' + spU.ach;
+      }
+      var logoHtml = g.sponsor.logoUrl
+        ? '<img src="' + escHtml(g.sponsor.logoUrl) + '" alt="' + escHtml(g.sponsor.naam) + '"/>'
+        : '';
+      html += '<div class="sg-row">' +
+        '<span class="sg-label" style="background:' + meta.kleur + '">' + meta.icon + ' ' + escHtml(meta.label) + '</span>' +
+        '<span class="sg-hole">Hole ' + g.holeNr + '</span>' +
+        '<span class="sg-winner">Winnaar: ' + (winnaar ? escHtml(winnaar) : '<em>_______________________</em>') + '</span>' +
+        '<span class="sg-sponsor">' + logoHtml + '<span>' + escHtml(g.sponsor.naam) + '</span></span>' +
+      '</div>';
+    });
+  }
+
+  // SPONSORS
+  if (hsp || co.length > 0) {
+    html += '<div class="sec-titel">Met dank aan onze sponsoren</div>';
+    html += '<div class="sponsor-grid">';
+    if (hsp) {
+      if (hsp.logoUrl) html += '<img src="' + escHtml(hsp.logoUrl) + '" alt="' + escHtml(hsp.naam) + '"/>';
+      html += '<span class="hsp-name">' + escHtml(hsp.naam) + '</span>';
+    }
+    co.forEach(function(s) {
+      if (s.logoUrl) html += '<img src="' + escHtml(s.logoUrl) + '" alt="' + escHtml(s.naam) + '"/>';
+      else html += '<span class="co-name">' + escHtml(s.naam) + '</span>';
+    });
+    html += '</div>';
+  }
+
+  html += '<div class="fp">Gegenereerd via ScoreFlow op ' + new Date().toLocaleString('nl-NL') + '</div>';
+  html += '</body></html>';
+
+  // Open in nieuwe tab + auto-print
+  var win = window.open('', '_blank');
+  if (!win) {
+    if (typeof toast === 'function') toast('Kon nieuw venster niet openen — sta pop-ups toe voor deze pagina', 'err');
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  // Auto-print na 500ms (geeft browser tijd om logo-images te laden)
+  setTimeout(function() { try { win.print(); } catch(e) {} }, 500);
 }
 
 // Action bar: lifecycle-knoppen onderaan

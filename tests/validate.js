@@ -790,6 +790,32 @@ test('refreshTeamScores synct teamKey vanuit eerste speler', () => {
   return true;
 });
 
+test('printUitslagPDF functie bestaat en bouwt print-window', () => {
+  const fnBody = getFnBody(scriptText, 'printUitslagPDF');
+  if (!fnBody) return 'printUitslagPDF niet gevonden';
+  if (!fnBody.includes('window.open')) return 'opent geen nieuwe tab';
+  if (!fnBody.includes('win.print()')) return 'triggert window.print() niet';
+  if (!fnBody.includes('sideGamesVoorWedstrijd')) return 'leest geen side games';
+  if (!fnBody.includes('hoofdsponsorVoorWedstrijd')) return 'leest geen hoofdsponsor';
+  if (!fnBody.includes('eagles') && !fnBody.includes('birdies')) return 'mist bijzondere scores';
+  return true;
+});
+
+test('setSideGameWinner schrijft naar wedstrijd_sponsoren.winner_sid', () => {
+  const fnBody = getFnBody(scriptText, 'setSideGameWinner');
+  if (!fnBody) return 'setSideGameWinner niet gevonden';
+  if (!fnBody.includes('winner_sid')) return 'schrijft niet naar winner_sid kolom';
+  if (!fnBody.includes("'PATCH'")) return 'gebruikt geen PATCH method';
+  return true;
+});
+
+test('sideGamesVoorWedstrijd levert winnerSid', () => {
+  const fnBody = getFnBody(scriptText, 'sideGamesVoorWedstrijd');
+  if (!fnBody) return 'sideGamesVoorWedstrijd niet gevonden';
+  if (!fnBody.includes('winnerSid')) return 'returnt geen winnerSid in result';
+  return true;
+});
+
 test('Geen modal-bg gebruikt inline style.display=flex (breekt closeModal)', () => {
   // closeModal doet classList.remove('open'). Wie de modal opent met
   // style.display='flex' (inline) overschrijft de CSS-regel, waardoor
