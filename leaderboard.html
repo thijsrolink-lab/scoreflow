@@ -163,7 +163,9 @@ html, body {
   .lb-col-bruto, .lb-col-vspar, .lb-col-gespeeld { display: none !important; }
   .lb-col-bruto-th, .lb-col-vspar-th, .lb-col-gespeeld-th { display: none !important; }
   .lb-mobile-sub { display: block !important; }
-  /* Card-layout voor team-leaderboard — mobile-first */
+}
+
+/* Card-layout voor team-leaderboard — werkt op alle viewports */
 .lb-team-cards { display: flex; flex-direction: column; gap: 8px; }
 .lb-team-card {
   background: rgba(255,255,255,0.04);
@@ -307,14 +309,6 @@ html, body {
   .lb-team-score-empty { font-size: 26px; }
   .lb-tv-team-list { padding: 12px 18px 6px; font-size: 13px; }
 }
-.lb-team-progress {
-  font-size: 11px;
-  color: rgba(255,255,255,0.4);
-  text-align: center;
-  margin-top: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 .lb-team-detail {
   border-top: 1px solid rgba(255,255,255,0.08);
   background: rgba(0,0,0,0.2);
@@ -380,7 +374,8 @@ html, body {
   color: #f87171;
 }
 
-/* Compactere kolommen */
+/* Compactere kolommen — mobile-specific */
+@media (max-width: 768px) {
   table.lb th, table.lb td { padding: .5rem .35rem !important; font-size: 13px !important; }
   .lb-pos { width: 30px; height: 30px; font-size: 13px; flex-shrink: 0; }
   .lb-naam-tx { font-size: 15px; }
