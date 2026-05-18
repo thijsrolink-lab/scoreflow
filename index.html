@@ -8946,7 +8946,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">' + subtitle + '</div>';
   html += '<table class="tbl"><thead><tr>' +
     '<th style="width:32px">#</th><th>Team</th>' +
-    (metHcp ? '<th>SH</th><th>Netto</th><th>Bruto</th>' : '<th>Bruto</th>') +
+    (metHcp ? '<th>SH</th><th>Netto</th><th>Bruto</th>' : '<th>Score</th>') +
     '<th>+/- par</th><th>Gespeeld</th>' +
     '</tr></thead><tbody>';
   rows.forEach(function(r, i) {
@@ -11745,7 +11745,7 @@ function renderLiveLeaderboard() {
       var p = i+1; var pcls = p===1?'lb-r1':p===2?'lb-r2':p===3?'lb-r3':'lb-rn';
       var vsPar = r.has ? (metHcp ? r.nettoVsPar : r.brutoVsPar) : 0;
       var vpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
-      var labelSc = metHcp ? 'netto' : 'bruto';
+      var labelSc = metHcp ? 'netto' : 'score';
       var hoofdSc = metHcp ? r.netto : r.bruto;
       html += '<div class="lb-row">';
       html += '<div class="lb-row-pos ' + pcls + '">' + p + '</div>';

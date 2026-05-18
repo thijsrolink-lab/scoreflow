@@ -620,8 +620,8 @@ test("renderLiveLeaderboard (TV-mode) gebruikt gebruiktHcp voor TS", () => {
   if (!fnBody) return 'renderLiveLeaderboard niet gevonden';
   // Moet in het Texas Scramble blok metHcp gebruiken
   if (!fnBody.includes('gebruiktHcp(w)')) return 'roept gebruiktHcp(w) niet aan';
-  if (!fnBody.includes("labelSc = metHcp ? 'netto' : 'bruto'")) {
-    return "label 'netto'/'bruto' wordt niet geswitcht";
+  if (!fnBody.includes("labelSc = metHcp ? 'netto' : 'score'")) {
+    return "label 'netto'/'score' wordt niet geswitcht";
   }
   return true;
 });

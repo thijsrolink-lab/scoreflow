@@ -776,7 +776,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     html += '<div class="lb-team-score">';
     if (r.has) {
       var hoofdSc = metHcp ? r.netto : r.bruto;
-      var hoofdLabel = metHcp ? 'NETTO' : 'BRUTO';
+      var hoofdLabel = metHcp ? 'NETTO' : 'SCORE';
       var hoofdCls = (isKlaar && vsPar < 0) ? 'lb-under' : (isKlaar && vsPar > 0) ? 'lb-over' : '';
       html += '<div class="lb-team-score-main ' + hoofdCls + '">' + hoofdSc + '</div>';
       html += '<div class="lb-team-score-label">' + hoofdLabel + '</div>';
