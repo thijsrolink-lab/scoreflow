@@ -756,6 +756,15 @@ test('Timer wordt opgeruimd bij verlaten LB', () => {
   return true;
 });
 
+test('bouwSpelerHoleRijen toont side game banner per hole', () => {
+  const fnBody = getFnBody(scriptText, 'bouwSpelerHoleRijen');
+  if (!fnBody) return 'bouwSpelerHoleRijen niet gevonden';
+  if (!fnBody.includes('sideGamesVoorWedstrijd')) return 'haalt geen side games op';
+  if (!fnBody.includes('sideGameByHole')) return 'geen sideGameByHole map';
+  if (!fnBody.includes('sideGameMeta')) return 'gebruikt sideGameMeta niet voor styling';
+  return true;
+});
+
 test('Geen modal-bg gebruikt inline style.display=flex (breekt closeModal)', () => {
   // closeModal doet classList.remove('open'). Wie de modal opent met
   // style.display='flex' (inline) overschrijft de CSS-regel, waardoor
