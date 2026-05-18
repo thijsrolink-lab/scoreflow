@@ -4909,11 +4909,12 @@ function printUitslagPDF(wId) {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   }) : '';
 
-  // Verzamel eagle highlights cross-team
+  // Bouw eagle highlights met team-namen
   var alleEagles = [];
   rows.forEach(function(r) {
+    var teamNm = r.spelers.map(function(s) { return s.voor + ' ' + s.ach; }).join(', ');
     r.eagles.forEach(function(h) {
-      alleEagles.push({ flight: r.flight, hole: h });
+      alleEagles.push({ teamNaam: teamNm, hole: h });
     });
   });
 
@@ -4938,6 +4939,7 @@ function printUitslagPDF(wId) {
     '.team-info { flex: 1; min-width: 0; }' +
     '.team-flight { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; color: #16a34a; }' +
     '.team-namen { font-size: 13px; color: #0c1b2a; margin-top: 2px; }' +
+    '.team-namen-primary { font-size: 14px; color: #0c1b2a; font-weight: 600; line-height: 1.3; }' +
     '.team-extra { font-size: 11px; color: #8b94a3; margin-top: 3px; }' +
     '.team-score { text-align: right; flex-shrink: 0; min-width: 70px; }' +
     '.team-score-val { font-size: 22px; font-weight: 800; color: #0c1b2a; line-height: 1; }' +
@@ -4979,7 +4981,7 @@ function printUitslagPDF(wId) {
     var hoofdSc = metHcp ? r.netto : r.bruto;
     var hoofdLabel = metHcp ? 'NETTO' : 'SCORE';
     var teamNamen = r.spelers.map(function(s) { return s.voor + ' ' + s.ach; }).join(', ');
-    var extra = ['Flight ' + r.flight];
+    var extra = [];
     if (metHcp) extra.push('SH ' + r.teamSh);
     extra.push(r.gespeeld + '/' + baan.holes + ' holes' + (r.isKlaar ? '' : ' (bezig)'));
     if (r.eagles.length) extra.push(r.eagles.length + ' eagle' + (r.eagles.length > 1 ? 's' : ''));
@@ -4988,9 +4990,8 @@ function printUitslagPDF(wId) {
     html += '<div class="team-row">' +
       '<div class="pos-circle ' + posCls + '">' + medal + '</div>' +
       '<div class="team-info">' +
-        '<div class="team-flight">Flight ' + r.flight + '</div>' +
-        '<div class="team-namen">' + escHtml(teamNamen) + '</div>' +
-        '<div class="team-extra">' + extra.slice(1).join(' &middot; ') + '</div>' +
+        '<div class="team-namen-primary">' + escHtml(teamNamen) + '</div>' +
+        '<div class="team-extra">' + extra.join(' &middot; ') + '</div>' +
       '</div>' +
       '<div class="team-score">';
     if (r.has) {
@@ -5012,16 +5013,21 @@ function printUitslagPDF(wId) {
   if (alleEagles.length > 0 || rows.some(function(r) { return r.birdies.length > 0; })) {
     html += '<div class="sec-titel">⛳ Bijzondere scores</div>';
     if (alleEagles.length > 0) {
-      html += '<div class="highlight-box"><strong>🦅 Eagles (' + alleEagles.length + '):</strong> ';
-      html += alleEagles.map(function(e) { return 'Flight ' + e.flight + ' op hole ' + e.hole; }).join(' &middot; ');
+      html += '<div class="highlight-box"><strong>🦅 Eagles (' + alleEagles.length + '):</strong><br>';
+      html += alleEagles.map(function(e) {
+        return escHtml(e.teamNaam) + ' — hole ' + e.hole;
+      }).join('<br>');
       html += '</div>';
     }
+    // Top-1 flight met meeste birdies — namen + aantal
     var birdiesPerTeam = rows.filter(function(r) { return r.birdies.length > 0; })
       .sort(function(a, b) { return b.birdies.length - a.birdies.length; });
     if (birdiesPerTeam.length > 0) {
-      html += '<div class="highlight-box highlight-blue"><strong>🐦 Birdies:</strong> ';
-      html += birdiesPerTeam.map(function(r) { return 'Flight ' + r.flight + ' (' + r.birdies.length + ')'; }).join(' &middot; ');
-      html += '</div>';
+      var topBirdies = birdiesPerTeam[0];
+      var topBirdiesNamen = topBirdies.spelers.map(function(s) { return s.voor + ' ' + s.ach; }).join(', ');
+      html += '<div class="highlight-box highlight-blue"><strong>🐦 Meeste birdies:</strong> ' +
+        escHtml(topBirdiesNamen) + ' — ' + topBirdies.birdies.length + ' birdie' + (topBirdies.birdies.length > 1 ? 's' : '') +
+        '</div>';
     }
   }
 
