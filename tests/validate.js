@@ -756,6 +756,25 @@ test('Timer wordt opgeruimd bij verlaten LB', () => {
   return true;
 });
 
+test('Geen modal-bg gebruikt inline style.display=flex (breekt closeModal)', () => {
+  // closeModal doet classList.remove('open'). Wie de modal opent met
+  // style.display='flex' (inline) overschrijft de CSS-regel, waardoor
+  // closeModal niets doet en de modal niet meer dicht gaat.
+  // Zelfgemaakte modals moeten classList.add('open') gebruiken.
+  const showModalFns = ['showSideGamePicker', 'showSponsorPicker', 'showHoleSponsorPicker'];
+  const issues = [];
+  showModalFns.forEach(function(fnName) {
+    const body = getFnBody(scriptText, fnName);
+    if (!body) return;
+    // Body moet een modal-bg modal openen via classList.add('open')
+    // Niet via style.display = 'flex'
+    if (/modal\.style\.display\s*=\s*['"]flex['"]/.test(body)) {
+      issues.push(fnName + ' gebruikt inline style.display=flex');
+    }
+  });
+  return issues.length === 0 || issues.join(' | ');
+});
+
 // ═══════════════════════════════════════════════════════════════
 // SAMENVATTING
 // ═══════════════════════════════════════════════════════════════

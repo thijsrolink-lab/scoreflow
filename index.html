@@ -3971,7 +3971,7 @@ function showSideGamePicker(sponsors, maxHole, callback) {
       '</div>' +
     '</div></div>';
   modal.innerHTML = html;
-  modal.style.display = 'flex';
+  modal.classList.add('open');
   document.getElementById('sg-add-btn').onclick = function() {
     var type = document.getElementById('sg-type-value').value;
     var sponsorId = document.getElementById('sg-sponsor-id').value;
