@@ -4955,10 +4955,16 @@ function printUitslagPDF(wId) {
     '.sg-winner em { color: #cbd5e1; font-style: italic; font-weight: 400; }' +
     '.sg-sponsor { font-size: 11px; color: #6b7280; display: flex; align-items: center; gap: 8px; }' +
     '.sg-sponsor img { height: 22px; max-width: 55px; object-fit: contain; }' +
-    '.sponsor-grid { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; align-items: center; padding: 1rem; background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; }' +
-    '.sponsor-grid img { max-height: 40px; max-width: 110px; object-fit: contain; }' +
-    '.sponsor-grid .hsp-name { font-size: 13px; font-weight: 700; color: #0c1b2a; }' +
-    '.sponsor-grid .co-name { font-size: 12px; color: #6b7280; }' +
+    '.sponsor-banner { padding: 1.25rem 1.5rem; background: linear-gradient(135deg, #fefce8, #fde68a); border: 1px solid #fcd34d; border-radius: 10px; text-align: center; page-break-inside: avoid; }' +
+    '.hsp-eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: #92400e; font-weight: 700; margin-bottom: 10px; }' +
+    '.hsp-block { display: flex; align-items: center; justify-content: center; gap: 16px; }' +
+    '.hsp-logo { max-height: 56px; max-width: 140px; object-fit: contain; }' +
+    '.hsp-name { font-size: 20px; font-weight: 700; color: #0c1b2a; }' +
+    '.co-eyebrow { font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: #92400e; font-weight: 700; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(146,64,14,0.25); }' +
+    '.co-grid { display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; align-items: center; margin-top: 10px; }' +
+    '.co-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }' +
+    '.co-item img { max-height: 38px; max-width: 90px; object-fit: contain; }' +
+    '.co-item .co-name { font-size: 10px; color: #4b5563; font-weight: 500; }' +
     '.fp { font-size: 10px; color: #8b94a3; text-align: center; margin-top: 1.5rem; }' +
     '@media print { .no-print { display: none; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
   '</style></head><body>';
@@ -4972,17 +4978,16 @@ function printUitslagPDF(wId) {
     '</div>' +
   '</div>';
 
-  // UITSLAG
+  // UITSLAG — alleen top 3 (medailles 🥇🥈🥉)
   html += '<div class="sec-titel">🏆 Uitslag</div>';
-  rows.forEach(function(r, idx) {
+  rows.slice(0, 3).forEach(function(r, idx) {
     var p = idx + 1;
-    var posCls = p === 1 ? 'pos-1' : p === 2 ? 'pos-2' : p === 3 ? 'pos-3' : 'pos-n';
-    var medal = p === 1 ? '🥇' : p === 2 ? '🥈' : p === 3 ? '🥉' : String(p);
+    var posCls = p === 1 ? 'pos-1' : p === 2 ? 'pos-2' : 'pos-3';
+    var medal = p === 1 ? '🥇' : p === 2 ? '🥈' : '🥉';
     var hoofdSc = metHcp ? r.netto : r.bruto;
-    var hoofdLabel = metHcp ? 'NETTO' : 'SCORE';
     var teamNamen = r.spelers.map(function(s) { return s.voor + ' ' + s.ach; }).join(', ');
+    // Extra info: holes gespeeld + eagles/birdies count (zonder SH, zonder flight)
     var extra = [];
-    if (metHcp) extra.push('SH ' + r.teamSh);
     extra.push(r.gespeeld + '/' + baan.holes + ' holes' + (r.isKlaar ? '' : ' (bezig)'));
     if (r.eagles.length) extra.push(r.eagles.length + ' eagle' + (r.eagles.length > 1 ? 's' : ''));
     if (r.birdies.length) extra.push(r.birdies.length + ' birdie' + (r.birdies.length > 1 ? 's' : ''));
@@ -4995,8 +5000,8 @@ function printUitslagPDF(wId) {
       '</div>' +
       '<div class="team-score">';
     if (r.has) {
-      html += '<div class="team-score-val">' + hoofdSc + '</div>' +
-              '<div class="team-score-lbl">' + hoofdLabel + '</div>';
+      html += '<div class="team-score-val">' + hoofdSc + '</div>';
+      // Geen 'NETTO'/'SCORE' label meer — getal spreekt voor zich
       if (r.isKlaar) {
         var vsParStr = r.vsPar > 0 ? '+' + r.vsPar : (r.vsPar < 0 ? r.vsPar : 'E');
         var vsParCls = r.vsPar < 0 ? 'under' : r.vsPar > 0 ? 'over' : 'even';
@@ -5009,29 +5014,7 @@ function printUitslagPDF(wId) {
     html += '</div></div>';
   });
 
-  // BIJZONDERE SCORES
-  if (alleEagles.length > 0 || rows.some(function(r) { return r.birdies.length > 0; })) {
-    html += '<div class="sec-titel">⛳ Bijzondere scores</div>';
-    if (alleEagles.length > 0) {
-      html += '<div class="highlight-box"><strong>🦅 Eagles (' + alleEagles.length + '):</strong><br>';
-      html += alleEagles.map(function(e) {
-        return escHtml(e.teamNaam) + ' — hole ' + e.hole;
-      }).join('<br>');
-      html += '</div>';
-    }
-    // Top-1 flight met meeste birdies — namen + aantal
-    var birdiesPerTeam = rows.filter(function(r) { return r.birdies.length > 0; })
-      .sort(function(a, b) { return b.birdies.length - a.birdies.length; });
-    if (birdiesPerTeam.length > 0) {
-      var topBirdies = birdiesPerTeam[0];
-      var topBirdiesNamen = topBirdies.spelers.map(function(s) { return s.voor + ' ' + s.ach; }).join(', ');
-      html += '<div class="highlight-box highlight-blue"><strong>🐦 Meeste birdies:</strong> ' +
-        escHtml(topBirdiesNamen) + ' — ' + topBirdies.birdies.length + ' birdie' + (topBirdies.birdies.length > 1 ? 's' : '') +
-        '</div>';
-    }
-  }
-
-  // SIDE GAMES
+  // SIDE GAMES (Uitdagingen) — direct na top 3 voor prijsuitreiking volgorde
   if (sideGames.length > 0) {
     html += '<div class="sec-titel">🎯 Uitdagingen op de baan</div>';
     sideGames.forEach(function(g) {
@@ -5053,18 +5036,51 @@ function printUitslagPDF(wId) {
     });
   }
 
-  // SPONSORS
-  if (hsp || co.length > 0) {
-    html += '<div class="sec-titel">Met dank aan onze sponsoren</div>';
-    html += '<div class="sponsor-grid">';
-    if (hsp) {
-      if (hsp.logoUrl) html += '<img src="' + escHtml(hsp.logoUrl) + '" alt="' + escHtml(hsp.naam) + '"/>';
-      html += '<span class="hsp-name">' + escHtml(hsp.naam) + '</span>';
+  // BIJZONDERE SCORES (eagles + birdies)
+  if (alleEagles.length > 0 || rows.some(function(r) { return r.birdies.length > 0; })) {
+    html += '<div class="sec-titel">⛳ Bijzondere scores</div>';
+    if (alleEagles.length > 0) {
+      html += '<div class="highlight-box"><strong>🦅 Eagles (' + alleEagles.length + '):</strong><br>';
+      html += alleEagles.map(function(e) {
+        return escHtml(e.teamNaam) + ' — hole ' + e.hole;
+      }).join('<br>');
+      html += '</div>';
     }
-    co.forEach(function(s) {
-      if (s.logoUrl) html += '<img src="' + escHtml(s.logoUrl) + '" alt="' + escHtml(s.naam) + '"/>';
-      else html += '<span class="co-name">' + escHtml(s.naam) + '</span>';
-    });
+    var birdiesPerTeam = rows.filter(function(r) { return r.birdies.length > 0; })
+      .sort(function(a, b) { return b.birdies.length - a.birdies.length; });
+    if (birdiesPerTeam.length > 0) {
+      var topBirdies = birdiesPerTeam[0];
+      var topBirdiesNamen = topBirdies.spelers.map(function(s) { return s.voor + ' ' + s.ach; }).join(', ');
+      html += '<div class="highlight-box highlight-blue"><strong>🐦 Meeste birdies:</strong> ' +
+        escHtml(topBirdiesNamen) + ' — ' + topBirdies.birdies.length + ' birdie' + (topBirdies.birdies.length > 1 ? 's' : '') +
+        '</div>';
+    }
+  }
+
+  // SPONSORS — warme banner met logo's prominent
+  if (hsp || co.length > 0) {
+    html += '<div class="sec-titel">💛 Met dank aan onze sponsoren</div>';
+    html += '<div class="sponsor-banner">';
+    // Hoofdsponsor groot, gecentreerd
+    if (hsp) {
+      html += '<div class="hsp-eyebrow">POWERED BY</div>';
+      html += '<div class="hsp-block">';
+      if (hsp.logoUrl) html += '<img class="hsp-logo" src="' + escHtml(hsp.logoUrl) + '" alt="' + escHtml(hsp.naam) + '"/>';
+      html += '<div class="hsp-name">' + escHtml(hsp.naam) + '</div>';
+      html += '</div>';
+    }
+    // Co-sponsors onder, kleinere logos in een rij
+    if (co.length > 0) {
+      html += '<div class="co-eyebrow">MEDE MOGELIJK DOOR</div>';
+      html += '<div class="co-grid">';
+      co.forEach(function(s) {
+        html += '<div class="co-item">';
+        if (s.logoUrl) html += '<img src="' + escHtml(s.logoUrl) + '" alt="' + escHtml(s.naam) + '"/>';
+        html += '<div class="co-name">' + escHtml(s.naam) + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
     html += '</div>';
   }
 
