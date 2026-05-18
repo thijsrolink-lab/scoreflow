@@ -173,29 +173,31 @@ html, body {
   transition: all 0.15s;
 }
 .lb-team-card:hover { background: rgba(255,255,255,0.06); }
+/* Grid layout: 2 rijen, pos spant beide rijen, namen onderaan full-width */
 .lb-team-head {
-  padding: 16px 20px;
+  padding: 12px 16px 14px;
   cursor: pointer;
   user-select: none;
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px 1fr auto 14px;
+  grid-template-areas:
+    "pos meta  score arrow"
+    "pos names names arrow";
+  column-gap: 14px;
+  row-gap: 6px;
   align-items: center;
-  gap: 18px;
 }
+.lb-team-head > .lb-pos { grid-area: pos; }
+.lb-team-head > .lb-team-meta { grid-area: meta; align-self: end; }
+.lb-team-head > .lb-team-names { grid-area: names; align-self: start; }
+.lb-team-head > .lb-team-score { grid-area: score; text-align: right; }
+.lb-team-head > .lb-team-arrow { grid-area: arrow; justify-self: center; }
 /* Position circle */
 .lb-team-head .lb-pos {
-  flex-shrink: 0;
   width: 44px; height: 44px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 17px;
-}
-/* Team info block (flight badge + names + meta) — takes available space */
-.lb-team-info {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 .lb-team-meta {
   display: flex;
@@ -220,20 +222,19 @@ html, body {
   color: rgba(255,255,255,0.4);
 }
 .lb-team-names {
-  font-size: 15px;
+  font-size: 14px;
   color: #fff;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.3;
   overflow-wrap: anywhere;
 }
-/* Big score on the right */
+/* Score blok: gestapeld (cijfer + label) */
 .lb-team-score {
-  flex-shrink: 0;
-  text-align: right;
-  min-width: 70px;
+  min-width: 56px;
+  line-height: 1;
 }
 .lb-team-score-main {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 800;
   color: #fff;
   line-height: 1;
@@ -242,49 +243,49 @@ html, body {
 .lb-team-score-main.lb-under { color: #4ade80; }
 .lb-team-score-main.lb-over { color: #f87171; }
 .lb-team-score-label {
-  font-size: 10px;
+  font-size: 9px;
   color: rgba(255,255,255,0.5);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 .lb-team-score-vspar {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 .lb-team-score-vspar.lb-under { color: #4ade80; }
 .lb-team-score-vspar.lb-over { color: #f87171; }
 .lb-team-score-vspar.lb-even { color: rgba(255,255,255,0.5); }
 .lb-team-arrow {
-  flex-shrink: 0;
   color: rgba(255,255,255,0.35);
   font-size: 12px;
   transition: transform 0.2s;
-  margin-left: 6px;
 }
 /* Empty state (no score yet) */
 .lb-team-score-empty {
-  font-size: 28px;
+  font-size: 24px;
   color: rgba(255,255,255,0.25);
   line-height: 1;
 }
 .lb-team-score-empty-label {
-  font-size: 10px;
+  font-size: 9px;
   color: rgba(255,255,255,0.35);
-  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 3px;
 }
 
-/* Responsive: stacked op kleine schermen */
-@media (max-width: 640px) {
+/* Desktop: meer ademruimte, grotere score */
+@media (min-width: 641px) {
   .lb-team-head {
-    flex-wrap: wrap;
-    padding: 14px 14px;
-    gap: 12px;
+    padding: 14px 20px 16px;
+    column-gap: 18px;
   }
-  .lb-team-info { flex-basis: calc(100% - 130px); }
-  .lb-team-score-main { font-size: 26px; }
+  .lb-team-names { font-size: 15px; line-height: 1.35; }
+  .lb-team-score-main { font-size: 30px; }
+  .lb-team-score-empty { font-size: 28px; }
 }
 .lb-team-progress {
   font-size: 11px;
@@ -754,8 +755,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     // Positie cirkel
     html += '<div class="lb-pos ' + pcls + '">' + p + '</div>';
 
-    // Team info: meta (flight + thru + sh) + namen
-    html += '<div class="lb-team-info">';
+    // Meta (row 1)
     html += '<div class="lb-team-meta">';
     html += '<span>FLIGHT ' + r.flight + '</span>';
     html += '<span class="dot">·</span>';
@@ -769,10 +769,8 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
       html += '<span class="badge-sh">SH ' + r.teamSh + '</span>';
     }
     html += '</div>';
-    html += '<div class="lb-team-names">' + escHtml(r.teamNaam) + '</div>';
-    html += '</div>'; // /info
 
-    // Score blok: één grote score + label + (alleen bij klaar) +/- par
+    // Score blok (row 1, right)
     html += '<div class="lb-team-score">';
     if (r.has) {
       var hoofdSc = metHcp ? r.netto : r.bruto;
@@ -780,7 +778,6 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
       var hoofdCls = (isKlaar && vsPar < 0) ? 'lb-under' : (isKlaar && vsPar > 0) ? 'lb-over' : '';
       html += '<div class="lb-team-score-main ' + hoofdCls + '">' + hoofdSc + '</div>';
       html += '<div class="lb-team-score-label">' + hoofdLabel + '</div>';
-      // Alleen +/- par tonen als alle holes klaar — anders is het misleidend
       if (isKlaar) {
         var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
         var nvpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
@@ -790,10 +787,13 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
       html += '<div class="lb-team-score-empty">—</div>';
       html += '<div class="lb-team-score-empty-label">nog niet</div>';
     }
-    html += '</div>'; // /score
+    html += '</div>';
 
-    // Uitklap-pijl
+    // Uitklap-pijl (row 1, far right)
     html += '<div class="lb-team-arrow" id="' + arrowId + '">▼</div>';
+
+    // Namen (row 2, full width onder meta+score)
+    html += '<div class="lb-team-names">' + escHtml(r.teamNaam) + '</div>';
 
     html += '</div>'; // /head clickable
 
