@@ -3130,6 +3130,13 @@ function openSponsorModal(sponsorId) {
   document.getElementById('msp-pakket').value = '';
   document.getElementById('msp-status').value = 'actief';
 
+  // Reset upload-status + preview
+  var uploadStatus = document.getElementById('msp-logo-upload-status');
+  if (uploadStatus) uploadStatus.textContent = '';
+  var fileInput = document.getElementById('msp-logo-file');
+  if (fileInput) fileInput.value = '';
+  if (typeof renderSponsorLogoPreview === 'function') renderSponsorLogoPreview('');
+
   // Vul met bestaande data als bewerken
   if (sponsorId) {
     var s = SPONSOREN.find(function(x) { return x.id === sponsorId; });
@@ -3146,6 +3153,8 @@ function openSponsorModal(sponsorId) {
       document.getElementById('msp-notitie').value = s.notitie || '';
       document.getElementById('msp-pakket').value = s.pakketNaam || '';
       document.getElementById('msp-status').value = s.status || 'actief';
+      // Toon preview van bestaand logo
+      if (typeof renderSponsorLogoPreview === 'function') renderSponsorLogoPreview(s.logoUrl || '');
     }
     document.getElementById('msp-delete-btn').style.display = '';
   } else {
@@ -3193,6 +3202,89 @@ async function verwijderSponsor() {
     closeModal('modal-sponsor');
     toast('Sponsor verwijderd');
   }
+}
+
+// ─── Sponsor logo upload via Supabase Storage ─────────────────
+// Bucket: sponsor-logos (publieke read-only, authenticated insert/update)
+// Eenmalige setup vereist:
+//   Supabase Dashboard → Storage → New bucket "sponsor-logos" (Public: ON)
+//   Policies: Anyone SELECT, Authenticated INSERT/UPDATE/DELETE
+async function uploadSponsorLogo(file) {
+  if (!file) return;
+  var statusEl = document.getElementById('msp-logo-upload-status');
+  function setStatus(msg, color) {
+    if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color || '#8b94a3'; }
+  }
+
+  // Validatie: type
+  if (!file.type.match(/^image\/(png|jpeg|jpg|svg\+xml|webp)$/i)) {
+    toast('Selecteer een afbeelding (PNG, JPG, SVG of WebP).', 'err');
+    return;
+  }
+  // Validatie: grootte (max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    toast('Bestand is te groot (' + (file.size / 1024 / 1024).toFixed(1) + ' MB). Max 2 MB — comprimeer of resize de afbeelding.', 'err');
+    return;
+  }
+
+  // Veilige bestandsnaam: sponsor-naam + timestamp + extensie
+  var ext = (file.name.match(/\.([a-z0-9]+)$/i) || [,'png'])[1].toLowerCase();
+  var sponsorNaam = ((document.getElementById('msp-naam') || {}).value || 'sponsor')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'sponsor';
+  var fname = sponsorNaam + '-' + Date.now() + '.' + ext;
+
+  setStatus('⏳ Uploaden...', '#8b94a3');
+
+  try {
+    var url = SUPA_URL + '/storage/v1/object/sponsor-logos/' + encodeURIComponent(fname);
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + ((SUPA_SESSION && SUPA_SESSION.access_token) || SUPA_KEY),
+        'Content-Type': file.type,
+        'x-upsert': 'true'
+      },
+      body: file
+    });
+
+    if (!res.ok) {
+      var errText = '';
+      try { errText = await res.text(); } catch(_) {}
+      console.warn('Logo upload faalde:', res.status, errText);
+      if (res.status === 404 || /bucket.*not.*found/i.test(errText)) {
+        toast('Bucket "sponsor-logos" ontbreekt. Maak die eerst aan in Supabase Storage (Public bucket).', 'err');
+      } else if (res.status === 403 || res.status === 401) {
+        toast('Geen rechten om te uploaden. Check Storage policies in Supabase (authenticated INSERT).', 'err');
+      } else {
+        toast('Upload mislukt: ' + (errText.slice(0, 200) || res.statusText), 'err');
+      }
+      setStatus('❌ Mislukt', '#dc2626');
+      return;
+    }
+
+    // Bouw publieke URL — pakt logoUrl-veld op
+    var publicUrl = SUPA_URL + '/storage/v1/object/public/sponsor-logos/' + encodeURIComponent(fname);
+    var urlInput = document.getElementById('msp-logo');
+    if (urlInput) urlInput.value = publicUrl;
+    renderSponsorLogoPreview(publicUrl);
+    setStatus('✓ Geüpload', '#16a34a');
+    toast('Logo geüpload.');
+  } catch(e) {
+    console.warn('uploadSponsorLogo:', e);
+    toast('Upload mislukt: ' + e.message, 'err');
+    setStatus('❌ Mislukt', '#dc2626');
+  }
+}
+
+function renderSponsorLogoPreview(url) {
+  var preview = document.getElementById('msp-logo-preview');
+  if (!preview) return;
+  if (!url) { preview.innerHTML = ''; return; }
+  preview.innerHTML = '<div style="display:inline-flex;align-items:center;gap:10px;padding:8px;background:#f8fafa;border:1px solid #e6eaf0;border-radius:8px">' +
+    '<img src="' + escHtml(url) + '" alt="Logo preview" style="max-height:60px;max-width:120px;object-fit:contain" onerror="this.parentNode.innerHTML=\'<span style=&quot;color:#dc2626;font-size:12px&quot;>⚠ Kan logo niet laden — check URL of upload opnieuw</span>\'"/>' +
+    '<span style="font-size:11px;color:#8b94a3">Preview</span>' +
+  '</div>';
 }
 
 // ─── Scrape: Open Graph metadata ophalen via CORS-proxy ──────
@@ -15737,7 +15829,16 @@ try {
       <div class="field"><label>Naam *</label><input id="msp-naam" type="text" placeholder="Bavaria"/></div>
       <div class="field"><label>Pakket</label><select id="msp-pakket"><option value="">— kies —</option><option>Goud</option><option>Zilver</option><option>Brons</option><option>Hole-sponsor</option><option>Vrij</option></select></div>
     </div>
-    <div class="field"><label>Logo URL</label><input id="msp-logo" type="text" placeholder="https://...logo.png"/><small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">Plak voor nu een URL. Upload-functie volgt later.</small></div>
+    <div class="field"><label>Logo</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <button type="button" class="btn btn-s btn-sm" onclick="document.getElementById('msp-logo-file').click()">📤 Upload bestand</button>
+        <input type="file" id="msp-logo-file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none" onchange="uploadSponsorLogo(this.files[0])"/>
+        <span id="msp-logo-upload-status" style="font-size:12px;color:#8b94a3"></span>
+      </div>
+      <input id="msp-logo" type="text" placeholder="of plak URL: https://...logo.png" oninput="renderSponsorLogoPreview(this.value)"/>
+      <small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">PNG, JPG, SVG of WebP — max 2 MB. Geüpload bestand wordt automatisch publiek toegankelijk.</small>
+      <div id="msp-logo-preview" style="margin-top:8px"></div>
+    </div>
     <div class="field"><label>Website</label>
       <div style="display:flex;gap:6px">
         <input id="msp-website" type="text" placeholder="https://bavaria.nl" style="flex:1"/>

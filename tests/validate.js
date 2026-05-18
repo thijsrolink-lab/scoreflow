@@ -684,6 +684,39 @@ test('Wizard state _wizSideGames + render in step 4', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// SPONSOR LOGO UPLOAD via Supabase Storage
+// ═══════════════════════════════════════════════════════════════
+section('Sponsor logo upload');
+
+test('uploadSponsorLogo functie bestaat', () => {
+  if (!/async function uploadSponsorLogo/.test(scriptText)) return 'uploadSponsorLogo ontbreekt';
+  return true;
+});
+
+test('uploadSponsorLogo upload naar /storage/v1/object/sponsor-logos/', () => {
+  const fn = getFnBody(scriptText, 'uploadSponsorLogo');
+  if (!fn) return 'uploadSponsorLogo body niet gevonden';
+  if (!fn.includes('/storage/v1/object/sponsor-logos/')) return 'verkeerde of geen storage-endpoint';
+  if (!fn.includes('/storage/v1/object/public/sponsor-logos/')) return 'public URL niet correct';
+  return true;
+});
+
+test('uploadSponsorLogo valideert grootte (max 2MB) en type', () => {
+  const fn = getFnBody(scriptText, 'uploadSponsorLogo');
+  if (!fn.includes('2 * 1024 * 1024')) return 'geen 2MB limiet check';
+  if (!/image/i.test(fn)) return 'geen image type check';
+  return true;
+});
+
+test('Form heeft file input + upload knop + preview element', () => {
+  if (!html.includes('id="msp-logo-file"')) return 'file input ontbreekt';
+  if (!/onclick="document\.getElementById\('msp-logo-file'\)\.click\(\)"/.test(html)) return 'upload knop ontbreekt';
+  if (!html.includes('id="msp-logo-preview"')) return 'preview element ontbreekt';
+  if (!html.includes('id="msp-logo-upload-status"')) return 'status element ontbreekt';
+  return true;
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SAMENVATTING
 // ═══════════════════════════════════════════════════════════════
 console.log(`\n${'═'.repeat(60)}`);
