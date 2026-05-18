@@ -38,16 +38,16 @@ html, body {
 
 .lb-hd {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+  text-align: center;
+  gap: 6px;
+  padding-bottom: 8px;
 }
-.lb-hd-left { display: flex; flex-direction: column; }
 .lb-eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
-  color: #fca5a5; font-weight: 700; margin-bottom: 6px;
+  color: #fca5a5; font-weight: 700;
 }
 .lb-eyebrow::before {
   content: ''; width: 8px; height: 8px;
@@ -504,15 +504,12 @@ html, body {
 
 <div class="lb-container">
   <div class="lb-hd">
-    <div class="lb-hd-left">
-      <div class="lb-eyebrow">LIVE</div>
-      <div class="lb-titel" id="lb-titel">Leaderboard</div>
-      <div class="lb-sub" id="lb-sub">Bezig met laden...</div>
-    </div>
-    <div class="lb-meta">
-      <div class="lb-club" id="lb-club">De Hooge Rotterdamsche</div>
-      <div class="lb-refresh"><span class="lb-refresh-dot"></span><span id="lb-refresh-text">Auto-refresh elke 15s</span></div>
-    </div>
+    <div class="lb-eyebrow">LIVE</div>
+    <div class="lb-titel" id="lb-titel">Leaderboard</div>
+    <!-- Hidden placeholders: JS schrijft hier nog naartoe, we tonen ze gewoon niet -->
+    <span id="lb-sub" style="display:none"></span>
+    <span id="lb-club" style="display:none"></span>
+    <span id="lb-refresh-text" style="display:none"></span>
   </div>
 
   <div id="lb-content" class="lb-loading">Wedstrijd laden...</div>
@@ -753,11 +750,8 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     return metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto);
   });
 
-  // Header met sortering-uitleg
-  var subtitle = metHcp
-    ? 'Texas Scramble — gesorteerd op netto score per team'
-    : 'Texas Scramble — gesorteerd op score per team';
-  var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem;text-align:center">' + subtitle + '</div>';
+  // Header met sortering-uitleg verwijderd — wedstrijdnaam bovenaan is duidelijk genoeg
+  var html = blindHint(w);
 
   // CARDS layout — schone PGA-stijl horizontale rij per team
   html += '<div class="lb-team-cards">';
