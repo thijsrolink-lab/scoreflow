@@ -717,6 +717,46 @@ test('Form heeft file input + upload knop + preview element', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// SPONSOR CAROUSEL — overige sponsoren rouleren onderaan
+// ═══════════════════════════════════════════════════════════════
+section('Sponsor carousel');
+
+test('overigeSponsorenVoorWedstrijd excludeert al-gekoppelde sponsors', () => {
+  const fn = getFnBody(scriptText, 'overigeSponsorenVoorWedstrijd');
+  if (!fn) return 'functie niet gevonden';
+  if (!fn.includes('gekoppeldeIds')) return 'filter op gekoppelde sponsors ontbreekt';
+  if (!fn.includes("s.status === 'actief'")) return 'filter op actieve status ontbreekt';
+  return true;
+});
+
+test('renderSponsorCarousel + setupSponsorCarousel bestaan in index.html', () => {
+  if (!/function\s+renderSponsorCarousel/.test(scriptText)) return 'renderSponsorCarousel ontbreekt';
+  if (!/function\s+setupSponsorCarousel/.test(scriptText)) return 'setupSponsorCarousel ontbreekt';
+  return true;
+});
+
+test('renderSponsorCarousel + setupSponsorCarousel bestaan in leaderboard.html', () => {
+  const lbPath = path.join(__dirname, '..', 'leaderboard.html');
+  const lbHtml = fs.readFileSync(lbPath, 'utf8');
+  if (!/function\s+renderSponsorCarousel/.test(lbHtml)) return 'renderSponsorCarousel ontbreekt';
+  if (!/function\s+setupSponsorCarousel/.test(lbHtml)) return 'setupSponsorCarousel ontbreekt';
+  return true;
+});
+
+test('setupSponsorCarousel skipt rotatie bij <2 sponsors', () => {
+  const fn = getFnBody(scriptText, 'setupSponsorCarousel');
+  if (!fn.includes('sponsors.length < 2')) return 'geen <2 check (carousel rouleert altijd, ook met 1 sponsor)';
+  return true;
+});
+
+test('Timer wordt opgeruimd bij verlaten LB', () => {
+  const fn = getFnBody(scriptText, 'terugVanLeaderboard');
+  if (!fn) return 'terugVanLeaderboard niet gevonden';
+  if (!fn.includes('_stopSponsorCarousel')) return 'carousel timer wordt niet gestopt';
+  return true;
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SAMENVATTING
 // ═══════════════════════════════════════════════════════════════
 console.log(`\n${'═'.repeat(60)}`);

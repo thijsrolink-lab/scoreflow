@@ -4046,6 +4046,86 @@ function renderSideGamesGrid(wId, opts) {
   return html;
 }
 
+// ─── Sponsor carousel (overige sponsoren onderaan leaderboard) ─────
+// "Overige" = actieve sponsoren MINUS al-gekoppelde rollen (hoofd/co/hole/sidegame)
+// Voorkomt dubbele exposure — wie al groot in beeld staat, niet ook in carousel.
+function overigeSponsorenVoorWedstrijd(wId) {
+  var gekoppeldeIds = {};
+  (WEDSTRIJD_SPONSOREN || []).forEach(function(k) {
+    if (k.wedstrijdId === wId && k.sponsorId) gekoppeldeIds[k.sponsorId] = true;
+  });
+  return (SPONSOREN || []).filter(function(s) {
+    return s && s.status === 'actief' && !gekoppeldeIds[s.id];
+  });
+}
+
+// Globale state voor de carousel — één instance op het scherm tegelijk
+var _sponsorCarouselTimer = null;
+var _sponsorCarouselState = { idx: 0, sponsors: [], containerId: null };
+
+function _stopSponsorCarousel() {
+  if (_sponsorCarouselTimer) { clearInterval(_sponsorCarouselTimer); _sponsorCarouselTimer = null; }
+  _sponsorCarouselState = { idx: 0, sponsors: [], containerId: null };
+}
+
+function _renderCarouselSlide(sponsor, dark) {
+  var txtMain = dark ? '#fff' : '#0c1b2a';
+  var txtSub = dark ? 'rgba(255,255,255,0.6)' : '#8b94a3';
+  var logoHtml = sponsor.logoUrl
+    ? '<img src="' + escHtml(sponsor.logoUrl) + '" style="max-height:70px;max-width:200px;object-fit:contain" onerror="this.style.display=\'none\'"/>'
+    : '<div style="height:70px;display:flex;align-items:center;justify-content:center;color:' + txtSub + ';font-size:13px">' + escHtml(sponsor.naam) + '</div>';
+  return logoHtml +
+    '<div style="font-size:13px;color:' + txtMain + ';font-weight:500;margin-top:8px">' + escHtml(sponsor.naam) + '</div>';
+}
+
+// Returnt HTML; daarna setupSponsorCarousel aanroepen om rotatie te starten
+function renderSponsorCarousel(wId, opts) {
+  opts = opts || {};
+  var sponsors = overigeSponsorenVoorWedstrijd(wId);
+  if (!sponsors.length) return '';
+  var dark = !!opts.dark;
+  var containerId = 'sponsor-carousel-' + (opts.idSuffix || 'main');
+
+  var bgCard = dark ? 'rgba(255,255,255,0.04)' : '#fafbfc';
+  var border = dark ? 'rgba(255,255,255,0.08)' : '#e6eaf0';
+  var txtSub = dark ? 'rgba(255,255,255,0.55)' : '#8b94a3';
+
+  var label = sponsors.length > 1 ? 'ONZE SPONSOREN' : 'ONZE SPONSOR';
+  return '<div style="margin-top:1.5rem;padding:1.25rem 1rem;background:' + bgCard + ';border:1px solid ' + border + ';border-radius:10px">' +
+    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:' + txtSub + ';font-weight:700;margin-bottom:0.85rem;text-align:center">' + label + '</div>' +
+    '<div id="' + containerId + '" data-dark="' + (dark ? '1' : '0') + '" style="min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:opacity 0.4s ease-in-out;opacity:1">' +
+      _renderCarouselSlide(sponsors[0], dark) +
+    '</div>' +
+  '</div>';
+}
+
+// Start de rotatie — moet aangeroepen worden NA insertion in DOM
+function setupSponsorCarousel(wId, opts) {
+  opts = opts || {};
+  _stopSponsorCarousel();
+  var sponsors = overigeSponsorenVoorWedstrijd(wId);
+  if (sponsors.length < 2) return; // geen rotatie nodig
+
+  var containerId = 'sponsor-carousel-' + (opts.idSuffix || 'main');
+  var intervalMs = opts.intervalMs || 5000;
+  _sponsorCarouselState = { idx: 0, sponsors: sponsors, containerId: containerId };
+
+  _sponsorCarouselTimer = setInterval(function() {
+    var el = document.getElementById(containerId);
+    if (!el) { _stopSponsorCarousel(); return; }
+    var dark = el.dataset.dark === '1';
+    _sponsorCarouselState.idx = (_sponsorCarouselState.idx + 1) % sponsors.length;
+    var next = sponsors[_sponsorCarouselState.idx];
+    el.style.opacity = '0';
+    setTimeout(function() {
+      var el2 = document.getElementById(containerId);
+      if (!el2) return;
+      el2.innerHTML = _renderCarouselSlide(next, dark);
+      el2.style.opacity = '1';
+    }, 400);
+  }, intervalMs);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // WEDSTRIJD DETAIL — unified tabs view
 // ═══════════════════════════════════════════════════════════════
@@ -4195,6 +4275,10 @@ function renderWdTabContent() {
     renderScoresInTab(wId);
   } else if (tab === 'uitslag') {
     content.innerHTML = renderWdUitslagTab(w);
+    // Start de sponsor-carousel rotatie nadat HTML is geinsert
+    if (typeof setupSponsorCarousel === 'function') {
+      setupSponsorCarousel(wId, { idSuffix: 'admin' });
+    }
   }
 }
 
@@ -4661,6 +4745,10 @@ function renderWdUitslagTab(w) {
   // Side games (Neary / Longest Drive / Leary) — onder de sponsor-banner
   if (typeof renderSideGamesGrid === 'function') {
     leaderboardHtml += renderSideGamesGrid(w.id);
+  }
+  // Sponsor-carousel onderaan (overige sponsoren rouleren)
+  if (typeof renderSponsorCarousel === 'function') {
+    leaderboardHtml += renderSponsorCarousel(w.id, { idSuffix: 'admin' });
   }
 
   // Live LB knop voor publiek scherm
@@ -11599,6 +11687,7 @@ function openPubliekLeaderboard(wId) {
 
 function terugVanLeaderboard() {
   stopLbRefresh();
+  if (typeof _stopSponsorCarousel === 'function') _stopSponsorCarousel();
   if (_lbTerugNaar === 'speler') toonScherm('speler');
   else if (_lbTerugNaar === 'admin') toonScherm('admin');
   else toonScherm('login');
@@ -11674,6 +11763,14 @@ function renderLiveLeaderboard() {
       var sgHtml = renderSideGamesGrid(wId, { dark: true });
       if (sgHtml) document.getElementById('lb-live-body').innerHTML += sgHtml;
     }
+    // Sponsor carousel onderaan
+    if (typeof renderSponsorCarousel === 'function') {
+      var carHtml = renderSponsorCarousel(wId, { dark: true, idSuffix: 'tv' });
+      if (carHtml) document.getElementById('lb-live-body').innerHTML += carHtml;
+      if (typeof setupSponsorCarousel === 'function') {
+        setupSponsorCarousel(wId, { dark: true, idSuffix: 'tv' });
+      }
+    }
     return;
   }
 
@@ -11702,6 +11799,14 @@ function renderLiveLeaderboard() {
   if (typeof renderSideGamesGrid === 'function') {
     var sgHtml = renderSideGamesGrid(wId, { dark: true });
     if (sgHtml) document.getElementById('lb-live-body').innerHTML += sgHtml;
+  }
+  // Sponsor carousel onderaan
+  if (typeof renderSponsorCarousel === 'function') {
+    var carHtml = renderSponsorCarousel(wId, { dark: true, idSuffix: 'tv' });
+    if (carHtml) document.getElementById('lb-live-body').innerHTML += carHtml;
+    if (typeof setupSponsorCarousel === 'function') {
+      setupSponsorCarousel(wId, { dark: true, idSuffix: 'tv' });
+    }
   }
 }
 

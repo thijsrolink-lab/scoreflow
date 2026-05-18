@@ -907,6 +907,78 @@ function renderSideGamesGrid(wId, opts) {
   return html;
 }
 
+// ─── Sponsor carousel (overige sponsoren onderaan) ─────────────
+function overigeSponsorenVoorWedstrijd(wId) {
+  var gekoppeldeIds = {};
+  (WEDSTRIJD_SPONSOREN || []).forEach(function(k) {
+    if (k.wedstrijdId === wId && k.sponsorId) gekoppeldeIds[k.sponsorId] = true;
+  });
+  return (SPONSOREN || []).filter(function(s) {
+    return s && s.status === 'actief' && !gekoppeldeIds[s.id];
+  });
+}
+
+var _sponsorCarouselTimer = null;
+
+function _stopSponsorCarousel() {
+  if (_sponsorCarouselTimer) { clearInterval(_sponsorCarouselTimer); _sponsorCarouselTimer = null; }
+}
+
+function _renderCarouselSlide(sponsor, dark) {
+  var txtMain = dark ? '#fff' : '#0c1b2a';
+  var txtSub = dark ? 'rgba(255,255,255,0.6)' : '#8b94a3';
+  var logoHtml = sponsor.logoUrl
+    ? '<img src="' + escHtml(sponsor.logoUrl) + '" style="max-height:70px;max-width:200px;object-fit:contain" onerror="this.style.display=\'none\'"/>'
+    : '<div style="height:70px;display:flex;align-items:center;justify-content:center;color:' + txtSub + ';font-size:13px">' + escHtml(sponsor.naam) + '</div>';
+  return logoHtml +
+    '<div style="font-size:13px;color:' + txtMain + ';font-weight:500;margin-top:8px">' + escHtml(sponsor.naam) + '</div>';
+}
+
+function renderSponsorCarousel(wId, opts) {
+  opts = opts || {};
+  var sponsors = overigeSponsorenVoorWedstrijd(wId);
+  if (!sponsors.length) return '';
+  var dark = opts.dark !== false;  // default donker
+  var containerId = 'sponsor-carousel-' + (opts.idSuffix || 'main');
+
+  var bgCard = dark ? 'rgba(255,255,255,0.04)' : '#fafbfc';
+  var border = dark ? 'rgba(255,255,255,0.08)' : '#e6eaf0';
+  var txtSub = dark ? 'rgba(255,255,255,0.55)' : '#8b94a3';
+  var label = sponsors.length > 1 ? 'ONZE SPONSOREN' : 'ONZE SPONSOR';
+
+  return '<div style="margin-top:1.5rem;padding:1.25rem 1rem;background:' + bgCard + ';border:1px solid ' + border + ';border-radius:10px">' +
+    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:' + txtSub + ';font-weight:700;margin-bottom:0.85rem;text-align:center">' + label + '</div>' +
+    '<div id="' + containerId + '" data-dark="' + (dark ? '1' : '0') + '" style="min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:opacity 0.4s ease-in-out;opacity:1">' +
+      _renderCarouselSlide(sponsors[0], dark) +
+    '</div>' +
+  '</div>';
+}
+
+function setupSponsorCarousel(wId, opts) {
+  opts = opts || {};
+  _stopSponsorCarousel();
+  var sponsors = overigeSponsorenVoorWedstrijd(wId);
+  if (sponsors.length < 2) return;
+
+  var containerId = 'sponsor-carousel-' + (opts.idSuffix || 'main');
+  var intervalMs = opts.intervalMs || 5000;
+  var idx = 0;
+
+  _sponsorCarouselTimer = setInterval(function() {
+    var el = document.getElementById(containerId);
+    if (!el) { _stopSponsorCarousel(); return; }
+    var dark = el.dataset.dark === '1';
+    idx = (idx + 1) % sponsors.length;
+    el.style.opacity = '0';
+    setTimeout(function() {
+      var el2 = document.getElementById(containerId);
+      if (!el2) return;
+      el2.innerHTML = _renderCarouselSlide(sponsors[idx], dark);
+      el2.style.opacity = '1';
+    }, 400);
+  }, intervalMs);
+}
+
 function getBaan9(welkeNegen) {
   var w = welkeNegen === 'in' ? 9 : 0;
   var siRaw = BAAN_18.si.slice(w, w+9);
@@ -1325,6 +1397,15 @@ function renderLB() {
   if (typeof renderSideGamesGrid === 'function') {
     var sgHtml = renderSideGamesGrid(WID, { dark: true });
     if (sgHtml) sb_el.innerHTML += sgHtml;
+  }
+
+  // Sponsor carousel onderaan
+  if (typeof renderSponsorCarousel === 'function') {
+    var carHtml = renderSponsorCarousel(WID, { dark: true, idSuffix: 'share' });
+    if (carHtml) sb_el.innerHTML += carHtml;
+    if (typeof setupSponsorCarousel === 'function') {
+      setupSponsorCarousel(WID, { dark: true, idSuffix: 'share' });
+    }
   }
 
   var nu = new Date().toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
