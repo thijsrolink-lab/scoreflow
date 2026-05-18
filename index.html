@@ -9500,30 +9500,38 @@ function bouwSpelerHoleRijen(opts) {
     var rowBg = isActief ? 'var(--gl)' : 'var(--card)';
     var rowShadow = isActief ? '0 0 0 3px rgba(42,96,64,.15)' : 'none';
 
-    // Side game banner (Neary/LD/Leary): boven hole-rij als deze hole een uitdaging heeft
+    // Check side game voor deze hole
     var sgHole = sideGameByHole[i + 1];
-    if (sgHole && typeof sideGameMeta === 'function') {
-      var sgMeta = sideGameMeta(sgHole.type);
+    var sgMeta = (sgHole && typeof sideGameMeta === 'function') ? sideGameMeta(sgHole.type) : null;
+
+    // ─── Open wrapper card (alleen bij side game) ─────────────
+    if (sgMeta) {
       var sgLogo = sgHole.sponsor && sgHole.sponsor.logoUrl
-        ? '<img src="' + escHtml(sgHole.sponsor.logoUrl) + '" style="max-height:22px;max-width:55px;object-fit:contain;background:#fff;padding:2px 4px;border-radius:3px" onerror="this.style.display=\'none\'"/>'
+        ? '<img src="' + escHtml(sgHole.sponsor.logoUrl) + '" style="max-height:22px;max-width:55px;object-fit:contain;background:#fff;padding:2px 4px;border-radius:3px;border:1px solid rgba(0,0,0,0.05)" onerror="this.style.display=\'none\'"/>'
         : '';
       var sgSponsorNm = sgHole.sponsor ? sgHole.sponsor.naam : '';
-      html += '<div style="background:linear-gradient(90deg,' + sgMeta.kleur + '22,' + sgMeta.kleur + '0a);' +
-        'border-left:3px solid ' + sgMeta.kleur + ';padding:.5rem .75rem;border-radius:6px;' +
-        'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:-2px">' +
+      // Wrapper: accent border-left + actief-styling op rest van rand
+      html += '<div style="background:#fff;border:' + rowBorder + ';border-left:4px solid ' + sgMeta.kleur + ';border-radius:var(--r);overflow:hidden;box-shadow:' + rowShadow + ';transition:all .2s">';
+      // Banner als header van de card
+      html += '<div style="background:linear-gradient(90deg,' + sgMeta.kleur + '22,' + sgMeta.kleur + '08);' +
+        'padding:.55rem .85rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid ' + sgMeta.kleur + '33">' +
         '<div style="font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:' + sgMeta.kleur + ';line-height:1.2">' +
           sgMeta.icon + ' ' + escHtml(sgMeta.label) +
           (sgMeta.subtitle ? '<span style="display:block;font-weight:500;text-transform:none;letter-spacing:0;font-size:10px;color:var(--txm);font-style:italic;margin-top:2px">' + escHtml(sgMeta.subtitle) + '</span>' : '') +
         '</div>' +
         '<div style="flex:1;display:flex;align-items:center;gap:6px;justify-content:flex-end;min-width:0">' +
           sgLogo +
-          '<span style="font-size:11px;color:var(--tx);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(sgSponsorNm) + '</span>' +
+          '<span style="font-size:11px;color:var(--tx);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(sgSponsorNm) + '</span>' +
         '</div>' +
       '</div>';
+      // Hole-rij ZONDER eigen border/radius (zit in wrapper)
+      var innerBg = isActief ? 'var(--gl)' : 'transparent';
+      html += '<div style="display:grid;grid-template-columns:60px 1fr 80px;align-items:center;gap:10px;padding:.75rem 1rem;background:' + innerBg + ';transition:all .2s">';
+    } else {
+      // Geen side game: standalone rij zoals voorheen
+      html += '<div style="display:grid;grid-template-columns:60px 1fr 80px;align-items:center;gap:10px;padding:.75rem 1rem;' +
+        'background:' + rowBg + ';border:' + rowBorder + ';border-radius:var(--r);box-shadow:' + rowShadow + ';transition:all .2s">';
     }
-
-    html += '<div style="display:grid;grid-template-columns:60px 1fr 80px;align-items:center;gap:10px;padding:.75rem 1rem;' +
-      'background:' + rowBg + ';border:' + rowBorder + ';border-radius:var(--r);box-shadow:' + rowShadow + ';transition:all .2s">';
 
     html += '<div>';
     html += '<div style="font-family:\'Inter\',sans-serif;font-size:22px;font-weight:700;color:var(--g);line-height:1">' + (i+1) + '</div>';
@@ -9545,13 +9553,23 @@ function bouwSpelerHoleRijen(opts) {
       'value="' + (isVal ? v : '') + '" ' +
       'data-hole="' + i + '" ' + onchangeAttr + ' onfocus="this.select()"/>';
 
-    html += '</div>';
+    html += '</div>'; // /hole-row
 
     // Extra rij voor drive-dropdown indien getHoleExtra
     if (opts.getHoleExtra) {
-      html += '<div style="margin-top:-2px;padding:0 1rem;font-size:11px">';
+      if (sgMeta) {
+        // Binnen wrapper card: zonder negatieve margin, met footer-style padding
+        html += '<div style="padding:.4rem .85rem .6rem;font-size:11px;background:rgba(0,0,0,0.015);border-top:1px solid var(--bd)">';
+      } else {
+        html += '<div style="margin-top:-2px;padding:0 1rem;font-size:11px">';
+      }
       html += opts.getHoleExtra(i);
       html += '</div>';
+    }
+
+    // Sluit wrapper card (alleen bij side game)
+    if (sgMeta) {
+      html += '</div>'; // /wrapper card
     }
   }
   html += '</div>';

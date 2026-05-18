@@ -420,7 +420,7 @@ function getFnBody(src, name) {
   const idx = src.indexOf('function ' + name);
   if (idx < 0) return '';
   let depth = 0, started = false;
-  for (let i = idx; i < idx + 8000 && i < src.length; i++) {
+  for (let i = idx; i < idx + 12000 && i < src.length; i++) {
     if (src[i] === '{') { depth++; started = true; }
     else if (src[i] === '}' && started) {
       depth--;
