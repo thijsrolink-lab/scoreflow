@@ -9193,19 +9193,27 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
 
   var html = '';
 
-  // Compact score+team blok (alles op 2 regels)
+  // Compact score+team blok (clean mode toont alleen Score · X/18 + namen)
+  var metHcp = gebruiktHcp(w);
   var nettoTxt = (strokeplay.gespeeld > 0 ? strokeplay.netto : '—');
   var brutoTxt = (strokeplay.gespeeld > 0 ? strokeplay.bruto : '—');
   var teamNamesShort = spelers.map(function(s){return s.voor[0]+'. '+s.ach;}).join(' · ');
   var hcpsStr = spelers.map(function(s){return s.hcp;}).join('/');
+  // Statistiek-string: in HCP-mode toont Bruto + Netto + Stableford, in clean-mode alleen Score
+  var statsHtml = metHcp
+    ? 'Bruto <strong style="color:var(--tx)">' + brutoTxt + '</strong> · Netto <strong style="color:var(--tx)">' + nettoTxt + '</strong> · Stableford <strong style="color:var(--tx)">' + stableford.punten + '</strong> · ' + strokeplay.gespeeld + '/' + baan.holes
+    : 'Score <strong style="color:var(--tx)">' + brutoTxt + '</strong> · ' + strokeplay.gespeeld + '/' + baan.holes;
   html += '<div style="background:var(--surf);border:1px solid var(--bd);border-radius:var(--r);padding:.6rem .85rem;margin-bottom:.75rem;font-size:12px">';
   html +=   '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">';
   html +=     '<div style="font-weight:600;color:var(--g)">Flight ' + (mijnFlightIdx+1) + '</div>';
-  html +=     '<div style="color:var(--txm);font-size:11px">Bruto <strong style="color:var(--tx)">' + brutoTxt + '</strong> · Netto <strong style="color:var(--tx)">' + nettoTxt + '</strong> · Stableford <strong style="color:var(--tx)">' + stableford.punten + '</strong> · ' + strokeplay.gespeeld + '/' + baan.holes + '</div>';
+  html +=     '<div style="color:var(--txm);font-size:11px">' + statsHtml + '</div>';
   html +=   '</div>';
   html +=   '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:3px;flex-wrap:wrap">';
   html +=     '<div style="color:var(--txm);font-size:11px">' + escHtml(teamNamesShort) + '</div>';
-  html +=     '<div style="color:var(--txh);font-size:10px">HCP ' + hcpsStr + ' · Team SH ' + teamSh + '</div>';
+  // HCP-rij + Team SH alleen tonen in HCP-mode (clean mode: weglaten)
+  if (metHcp) {
+    html +=   '<div style="color:var(--txh);font-size:10px">HCP ' + hcpsStr + ' · Team SH ' + teamSh + '</div>';
+  }
   html +=   '</div>';
   html += '</div>';
 
