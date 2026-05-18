@@ -164,7 +164,7 @@ html, body {
   .lb-col-bruto-th, .lb-col-vspar-th, .lb-col-gespeeld-th { display: none !important; }
   .lb-mobile-sub { display: block !important; }
   /* Card-layout voor team-leaderboard — mobile-first */
-.lb-team-cards { display: flex; flex-direction: column; gap: 8px; }
+.lb-team-cards { display: flex; flex-direction: column; gap: 10px; }
 .lb-team-card {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
@@ -174,76 +174,118 @@ html, body {
 }
 .lb-team-card:hover { background: rgba(255,255,255,0.06); }
 .lb-team-head {
-  padding: 14px 16px;
+  padding: 16px 20px;
   cursor: pointer;
   user-select: none;
-}
-.lb-team-toprow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 18px;
 }
-.lb-team-flight-badge {
-  flex: 1;
+/* Position circle */
+.lb-team-head .lb-pos {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 17px;
+}
+/* Team info block (flight badge + names + meta) — takes available space */
+.lb-team-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lb-team-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 11px;
   color: #4ade80;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   line-height: 1;
+  flex-wrap: wrap;
 }
-.lb-team-arrow {
+.lb-team-meta .dot {
+  color: rgba(255,255,255,0.3);
+  font-weight: 400;
+}
+.lb-team-meta .badge-thru {
+  color: rgba(255,255,255,0.6);
+}
+.lb-team-meta .badge-sh {
   color: rgba(255,255,255,0.4);
-  font-size: 14px;
-  transition: transform 0.2s;
-  flex-shrink: 0;
 }
-.lb-team-spelers {
+.lb-team-names {
   font-size: 15px;
   color: #fff;
   font-weight: 500;
   line-height: 1.35;
-  margin-bottom: 12px;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
-.lb-team-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 8px;
-  padding: 10px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+/* Big score on the right */
+.lb-team-score {
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 70px;
 }
-.lb-stat {
-  text-align: center;
-  min-width: 0;
-}
-.lb-stat-label {
-  font-size: 10px;
-  color: rgba(255,255,255,0.45);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-  margin-bottom: 3px;
-}
-.lb-stat-val {
-  font-size: 20px;
-  font-weight: 700;
+.lb-team-score-main {
+  font-size: 30px;
+  font-weight: 800;
   color: #fff;
   line-height: 1;
   font-family: 'Inter', sans-serif;
 }
-.lb-stat-netto .lb-stat-label {
-  color: #4ade80;
+.lb-team-score-main.lb-under { color: #4ade80; }
+.lb-team-score-main.lb-over { color: #f87171; }
+.lb-team-score-label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  margin-top: 4px;
 }
-.lb-stat-netto-val {
-  color: #4ade80 !important;
-  font-size: 24px !important;
+.lb-team-score-vspar {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 4px;
 }
-.lb-stat-val.lb-under { color: #4ade80; }
-.lb-stat-val.lb-over { color: #f87171; }
-.lb-stat-val.lb-even { color: rgba(255,255,255,0.6); }
+.lb-team-score-vspar.lb-under { color: #4ade80; }
+.lb-team-score-vspar.lb-over { color: #f87171; }
+.lb-team-score-vspar.lb-even { color: rgba(255,255,255,0.5); }
+.lb-team-arrow {
+  flex-shrink: 0;
+  color: rgba(255,255,255,0.35);
+  font-size: 12px;
+  transition: transform 0.2s;
+  margin-left: 6px;
+}
+/* Empty state (no score yet) */
+.lb-team-score-empty {
+  font-size: 28px;
+  color: rgba(255,255,255,0.25);
+  line-height: 1;
+}
+.lb-team-score-empty-label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  margin-top: 4px;
+}
+
+/* Responsive: stacked op kleine schermen */
+@media (max-width: 640px) {
+  .lb-team-head {
+    flex-wrap: wrap;
+    padding: 14px 14px;
+    gap: 12px;
+  }
+  .lb-team-info { flex-basis: calc(100% - 130px); }
+  .lb-team-score-main { font-size: 26px; }
+}
 .lb-team-progress {
   font-size: 11px;
   color: rgba(255,255,255,0.4);
@@ -696,74 +738,66 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     : 'Texas Scramble — gesorteerd op bruto score per team';
   var html = blindHint(w) + '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem;text-align:center">' + subtitle + '</div>';
 
-  // CARDS layout — mobile-first, ook prima op desktop
+  // CARDS layout — schone PGA-stijl horizontale rij per team
   html += '<div class="lb-team-cards">';
   rows.forEach(function(r, i) {
     var p = i+1;
     var pcls = p===1?'lb-1':p===2?'lb-2':p===3?'lb-3':'lb-n';
     var detailId = 'lb-tv-detail-' + r.flightIdx;
     var arrowId = 'lb-tv-arrow-' + r.flightIdx;
+    var isKlaar = r.gespeeld >= baan.holes;
+    var vsPar = metHcp ? r.nettoVsPar : (r.bruto - baan.parTotaal);
 
     html += '<div class="lb-team-card">';
-    // Klikbare hoofdrij
     html += '<div class="lb-team-head" onclick="toggleTvFlight(\'' + detailId + '\', \'' + arrowId + '\')">';
 
-    // BOVEN-RIJ: positie + flight badge + uitklap-pijl
-    html += '<div class="lb-team-toprow">';
+    // Positie cirkel
     html += '<div class="lb-pos ' + pcls + '">' + p + '</div>';
-    html += '<div class="lb-team-flight-badge">FLIGHT ' + r.flight + '</div>';
-    html += '<div class="lb-team-arrow" id="' + arrowId + '">▼</div>';
-    html += '</div>';
 
-    // SPELER-NAMEN op eigen regel (volle breedte)
-    html += '<div class="lb-team-spelers">' + escHtml(r.teamNaam) + '</div>';
-
-    // STATS-RIJ: met HCP: SH | Bruto | Netto | +/- par; zonder HCP: Bruto | +/- par
-    html += '<div class="lb-team-stats">';
-
+    // Team info: meta (flight + thru + sh) + namen
+    html += '<div class="lb-team-info">';
+    html += '<div class="lb-team-meta">';
+    html += '<span>FLIGHT ' + r.flight + '</span>';
+    html += '<span class="dot">·</span>';
+    if (isKlaar) {
+      html += '<span class="badge-thru">KLAAR</span>';
+    } else {
+      html += '<span class="badge-thru">THRU ' + r.gespeeld + '</span>';
+    }
     if (metHcp) {
-      html += '<div class="lb-stat">';
-      html += '<div class="lb-stat-label">SH</div>';
-      html += '<div class="lb-stat-val">' + r.teamSh + '</div>';
-      html += '</div>';
-
-      html += '<div class="lb-stat">';
-      html += '<div class="lb-stat-label">Bruto</div>';
-      html += '<div class="lb-stat-val">' + (r.has ? r.bruto : '—') + '</div>';
-      html += '</div>';
-
-      html += '<div class="lb-stat lb-stat-netto">';
-      html += '<div class="lb-stat-label">Netto</div>';
-      html += '<div class="lb-stat-val lb-stat-netto-val">' + (r.has ? r.netto : '—') + '</div>';
-      html += '</div>';
-    } else {
-      // Clean mode: bruto is de hoofdscore, prominent gemaakt
-      html += '<div class="lb-stat lb-stat-netto">';
-      html += '<div class="lb-stat-label">Bruto</div>';
-      html += '<div class="lb-stat-val lb-stat-netto-val">' + (r.has ? r.bruto : '—') + '</div>';
-      html += '</div>';
-    }
-
-    var vsPar = metHcp ? r.nettoVsPar : (r.bruto - baan.parTotaal);
-    html += '<div class="lb-stat">';
-    html += '<div class="lb-stat-label">+/- par</div>';
-    if (r.has) {
-      var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
-      var nvpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
-      html += '<div class="lb-stat-val ' + nvpCls + '">' + nvpStr + '</div>';
-    } else {
-      html += '<div class="lb-stat-val" style="color:rgba(255,255,255,0.3)">—</div>';
+      html += '<span class="dot">·</span>';
+      html += '<span class="badge-sh">SH ' + r.teamSh + '</span>';
     }
     html += '</div>';
+    html += '<div class="lb-team-names">' + escHtml(r.teamNaam) + '</div>';
+    html += '</div>'; // /info
 
-    html += '</div>'; // /stats
+    // Score blok: één grote score + label + (alleen bij klaar) +/- par
+    html += '<div class="lb-team-score">';
+    if (r.has) {
+      var hoofdSc = metHcp ? r.netto : r.bruto;
+      var hoofdLabel = metHcp ? 'NETTO' : 'BRUTO';
+      var hoofdCls = (isKlaar && vsPar < 0) ? 'lb-under' : (isKlaar && vsPar > 0) ? 'lb-over' : '';
+      html += '<div class="lb-team-score-main ' + hoofdCls + '">' + hoofdSc + '</div>';
+      html += '<div class="lb-team-score-label">' + hoofdLabel + '</div>';
+      // Alleen +/- par tonen als alle holes klaar — anders is het misleidend
+      if (isKlaar) {
+        var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
+        var nvpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
+        html += '<div class="lb-team-score-vspar ' + nvpCls + '">' + nvpStr + '</div>';
+      }
+    } else {
+      html += '<div class="lb-team-score-empty">—</div>';
+      html += '<div class="lb-team-score-empty-label">nog niet</div>';
+    }
+    html += '</div>'; // /score
 
-    // GESPEELD-INDICATOR onderaan
-    html += '<div class="lb-team-progress">' + r.gespeeld + ' / ' + baan.holes + ' holes gespeeld</div>';
+    // Uitklap-pijl
+    html += '<div class="lb-team-arrow" id="' + arrowId + '">▼</div>';
 
     html += '</div>'; // /head clickable
 
-    // Detail (uitklap met scorekaart per hole)
+    // Detail (uitklap met scorekaart per hole) — onveranderd
     html += '<div class="lb-team-detail" id="' + detailId + '" style="display:none">';
     if (r.has || r.scores.some(function(s) { return s !== '' && s !== null; })) {
       html += buildTvFlightScorekaart(r, baan, w);
