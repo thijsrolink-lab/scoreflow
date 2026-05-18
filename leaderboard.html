@@ -840,6 +840,73 @@ function coSponsorenVoorWedstrijd(wId) {
   return koppels.map(function(k) { return SPONSOREN.find(function(s) { return s.id === k.sponsorId; }); }).filter(Boolean);
 }
 
+// ─── Side games (Neary / Longest Drive / Leary) ────────────────
+var SIDE_GAME_TYPES = [
+  { type: 'neary',          label: 'Neary',         subtitle: 'Nearest to the pin', kleur: '#0ea5e9', icon: '🎯' },
+  { type: 'longest-drive',  label: 'Longest Drive', subtitle: 'Verste afslag',      kleur: '#f97316', icon: '💪' },
+  { type: 'leary',          label: 'Leary',         subtitle: '',                   kleur: '#a855f7', icon: '⛳' }
+];
+
+function sideGameMeta(type) {
+  return SIDE_GAME_TYPES.find(function(x) { return x.type === type; }) ||
+    { type: type, label: type, subtitle: '', kleur: '#6b7280', icon: '🏆' };
+}
+
+function isSideGameType(type) {
+  return SIDE_GAME_TYPES.some(function(x) { return x.type === type; });
+}
+
+function sideGamesVoorWedstrijd(wId) {
+  var koppels = (WEDSTRIJD_SPONSOREN || []).filter(function(k) {
+    return k.wedstrijdId === wId && isSideGameType(k.type);
+  });
+  return koppels.map(function(k) {
+    var s = SPONSOREN.find(function(x) { return x.id === k.sponsorId; });
+    return s ? { type: k.type, sponsor: s, holeNr: k.holeNr } : null;
+  }).filter(Boolean);
+}
+
+// Mooi grid van side game cards (TV-mode = dark background)
+function renderSideGamesGrid(wId, opts) {
+  opts = opts || {};
+  var games = sideGamesVoorWedstrijd(wId);
+  if (!games.length) return '';
+  games.sort(function(a, b) { return (a.holeNr || 0) - (b.holeNr || 0); });
+
+  var dark = opts.dark !== false;  // default donker voor standalone LB
+  var bgCard = dark ? 'rgba(255,255,255,0.05)' : '#fff';
+  var bgInner = dark ? 'rgba(255,255,255,0.04)' : '#fafbfc';
+  var border = dark ? 'rgba(255,255,255,0.1)' : '#e6eaf0';
+  var txtMain = dark ? '#fff' : '#0c1b2a';
+  var txtSub = dark ? 'rgba(255,255,255,0.55)' : '#8b94a3';
+
+  var html = '<div style="margin-top:1.5rem">' +
+    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:' + txtSub + ';font-weight:700;margin-bottom:0.65rem;text-align:center">Uitdagingen op de baan</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">';
+
+  games.forEach(function(g) {
+    var meta = sideGameMeta(g.type);
+    var logoHtml = g.sponsor.logoUrl
+      ? '<img src="' + escHtml(g.sponsor.logoUrl) + '" style="max-height:48px;max-width:100%;object-fit:contain" onerror="this.style.display=\'none\'"/>'
+      : '<div style="height:48px;display:flex;align-items:center;justify-content:center;color:' + txtSub + ';font-size:11px">Geen logo</div>';
+
+    html += '<div style="background:' + bgCard + ';border:1px solid ' + border + ';border-top:3px solid ' + meta.kleur + ';border-radius:10px;padding:0.85rem 0.75rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem;text-align:center">' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+        '<span style="font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:' + meta.kleur + '">' + meta.icon + ' ' + escHtml(meta.label) + '</span>' +
+        '<span style="background:' + meta.kleur + ';color:#fff;font-weight:700;font-size:10px;padding:2px 7px;border-radius:3px">HOLE ' + g.holeNr + '</span>' +
+      '</div>' +
+      (meta.subtitle ? '<div style="font-size:10px;color:' + txtSub + ';font-style:italic;margin-top:-2px">' + escHtml(meta.subtitle) + '</div>' : '') +
+      '<div style="background:' + bgInner + ';border-radius:6px;padding:0.6rem 0.6rem;width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:2px">' +
+        logoHtml +
+        '<div style="font-size:11px;color:' + txtMain + ';font-weight:500;line-height:1.2">' + escHtml(g.sponsor.naam) + '</div>' +
+      '</div>' +
+    '</div>';
+  });
+
+  html += '</div></div>';
+  return html;
+}
+
 function getBaan9(welkeNegen) {
   var w = welkeNegen === 'in' ? 9 : 0;
   var siRaw = BAAN_18.si.slice(w, w+9);
@@ -1252,6 +1319,12 @@ function renderLB() {
     sb_el.innerHTML = sb;
   } else {
     sb_el.innerHTML = '';
+  }
+
+  // Side games (Neary / LD / Leary) — onder de sponsor-banner
+  if (typeof renderSideGamesGrid === 'function') {
+    var sgHtml = renderSideGamesGrid(WID, { dark: true });
+    if (sgHtml) sb_el.innerHTML += sgHtml;
   }
 
   var nu = new Date().toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit', second: '2-digit'});

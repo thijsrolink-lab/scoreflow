@@ -636,6 +636,54 @@ test("Form-veld fhp heeft '0' optie voor geen HCP-verrekening", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// SIDE GAMES — Neary / Longest Drive / Leary met sponsor-koppeling
+// ═══════════════════════════════════════════════════════════════
+section('Side games (Neary / LD / Leary)');
+
+test('SIDE_GAME_TYPES array bestaat met 3 types', () => {
+  if (!/var\s+SIDE_GAME_TYPES\s*=\s*\[/.test(scriptText)) return 'SIDE_GAME_TYPES niet gevonden';
+  ['neary', 'longest-drive', 'leary'].forEach(function(t) {
+    if (!scriptText.includes("type: '" + t + "'")) {
+      throw new Error("Type '" + t + "' niet gevonden in SIDE_GAME_TYPES");
+    }
+  });
+  return true;
+});
+
+test('sideGamesVoorWedstrijd helper filtert op de 3 types', () => {
+  const fn = getFnBody(scriptText, 'sideGamesVoorWedstrijd');
+  if (!fn) return 'sideGamesVoorWedstrijd niet gevonden';
+  if (!fn.includes('isSideGameType')) return 'gebruikt isSideGameType niet';
+  return true;
+});
+
+test('renderSideGamesGrid functie bestaat (in index.html en leaderboard.html)', () => {
+  if (!/function\s+renderSideGamesGrid/.test(scriptText)) return 'ontbreekt in index.html';
+  const lbPath = path.join(__dirname, '..', 'leaderboard.html');
+  const lbHtml = fs.readFileSync(lbPath, 'utf8');
+  if (!/function\s+renderSideGamesGrid/.test(lbHtml)) return 'ontbreekt in leaderboard.html';
+  return true;
+});
+
+test('koppelAlleSponsorenAanWedstrijd accepteert side games parameter', () => {
+  const fnBody = getFnBody(scriptText, 'koppelAlleSponsorenAanWedstrijd');
+  if (!fnBody) return 'functie niet gevonden';
+  // Moet sideGames parameter accepteren én ze opslaan
+  const signature = scriptText.match(/koppelAlleSponsorenAanWedstrijd\s*\([^)]+\)/);
+  if (!signature || !signature[0].includes('sideGames')) return 'sideGames parameter ontbreekt in signatuur';
+  if (!fnBody.includes('sg.type')) return 'side games worden niet opgeslagen';
+  return true;
+});
+
+test('Wizard state _wizSideGames + render in step 4', () => {
+  if (!/_wizSideGames\s*=\s*\[\]/.test(scriptText)) return '_wizSideGames niet geïnitialiseerd';
+  if (!scriptText.includes('renderSideGameList()')) return 'renderSideGameList niet aangeroepen';
+  if (!html.includes('id="sidegame-list"')) return 'sidegame-list element ontbreekt in form HTML';
+  if (!html.includes('koppelSideGame()')) return '+ Toevoegen knop ontbreekt';
+  return true;
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SAMENVATTING
 // ═══════════════════════════════════════════════════════════════
 console.log(`\n${'═'.repeat(60)}`);

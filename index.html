@@ -3384,6 +3384,8 @@ function renderSponsorWizardStep() {
   renderCoSponsorList();
   // Render hole-sponsoren
   renderHoleSponsorList();
+  // Render side games (Neary / LD / Leary)
+  renderSideGameList();
 }
 
 // State variabele voor hoofdsponsor (al in fhsponsor dropdown gevangen, maar voor reload)
@@ -3690,7 +3692,7 @@ async function opslaanWdBeheer() {
 
 
 // ─── Sync naar DB: koppel ALLE sponsoren aan wedstrijd ──────────
-async function koppelAlleSponsorenAanWedstrijd(wedstrijdId, hoofdsponsorId, coSponsorenIds, holeSponsoren) {
+async function koppelAlleSponsorenAanWedstrijd(wedstrijdId, hoofdsponsorId, coSponsorenIds, holeSponsoren, sideGames) {
   try {
     // 1. Verwijder alle bestaande koppelingen voor deze wedstrijd
     await supa('wedstrijd_sponsoren', 'DELETE', null, { wedstrijd_id: 'eq.' + wedstrijdId });
@@ -3721,6 +3723,17 @@ async function koppelAlleSponsorenAanWedstrijd(wedstrijdId, hoofdsponsorId, coSp
         hole_nr: hs.holeNr
       });
     }
+    // 5. Side games (Neary / Longest Drive / Leary)
+    for (var k = 0; k < (sideGames || []).length; k++) {
+      var sg = sideGames[k];
+      if (!sg || !isSideGameType(sg.type)) continue;
+      await supa('wedstrijd_sponsoren', 'POST', {
+        wedstrijd_id: wedstrijdId,
+        sponsor_id: sg.sponsorId,
+        type: sg.type,
+        hole_nr: sg.holeNr
+      });
+    }
     // Refresh local cache
     await laadSponsoren();
     return true;
@@ -3742,6 +3755,203 @@ function holeSponsorenVoorWedstrijd(wId) {
     var s = SPONSOREN.find(function(x) { return x.id === k.sponsorId; });
     return s ? { sponsor: s, holeNr: k.holeNr } : null;
   }).filter(Boolean);
+}
+
+// ─── Side games (Neary / Longest Drive / Leary) ────────────────
+// Hergebruikt wedstrijd_sponsoren met type ∈ {'neary','longest-drive','leary'}
+// + bestaand hole_nr veld voor de hole waarop de uitdaging geldt.
+var SIDE_GAME_TYPES = [
+  { type: 'neary',          label: 'Neary',         subtitle: 'Nearest to the pin', kleur: '#0ea5e9', icon: '🎯' },
+  { type: 'longest-drive',  label: 'Longest Drive', subtitle: 'Verste afslag',      kleur: '#f97316', icon: '💪' },
+  { type: 'leary',          label: 'Leary',         subtitle: '',                   kleur: '#a855f7', icon: '⛳' }
+];
+
+function sideGameMeta(type) {
+  return SIDE_GAME_TYPES.find(function(x) { return x.type === type; }) ||
+    { type: type, label: type, subtitle: '', kleur: '#6b7280', icon: '🏆' };
+}
+
+function isSideGameType(type) {
+  return SIDE_GAME_TYPES.some(function(x) { return x.type === type; });
+}
+
+function sideGamesVoorWedstrijd(wId) {
+  var koppels = (WEDSTRIJD_SPONSOREN || []).filter(function(k) {
+    return k.wedstrijdId === wId && isSideGameType(k.type);
+  });
+  return koppels.map(function(k) {
+    var s = SPONSOREN.find(function(x) { return x.id === k.sponsorId; });
+    return s ? { type: k.type, sponsor: s, holeNr: k.holeNr } : null;
+  }).filter(Boolean);
+}
+
+// State voor de wizard (volgens patroon van _wizHoleSponsoren)
+var _wizSideGames = [];
+
+function renderSideGameList() {
+  var listEl = document.getElementById('sidegame-list');
+  if (!listEl) return;
+  if (_wizSideGames.length === 0) {
+    listEl.innerHTML = '<div style="color:#8b94a3;font-size:13px;padding:0.5rem 0;font-style:italic">Nog geen uitdagingen. Klik + Toevoegen om Neary, Longest Drive of Leary te koppelen aan een sponsor.</div>';
+    return;
+  }
+  // Sorteer op hole nummer voor consistente weergave
+  _wizSideGames.sort(function(a, b) { return (a.holeNr || 0) - (b.holeNr || 0); });
+  listEl.innerHTML = _wizSideGames.map(function(item, idx) {
+    var s = SPONSOREN.find(function(x) { return x.id === item.sponsorId; });
+    if (!s) return '';
+    var meta = sideGameMeta(item.type);
+    var logoHtml = s.logoUrl
+      ? '<img src="' + escHtml(s.logoUrl) + '" style="height:24px;width:auto;border-radius:3px" onerror="this.style.display=\'none\'"/>'
+      : '<span style="display:inline-block;width:24px;height:24px;background:#f1f4f8;border-radius:3px"></span>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafa;border:1px solid #e6eaf0;border-radius:6px">' +
+      '<span style="background:' + meta.kleur + ';color:#fff;font-weight:700;font-size:11px;padding:3px 10px;border-radius:4px;letter-spacing:.03em;text-transform:uppercase;min-width:90px;text-align:center">' + meta.icon + ' ' + escHtml(meta.label) + '</span>' +
+      '<span style="background:#16a34a;color:#fff;font-weight:700;font-size:11px;padding:3px 8px;border-radius:4px;min-width:32px;text-align:center">H' + item.holeNr + '</span>' +
+      logoHtml +
+      '<span style="flex:1;font-size:14px;color:#0c1b2a">' + escHtml(s.naam) + '</span>' +
+      '<button type="button" class="btn btn-s btn-xs" onclick="verwijderSideGame(' + idx + ')" style="color:#dc2626">Verwijder</button>' +
+    '</div>';
+  }).join('');
+}
+
+function koppelSideGame() {
+  var beschikbaar = (SPONSOREN || []).filter(function(s) { return s.status === 'actief'; });
+  if (beschikbaar.length === 0) {
+    toast('Geen actieve sponsoren beschikbaar. Voeg eerst een sponsor toe.', 'err');
+    return;
+  }
+  var holesEl = document.getElementById('fh');
+  var holes = parseInt((holesEl && holesEl.value) || 18);
+  showSideGamePicker(beschikbaar, holes, function(type, sponsorId, holeNr) {
+    // Voorkom dubbele koppeling: zelfde type op zelfde wedstrijd kan maar 1 keer
+    var bestaand = _wizSideGames.find(function(x) { return x.type === type; });
+    if (bestaand) {
+      if (!confirm(sideGameMeta(type).label + ' is al gekoppeld. Vervangen?')) return;
+      var idx = _wizSideGames.indexOf(bestaand);
+      _wizSideGames.splice(idx, 1);
+    }
+    _wizSideGames.push({ type: type, sponsorId: sponsorId, holeNr: holeNr });
+    renderSideGameList();
+    toast(sideGameMeta(type).label + ' gekoppeld aan hole ' + holeNr + '.');
+  });
+}
+
+function verwijderSideGame(idx) {
+  _wizSideGames.splice(idx, 1);
+  renderSideGameList();
+}
+
+// Picker modal: kies type + sponsor + hole in één stap
+function showSideGamePicker(sponsors, maxHole, callback) {
+  var modal = document.getElementById('modal-sidegame-picker');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-sidegame-picker';
+    modal.className = 'modal-bg';
+    document.body.appendChild(modal);
+  }
+  var typeButtons = SIDE_GAME_TYPES.map(function(t, i) {
+    return '<button type="button" data-type="' + t.type + '" onclick="_sgPickType(this,\'' + t.type + '\')" ' +
+      'style="flex:1;padding:10px 8px;border:2px solid #e6eaf0;background:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#425466' +
+      (i === 0 ? ';border-color:' + t.kleur + ';background:' + t.kleur + '11;color:' + t.kleur : '') + '">' +
+      t.icon + ' ' + escHtml(t.label) +
+    '</button>';
+  }).join('');
+  var sponsorOpts = sponsors.map(function(s) {
+    return '<option value="' + s.id + '">' + escHtml(s.naam) + '</option>';
+  }).join('');
+  var holeOpts = '';
+  for (var h = 1; h <= maxHole; h++) holeOpts += '<option value="' + h + '">Hole ' + h + '</option>';
+
+  var html = '<div class="modal" style="max-width:440px">' +
+    '<div class="modal-title">Uitdaging toevoegen <button class="modal-close" onclick="closeModal(\'modal-sidegame-picker\')">&#215;</button></div>' +
+    '<div style="padding:1rem 1.25rem 1.25rem">' +
+      '<div style="margin-bottom:1rem">' +
+        '<label style="font-size:12px;color:#8b94a3;font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Type uitdaging</label>' +
+        '<div id="sg-type-btns" style="display:flex;gap:6px">' + typeButtons + '</div>' +
+        '<input type="hidden" id="sg-type-value" value="' + SIDE_GAME_TYPES[0].type + '"/>' +
+      '</div>' +
+      '<div class="field"><label>Sponsor</label><select id="sg-sponsor-id">' + sponsorOpts + '</select></div>' +
+      '<div class="field"><label>Hole</label><select id="sg-hole-nr">' + holeOpts + '</select></div>' +
+      '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">' +
+        '<button class="btn btn-s" onclick="closeModal(\'modal-sidegame-picker\')">Annuleer</button>' +
+        '<button class="btn btn-p" id="sg-add-btn">Toevoegen</button>' +
+      '</div>' +
+    '</div></div>';
+  modal.innerHTML = html;
+  modal.style.display = 'flex';
+  document.getElementById('sg-add-btn').onclick = function() {
+    var type = document.getElementById('sg-type-value').value;
+    var sponsorId = document.getElementById('sg-sponsor-id').value;
+    var holeNr = parseInt(document.getElementById('sg-hole-nr').value);
+    closeModal('modal-sidegame-picker');
+    callback(type, sponsorId, holeNr);
+  };
+}
+
+// Helper voor de type-toggle in de picker
+function _sgPickType(btn, type) {
+  var parent = btn.parentNode;
+  Array.prototype.forEach.call(parent.children, function(b) {
+    var t = SIDE_GAME_TYPES.find(function(x) { return x.type === b.dataset.type; });
+    if (!t) return;
+    if (b === btn) {
+      b.style.borderColor = t.kleur;
+      b.style.background = t.kleur + '11';
+      b.style.color = t.kleur;
+    } else {
+      b.style.borderColor = '#e6eaf0';
+      b.style.background = '#fff';
+      b.style.color = '#425466';
+    }
+  });
+  document.getElementById('sg-type-value').value = type;
+}
+
+// ─── Renderer: mooi grid van side game cards ───────────────────
+// Gebruikt op live leaderboard, standalone leaderboard, wedstrijd-detail
+function renderSideGamesGrid(wId, opts) {
+  opts = opts || {};
+  var games = sideGamesVoorWedstrijd(wId);
+  if (!games.length) return '';
+  // Sorteer op hole-nr voor consistente weergave
+  games.sort(function(a, b) { return (a.holeNr || 0) - (b.holeNr || 0); });
+
+  var dark = !!opts.dark;
+  var bgCard = dark ? 'rgba(255,255,255,0.05)' : '#fff';
+  var bgInner = dark ? 'rgba(255,255,255,0.02)' : '#fafbfc';
+  var border = dark ? 'rgba(255,255,255,0.1)' : '#e6eaf0';
+  var txtMain = dark ? '#fff' : '#0c1b2a';
+  var txtSub = dark ? 'rgba(255,255,255,0.55)' : '#8b94a3';
+
+  var html = '<div style="margin-top:1.5rem">' +
+    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:' + txtSub + ';font-weight:700;margin-bottom:0.65rem;text-align:center">Uitdagingen op de baan</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">';
+
+  games.forEach(function(g) {
+    var meta = sideGameMeta(g.type);
+    var logoHtml = g.sponsor.logoUrl
+      ? '<img src="' + escHtml(g.sponsor.logoUrl) + '" style="max-height:42px;max-width:100%;object-fit:contain" onerror="this.style.display=\'none\'"/>'
+      : '<div style="height:42px;display:flex;align-items:center;justify-content:center;color:' + txtSub + ';font-size:11px">Geen logo</div>';
+
+    html += '<div style="background:' + bgCard + ';border:1px solid ' + border + ';border-top:3px solid ' + meta.kleur + ';border-radius:10px;padding:0.85rem 0.75rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem;text-align:center">' +
+      // Type badge + hole nr
+      '<div style="display:flex;align-items:center;gap:6px">' +
+        '<span style="font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:' + meta.kleur + '">' + meta.icon + ' ' + escHtml(meta.label) + '</span>' +
+        '<span style="background:' + meta.kleur + ';color:#fff;font-weight:700;font-size:10px;padding:2px 7px;border-radius:3px">HOLE ' + g.holeNr + '</span>' +
+      '</div>' +
+      // Subtitle (optioneel)
+      (meta.subtitle ? '<div style="font-size:10px;color:' + txtSub + ';font-style:italic;margin-top:-2px">' + escHtml(meta.subtitle) + '</div>' : '') +
+      // Logo + sponsor naam in een eigen blokje
+      '<div style="background:' + bgInner + ';border-radius:6px;padding:0.5rem 0.6rem;width:100%;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:2px">' +
+        logoHtml +
+        '<div style="font-size:11px;color:' + txtMain + ';font-weight:500;line-height:1.2">' + escHtml(g.sponsor.naam) + '</div>' +
+      '</div>' +
+    '</div>';
+  });
+
+  html += '</div></div>';
+  return html;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4354,6 +4564,11 @@ function renderWdUitslagTab(w) {
     }
     sponsorBanner += '</div>';
     leaderboardHtml += sponsorBanner;
+  }
+
+  // Side games (Neary / Longest Drive / Leary) — onder de sponsor-banner
+  if (typeof renderSideGamesGrid === 'function') {
+    leaderboardHtml += renderSideGamesGrid(w.id);
   }
 
   // Live LB knop voor publiek scherm
@@ -5936,6 +6151,7 @@ function editW(id){
     _wizHoofdsponsorId = hsp ? hsp.id : '';
     _wizCoSponsoren = coSponsorenVoorWedstrijd(w.id).map(function(s) { return s.id; });
     _wizHoleSponsoren = holeSponsorenVoorWedstrijd(w.id).map(function(item) { return { sponsorId: item.sponsor.id, holeNr: item.holeNr }; });
+    _wizSideGames = sideGamesVoorWedstrijd(w.id).map(function(item) { return { type: item.type, sponsorId: item.sponsor.id, holeNr: item.holeNr }; });
     vulHoofdsponsorDropdown(_wizHoofdsponsorId);
     // Laad drive-quota
     var fdrivemin2 = document.getElementById('fdrivemin');
@@ -6035,6 +6251,7 @@ function resetForm(){
   // Sponsor wizard state reset
   _wizCoSponsoren = [];
   _wizHoleSponsoren = [];
+  _wizSideGames = [];
   _wizHoofdsponsorId = '';
   vulHoofdsponsorDropdown('');
   var now=new Date().toISOString().split('T')[0];
@@ -6144,7 +6361,7 @@ async function bouwEnSlaWedstrijdOp(status) {
     var sponsorEl = document.getElementById('fhsponsor');
     var hoofdId = sponsorEl ? (sponsorEl.value || null) : null;
     if (typeof koppelAlleSponsorenAanWedstrijd === 'function' && savedEditId) {
-      koppelAlleSponsorenAanWedstrijd(savedEditId, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || []);
+      koppelAlleSponsorenAanWedstrijd(savedEditId, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || [], _wizSideGames || []);
     }
     toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
     adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
@@ -11360,6 +11577,11 @@ function renderLiveLeaderboard() {
     });
     document.getElementById('lb-live-body').innerHTML = html ||
       '<p style="color:rgba(255,255,255,.5);padding:2rem;text-align:center">Nog geen scores.</p>';
+    // Side games appenden (dark mode want TV-screen heeft donkere bg)
+    if (typeof renderSideGamesGrid === 'function') {
+      var sgHtml = renderSideGamesGrid(wId, { dark: true });
+      if (sgHtml) document.getElementById('lb-live-body').innerHTML += sgHtml;
+    }
     return;
   }
 
@@ -11384,6 +11606,11 @@ function renderLiveLeaderboard() {
     html += '<div class="lb-row"><div class="lb-row-pos ' + pcls + '">' + p + '</div><div class="lb-row-naam">' + r.naam + '<div class="lb-row-holes">' + (r.has ? r.gespeeld + '/' + baan.holes + ' holes' : 'Nog niet gestart') + '</div></div><div class="lb-row-score ' + scoreCls + '">' + scoreStr + '</div></div>';
   });
   document.getElementById('lb-live-body').innerHTML = html || '<p style="color:rgba(255,255,255,.5);padding:2rem;text-align:center">Nog geen scores ingevoerd.</p>';
+  // Side games appenden (dark mode want TV-screen heeft donkere bg)
+  if (typeof renderSideGamesGrid === 'function') {
+    var sgHtml = renderSideGamesGrid(wId, { dark: true });
+    if (sgHtml) document.getElementById('lb-live-body').innerHTML += sgHtml;
+  }
 }
 
 function startLbRefresh() {
@@ -15061,6 +15288,16 @@ try {
                   <button type="button" class="btn btn-s btn-xs" onclick="koppelHoleSponsor()">+ Toevoegen</button>
                 </label>
                 <div id="holesponsor-list" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+              </div>
+
+              <!-- Side games: Neary / Longest Drive / Leary -->
+              <div class="field" style="margin-top:1.5rem">
+                <label style="font-weight:600;color:#0c1b2a;display:flex;align-items:center;justify-content:space-between">
+                  <span>🎯 Uitdagingen op de baan</span>
+                  <button type="button" class="btn btn-s btn-xs" onclick="koppelSideGame()">+ Toevoegen</button>
+                </label>
+                <small style="color:#8b94a3;font-size:11px;display:block;margin-top:2px;margin-bottom:6px">Neary, Longest Drive of Leary — koppel een sponsor aan elke uitdaging</small>
+                <div id="sidegame-list" style="margin-top:4px;display:flex;flex-direction:column;gap:6px"></div>
               </div>
             </div>
           </div>
