@@ -708,6 +708,28 @@ function buildLeaderboard(wId,ronde,baan,sps,w){
   return html+'</tbody></table>';
 }
 
+// Pak het meest-complete scores-array voor een team in Texas Scramble.
+// Identiek aan helper in index.html. Lost op dat na re-login team-N cache
+// gone is en spelers[0] soms een teammate is met partial/stale data.
+function pickTeamScoresArray(wId, ronde, spelers, fi) {
+  var teamKey = 'team-' + fi;
+  var fromCache = SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey];
+  if (Array.isArray(fromCache)) return fromCache;
+  if (!spelers || !spelers.length) return null;
+  var best = null, bestCount = -1;
+  for (var i = 0; i < spelers.length; i++) {
+    var arr = SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][spelers[i].id];
+    if (Array.isArray(arr)) {
+      var filled = 0;
+      for (var j = 0; j < arr.length; j++) {
+        if (arr[j] !== '' && arr[j] !== null && arr[j] !== undefined) filled++;
+      }
+      if (filled > bestCount) { bestCount = filled; best = arr; }
+    }
+  }
+  return best;
+}
+
 function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   var flights = FLIGHTS[wId] || [];
   if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
@@ -721,11 +743,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
 
     var teamHcp = teamHandicapScramble(spelers, perc, w.tsFormule || w.ts_formule || 'app');
     var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
-    var teamKey = 'team-' + fi;
-    var scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][teamKey]);
-    if (!scores && spelers.length > 0) {
-      scores = (SCORES[wId] && SCORES[wId][ronde] && SCORES[wId][ronde][spelers[0].id]);
-    }
+    var scores = pickTeamScoresArray(wId, ronde, spelers, fi);
     scores = scores || Array(baan.holes).fill('');
     scores = filterScoresVoorBlind(scores, w);
     var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
