@@ -765,6 +765,31 @@ test('bouwSpelerHoleRijen toont side game banner per hole', () => {
   return true;
 });
 
+test('dbSaveScore gooit errors door (markScoreFailed kan firen)', () => {
+  const fnBody = getFnBody(scriptText, 'dbSaveScore');
+  if (!fnBody) return 'dbSaveScore niet gevonden';
+  if (!fnBody.includes('throw new Error')) return 'gooit geen Error bij HTTP fout';
+  if (!fnBody.includes('throw e')) return 're-throw in catch block ontbreekt';
+  return true;
+});
+
+test('dbSaveTeamScore gooit errors door wanneer alle saves falen', () => {
+  const fnBody = getFnBody(scriptText, 'dbSaveTeamScore');
+  if (!fnBody) return 'dbSaveTeamScore niet gevonden';
+  if (!fnBody.includes('firstError')) return 'tracks geen firstError';
+  if (!fnBody.includes('throw firstError')) return 'gooit firstError niet door';
+  if (!fnBody.includes('savedCount')) return 'telt geen savedCount';
+  return true;
+});
+
+test('refreshTeamScores synct teamKey vanuit eerste speler', () => {
+  const fnBody = getFnBody(scriptText, 'refreshTeamScores');
+  if (!fnBody) return 'refreshTeamScores niet gevonden';
+  if (!fnBody.includes("'team-' + fi")) return 'sync naar team-N key ontbreekt';
+  if (!fnBody.includes('FLIGHTS[wId]')) return 'leest FLIGHTS niet';
+  return true;
+});
+
 test('Geen modal-bg gebruikt inline style.display=flex (breekt closeModal)', () => {
   // closeModal doet classList.remove('open'). Wie de modal opent met
   // style.display='flex' (inline) overschrijft de CSS-regel, waardoor

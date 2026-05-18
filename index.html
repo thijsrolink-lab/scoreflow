@@ -5062,9 +5062,14 @@ async function dbSaveScore(wId, sid, ronde, holeIdx, score) {
     });
     if (!res.ok) {
       var errText = await res.text();
-      console.warn('dbSaveScore fout:', res.status, errText.slice(0, 200));
+      var msg = res.status + ': ' + errText.slice(0, 100);
+      console.warn('dbSaveScore fout:', msg);
+      throw new Error(msg);
     }
-  } catch(e) { console.warn('dbSaveScore exception:', e.message); }
+  } catch(e) {
+    console.warn('dbSaveScore exception:', e.message);
+    throw e;  // re-throw zodat caller .catch() echt fired (markScoreFailed werkt)
+  }
 }
 
 // Verwijder score uit DB (bij wissen door admin/speler)
@@ -8861,9 +8866,11 @@ async function dbSaveTeamScore(wId, ronde, teamKey, holeIdx, score) {
   var flight = (FLIGHTS[wId] || [])[flightIdx];
   if (!flight || !flight.length) {
     console.warn('dbSaveTeamScore: geen flight gevonden voor', teamKey);
-    return;
+    throw new Error('Geen flight gevonden voor ' + teamKey);
   }
 
+  var firstError = null;
+  var savedCount = 0;
   for (var i = 0; i < flight.length; i++) {
     var sid = flight[i];
     // Lokaal bijwerken
@@ -8892,12 +8899,21 @@ async function dbSaveTeamScore(wId, ronde, teamKey, holeIdx, score) {
       });
       if (!res.ok) {
         var errText = await res.text();
-        console.warn('dbSaveTeamScore fout:', res.status, errText.slice(0, 200));
+        var msg = res.status + ': ' + errText.slice(0, 100);
+        console.warn('dbSaveTeamScore fout voor sid', sid, ':', msg);
+        if (!firstError) firstError = new Error(msg);
+      } else {
+        savedCount++;
       }
     } catch(e) {
-      console.warn('dbSaveTeamScore exception:', e.message);
+      console.warn('dbSaveTeamScore exception voor sid', sid, ':', e.message);
+      if (!firstError) firstError = e;
     }
   }
+  // Als geen enkele save lukte, gooi de fout door (markScoreFailed kan dan firen)
+  // Als sommige lukten en andere niet: dat is wel zorgelijk maar geen totaal verlies.
+  // We gooien alleen door als ALLE saves faalden — dan is er echt iets mis.
+  if (firstError && savedCount === 0) throw firstError;
 }
 
 // Team leaderboard voor scramble
@@ -9308,6 +9324,12 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
       _teamScoreRefreshTimer = null;
       return;
     }
+    // SKIP refresh als gebruiker actief in een score-input typt — anders
+    // verdwijnt hun ingetypte (maar nog niet onchange'd) waarde door re-render.
+    var focused = document.activeElement;
+    if (focused && (focused.classList.contains('sc-inp') || focused.classList.contains('drive-sel'))) {
+      return;
+    }
     // Haal alleen scores op (lichte query)
     if (typeof refreshTeamScores === 'function') {
       refreshTeamScores(wId, function() {
@@ -9345,6 +9367,25 @@ async function refreshTeamScores(wId, callback) {
       if (!SCORES[wId][r][s.sid]) SCORES[wId][r][s.sid] = Array(18).fill('');
       SCORES[wId][r][s.sid][s.hole - 1] = s.score;
     });
+
+    // BELANGRIJK: ook teamKey syncen vanuit eerste speler per flight, anders zien
+    // andere teamleden de scores van het team niet via auto-refresh.
+    // Voor Texas Scramble heeft elke teamlid dezelfde scores in DB → eerste speler's
+    // array IS de team-array.
+    var flights = FLIGHTS[wId] || [];
+    Object.keys(SCORES[wId] || {}).forEach(function(r) {
+      flights.forEach(function(flightSids, fi) {
+        if (flightSids && flightSids.length > 0) {
+          var firstSid = flightSids[0];
+          var firstArr = SCORES[wId][r] && SCORES[wId][r][firstSid];
+          if (firstArr) {
+            // Maak een KOPIE (slice) — geen referentie, om losse mutaties te isoleren
+            SCORES[wId][r]['team-' + fi] = firstArr.slice();
+          }
+        }
+      });
+    });
+
     if (callback) callback();
   } catch(e) {
     console.warn('refreshTeamScores:', e.message);
