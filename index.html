@@ -9060,11 +9060,16 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
     html += '<div style="text-align:right">';
     if (r.has) {
       var hoofdScore = metHcp ? r.netto : r.bruto;
-      var vsPar = metHcp ? r.nettoVsPar : (r.bruto - baan.parTotaal);
-      var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
-      var nvpKleur = vsPar < 0 ? '#16a34a' : vsPar > 0 ? '#dc2626' : '#6b7280';
+      var isKlaar = r.gespeeld >= baan.holes;
       html += '<div style="font-size:22px;font-weight:700;color:#16a34a;line-height:1;font-family:Inter,sans-serif">' + hoofdScore + '</div>';
-      html += '<div style="font-size:11px;color:' + nvpKleur + ';font-weight:600;line-height:1.2;margin-top:2px">' + nvpStr + '</div>';
+      // +/- par ALLEEN tonen als alle holes klaar — anders is het misleidend
+      // (bv. 17 slagen na 4 holes = -54 t.o.v. par 71, klinkt extreem terwijl het neutraal is)
+      if (isKlaar) {
+        var vsPar = metHcp ? r.nettoVsPar : (r.bruto - baan.parTotaal);
+        var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
+        var nvpKleur = vsPar < 0 ? '#16a34a' : vsPar > 0 ? '#dc2626' : '#6b7280';
+        html += '<div style="font-size:11px;color:' + nvpKleur + ';font-weight:600;line-height:1.2;margin-top:2px">' + nvpStr + '</div>';
+      }
     } else {
       html += '<div style="font-size:22px;color:#cbd5e1;line-height:1">—</div>';
       html += '<div style="font-size:11px;color:#cbd5e1;margin-top:2px">nog geen</div>';
