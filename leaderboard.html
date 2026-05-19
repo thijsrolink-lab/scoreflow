@@ -603,13 +603,13 @@ function extraSlagenPerHole(sh,si){return si.map(function(s){return Math.floor(s
 function berekenStrokeplay(scores,baan,sh,esc){
   esc=esc||'geen';
   var ex=extraSlagenPerHole(sh,baan.si);
-  var bruto=0,netto=0;
+  var bruto=0,netto=0,parGespeeld=0;
   var perHole=scores.map(function(s,i){
     if(s===null||s==='')return{bruto:null,netto:null,extra:ex[i],par:baan.par[i]};
-    var g=pasESCtoe(Number(s),baan.par[i],ex[i],esc);bruto+=g;netto+=g-ex[i];
+    var g=pasESCtoe(Number(s),baan.par[i],ex[i],esc);bruto+=g;netto+=g-ex[i];parGespeeld+=baan.par[i];
     return{bruto:g,netto:g-ex[i],extra:ex[i],par:baan.par[i]};
   });
-  return{perHole:perHole,bruto:bruto,netto:netto,nettoVsPar:netto-baan.parTotaal,brutoVsPar:bruto-baan.parTotaal,gespeeld:scores.filter(function(s){return s!==null&&s!=='';}).length};
+  return{perHole:perHole,bruto:bruto,netto:netto,nettoVsPar:netto-baan.parTotaal,brutoVsPar:bruto-baan.parTotaal,brutoVsParGespeeld:bruto-parGespeeld,nettoVsParGespeeld:netto-parGespeeld,parGespeeld:parGespeeld,gespeeld:scores.filter(function(s){return s!==null&&s!=='';}).length};
 }
 
 function berekenStableford(scores,baan,sh){
@@ -756,6 +756,8 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
       teamSh: teamSh,
       netto: sp.netto, bruto: sp.bruto,
       nettoVsPar: sp.nettoVsPar,
+      brutoVsParGespeeld: sp.brutoVsParGespeeld,
+      nettoVsParGespeeld: sp.nettoVsParGespeeld,
       gespeeld: sp.gespeeld,
       has: sp.gespeeld > 0,
       scores: scores
@@ -765,11 +767,13 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   var metHcp = gebruiktHcp(w);
   rows.sort(function(a,b) {
     if (!a.has) return 1; if (!b.has) return -1;
-    return metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto);
+    // Sorteer op vsPar t.o.v. gespeelde holes (eerlijk bij partial play),
+    // tiebreaker = aantal gespeelde holes (meer is verder, dus eerder klaar)
+    var aVs = metHcp ? a.nettoVsParGespeeld : a.brutoVsParGespeeld;
+    var bVs = metHcp ? b.nettoVsParGespeeld : b.brutoVsParGespeeld;
+    if (aVs !== bVs) return aVs - bVs;
+    return b.gespeeld - a.gespeeld;
   });
-
-  // Header met sortering-uitleg verwijderd — wedstrijdnaam bovenaan is duidelijk genoeg
-  var html = blindHint(w);
 
   // CARDS layout — schone PGA-stijl horizontale rij per team
   html += '<div class="lb-team-cards">';
@@ -779,7 +783,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     var detailId = 'lb-tv-detail-' + r.flightIdx;
     var arrowId = 'lb-tv-arrow-' + r.flightIdx;
     var isKlaar = r.gespeeld >= baan.holes;
-    var vsPar = metHcp ? r.nettoVsPar : (r.bruto - baan.parTotaal);
+    var vsPar = metHcp ? r.nettoVsParGespeeld : r.brutoVsParGespeeld;
 
     html += '<div class="lb-team-card">';
     html += '<div class="lb-team-head" onclick="toggleTvFlight(\'' + detailId + '\', \'' + arrowId + '\')">';
@@ -810,14 +814,13 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     html += '<div class="lb-team-score">';
     if (r.has) {
       var hoofdSc = metHcp ? r.netto : r.bruto;
-      var hoofdCls = (isKlaar && vsPar < 0) ? 'lb-under' : (isKlaar && vsPar > 0) ? 'lb-over' : '';
+      var hoofdCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : '';
       html += '<div class="lb-team-score-main ' + hoofdCls + '">' + hoofdSc + '</div>';
-      // +/- par ALLEEN tonen als alle holes klaar (anders misleidend)
-      if (isKlaar) {
-        var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
-        var nvpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
-        html += '<div class="lb-team-score-vspar ' + nvpCls + '">' + nvpStr + '</div>';
-      }
+      // vsPar t.o.v. par van gespeelde holes — eerlijk tijdens partial play
+      var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
+      var nvpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
+      html += '<div class="lb-team-score-vspar ' + nvpCls + '">' + nvpStr +
+        (!isKlaar ? ' <span style="color:#94a3b8;font-weight:400;font-size:10px">na ' + r.gespeeld + '</span>' : '') + '</div>';
     } else {
       html += '<div class="lb-team-score-empty">—</div>';
       html += '<div class="lb-team-score-empty-label">nog niet</div>';

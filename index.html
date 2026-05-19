@@ -5587,13 +5587,13 @@ function formatVsPar(d){return d===0?'E':d>0?'+'+d:''+d;}
 function berekenStrokeplay(scores,baan,sh,esc){
   esc=esc||'geen';
   var ex=extraSlagenPerHole(sh,baan.si);
-  var bruto=0,netto=0;
+  var bruto=0,netto=0,parGespeeld=0;
   var perHole=scores.map(function(s,i){
     if(s===null||s==='')return{bruto:null,netto:null,extra:ex[i],par:baan.par[i]};
-    var g=pasESCtoe(Number(s),baan.par[i],ex[i],esc);bruto+=g;netto+=g-ex[i];
+    var g=pasESCtoe(Number(s),baan.par[i],ex[i],esc);bruto+=g;netto+=g-ex[i];parGespeeld+=baan.par[i];
     return{bruto:g,netto:g-ex[i],extra:ex[i],par:baan.par[i]};
   });
-  return{perHole:perHole,bruto:bruto,netto:netto,nettoVsPar:netto-baan.parTotaal,brutoVsPar:bruto-baan.parTotaal,gespeeld:scores.filter(function(s){return s!==null&&s!=='';}).length};
+  return{perHole:perHole,bruto:bruto,netto:netto,nettoVsPar:netto-baan.parTotaal,brutoVsPar:bruto-baan.parTotaal,brutoVsParGespeeld:bruto-parGespeeld,nettoVsParGespeeld:netto-parGespeeld,parGespeeld:parGespeeld,gespeeld:scores.filter(function(s){return s!==null&&s!=='';}).length};
 }
 
 function berekenStableford(scores,baan,sh){
@@ -9297,6 +9297,8 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
       teamSh: teamSh,
       netto: sp.netto, bruto: sp.bruto,
       nettoVsPar: sp.nettoVsPar,
+      brutoVsParGespeeld: sp.brutoVsParGespeeld,
+      nettoVsParGespeeld: sp.nettoVsParGespeeld,
       gespeeld: sp.gespeeld,
       has: sp.gespeeld > 0,
     };
@@ -9305,7 +9307,11 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   var metHcp = gebruiktHcp(w);
   rows.sort(function(a,b) {
     if (!a.has) return 1; if (!b.has) return -1;
-    return metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto);
+    // Eerlijk bij partial play: vsPar t.o.v. gespeelde holes
+    var aVs = metHcp ? a.nettoVsParGespeeld : a.brutoVsParGespeeld;
+    var bVs = metHcp ? b.nettoVsParGespeeld : b.brutoVsParGespeeld;
+    if (aVs !== bVs) return aVs - bVs;
+    return b.gespeeld - a.gespeeld;
   });
 
   var subtitle = metHcp
@@ -9367,6 +9373,8 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
       teamSh: teamSh,
       netto: sp.netto, bruto: sp.bruto,
       nettoVsPar: sp.nettoVsPar,
+      brutoVsParGespeeld: sp.brutoVsParGespeeld,
+      nettoVsParGespeeld: sp.nettoVsParGespeeld,
       gespeeld: sp.gespeeld,
       has: sp.gespeeld > 0,
       isMij: isMij,
@@ -9378,7 +9386,10 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
   var metHcp = gebruiktHcp(w);
   rows.sort(function(a,b) {
     if (!a.has) return 1; if (!b.has) return -1;
-    return metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto);
+    var aVs = metHcp ? a.nettoVsParGespeeld : a.brutoVsParGespeeld;
+    var bVs = metHcp ? b.nettoVsParGespeeld : b.brutoVsParGespeeld;
+    if (aVs !== bVs) return aVs - bVs;
+    return b.gespeeld - a.gespeeld;
   });
 
   var html = '<div style="display:flex;flex-direction:column;gap:6px" id="lb-team-list">';
@@ -9426,14 +9437,12 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
       var hoofdScore = metHcp ? r.netto : r.bruto;
       var isKlaar = r.gespeeld >= baan.holes;
       html += '<div style="font-size:22px;font-weight:700;color:#16a34a;line-height:1;font-family:Inter,sans-serif">' + hoofdScore + '</div>';
-      // +/- par ALLEEN tonen als alle holes klaar — anders is het misleidend
-      // (bv. 17 slagen na 4 holes = -54 t.o.v. par 71, klinkt extreem terwijl het neutraal is)
-      if (isKlaar) {
-        var vsPar = metHcp ? r.nettoVsPar : (r.bruto - baan.parTotaal);
-        var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
-        var nvpKleur = vsPar < 0 ? '#16a34a' : vsPar > 0 ? '#dc2626' : '#6b7280';
-        html += '<div style="font-size:11px;color:' + nvpKleur + ';font-weight:600;line-height:1.2;margin-top:2px">' + nvpStr + '</div>';
-      }
+      // vsPar t.o.v. par van gespeelde holes (eerlijk tijdens partial play)
+      var vsPar = metHcp ? r.nettoVsParGespeeld : r.brutoVsParGespeeld;
+      var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
+      var nvpKleur = vsPar < 0 ? '#16a34a' : vsPar > 0 ? '#dc2626' : '#6b7280';
+      html += '<div style="font-size:11px;color:' + nvpKleur + ';font-weight:600;line-height:1.2;margin-top:2px">' + nvpStr +
+        (!isKlaar ? ' <span style="color:#8b94a3;font-weight:500">na ' + r.gespeeld + '</span>' : '') + '</div>';
     } else {
       html += '<div style="font-size:22px;color:#cbd5e1;line-height:1">—</div>';
       html += '<div style="font-size:11px;color:#cbd5e1;margin-top:2px">nog geen</div>';

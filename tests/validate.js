@@ -601,8 +601,8 @@ test("buildTeamLeaderboard gebruikt gebruiktHcp om kolommen te tonen/verbergen",
   const fnBody = getFnBody(scriptText, 'buildTeamLeaderboard');
   if (!fnBody) return 'buildTeamLeaderboard niet gevonden';
   if (!fnBody.includes('gebruiktHcp(w)')) return 'roept gebruiktHcp(w) niet aan';
-  if (!fnBody.includes('metHcp ? (a.netto - b.netto) : (a.bruto - b.bruto)')) {
-    return 'sort houdt geen rekening met metHcp';
+  if (!fnBody.includes('nettoVsParGespeeld') || !fnBody.includes('brutoVsParGespeeld')) {
+    return 'sort gebruikt geen vsParGespeeld voor eerlijke partial-play ranking';
   }
   return true;
 });
