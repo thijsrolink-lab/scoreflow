@@ -9418,15 +9418,19 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
     if (r.isMij) html += '<span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-size:9px">JIJ</span>';
     html += '</div>';
     html += '<div style="font-size:13px;color:#0c1b2a;font-weight:500;line-height:1.25;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(teamShort) + '</div>';
-    // Subline: met HCP toon "SH X · Bruto Y · 8/18 holes"; zonder HCP toon enkel "8/18 holes"
+    // Subline: alleen tonen als wedstrijd klaar of bij start; tijdens spel staat 'na N' al bij score
+    var isKlaarSub = r.gespeeld >= baan.holes;
     var subline = '';
-    if (metHcp) {
+    if (metHcp && r.has) {
+      subline = 'SH ' + r.teamSh + ' &middot; Bruto ' + r.bruto;
+    } else if (metHcp) {
       subline = 'SH ' + r.teamSh;
-      if (r.has) subline += ' &middot; Bruto ' + r.bruto;
-      subline += ' &middot; ' + r.gespeeld + '/' + baan.holes + ' holes';
+    } else if (r.has) {
+      subline = 'Totaal ' + r.bruto + ' slagen';
     } else {
-      subline = r.gespeeld + '/' + baan.holes + ' holes gespeeld';
+      subline = 'Nog niet gestart';
     }
+    if (isKlaarSub) subline += ' &middot; Klaar';
     html += '<div style="font-size:11px;color:#8b94a3;margin-top:1px">' + subline + '</div>';
     html += '</div>';
 
@@ -9434,15 +9438,15 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
     html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
     html += '<div style="text-align:right">';
     if (r.has) {
-      var hoofdScore = metHcp ? r.netto : r.bruto;
       var isKlaar = r.gespeeld >= baan.holes;
-      html += '<div style="font-size:22px;font-weight:700;color:#16a34a;line-height:1;font-family:Inter,sans-serif">' + hoofdScore + '</div>';
-      // vsPar t.o.v. par van gespeelde holes (eerlijk tijdens partial play)
       var vsPar = metHcp ? r.nettoVsParGespeeld : r.brutoVsParGespeeld;
       var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
       var nvpKleur = vsPar < 0 ? '#16a34a' : vsPar > 0 ? '#dc2626' : '#6b7280';
-      html += '<div style="font-size:11px;color:' + nvpKleur + ';font-weight:600;line-height:1.2;margin-top:2px">' + nvpStr +
-        (!isKlaar ? ' <span style="color:#8b94a3;font-weight:500">na ' + r.gespeeld + '</span>' : '') + '</div>';
+      // vsPar als hero
+      html += '<div style="font-size:24px;font-weight:700;color:' + nvpKleur + ';line-height:1;font-family:Inter,sans-serif">' + nvpStr + '</div>';
+      // Subtitel: 'na N' tijdens partial, 'Klaar' bij voltooid
+      var subTxt = isKlaar ? 'Klaar' : 'na ' + r.gespeeld;
+      html += '<div style="font-size:11px;color:#8b94a3;font-weight:500;line-height:1.2;margin-top:2px">' + subTxt + '</div>';
     } else {
       html += '<div style="font-size:22px;color:#cbd5e1;line-height:1">—</div>';
       html += '<div style="font-size:11px;color:#cbd5e1;margin-top:2px">nog geen</div>';

@@ -824,14 +824,13 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     // Score blok (right)
     html += '<div class="lb-team-score">';
     if (r.has) {
-      var hoofdSc = metHcp ? r.netto : r.bruto;
       var hoofdCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : '';
-      html += '<div class="lb-team-score-main ' + hoofdCls + '">' + hoofdSc + '</div>';
-      // vsPar t.o.v. par van gespeelde holes — eerlijk tijdens partial play
       var nvpStr = vsPar > 0 ? '+' + vsPar : (vsPar < 0 ? vsPar : 'E');
-      var nvpCls = vsPar < 0 ? 'lb-under' : vsPar > 0 ? 'lb-over' : 'lb-even';
-      html += '<div class="lb-team-score-vspar ' + nvpCls + '">' + nvpStr +
-        (!isKlaar ? ' <span style="color:#94a3b8;font-weight:400;font-size:10px">na ' + r.gespeeld + '</span>' : '') + '</div>';
+      // vsPar t.o.v. par van gespeelde holes — als hero
+      html += '<div class="lb-team-score-main ' + hoofdCls + '">' + nvpStr + '</div>';
+      // Subtitel: 'na N' tijdens partial, 'Klaar' bij voltooid
+      var subTxt = isKlaar ? 'Klaar' : 'na ' + r.gespeeld;
+      html += '<div class="lb-team-score-vspar" style="color:#94a3b8;font-weight:400">' + subTxt + '</div>';
     } else {
       html += '<div class="lb-team-score-empty">—</div>';
       html += '<div class="lb-team-score-empty-label">nog niet</div>';
