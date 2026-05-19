@@ -611,7 +611,9 @@ test("buildTeamLeaderboardCompact gebruikt gebruiktHcp", () => {
   const fnBody = getFnBody(scriptText, 'buildTeamLeaderboardCompact');
   if (!fnBody) return 'buildTeamLeaderboardCompact niet gevonden';
   if (!fnBody.includes('gebruiktHcp(w)')) return 'roept gebruiktHcp(w) niet aan';
-  if (!fnBody.includes('hoofdScore')) return 'hoofdScore variabele ontbreekt';
+  if (!fnBody.includes('nettoVsParGespeeld') || !fnBody.includes('brutoVsParGespeeld')) {
+    return 'gebruikt geen vsParGespeeld voor display';
+  }
   return true;
 });
 
