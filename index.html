@@ -4481,9 +4481,13 @@ function renderFlightsInTab(wId) {
     html += '<div style="text-align:center;padding:3rem 2rem;color:#8b94a3;background:#f8fafa;border-radius:12px"><div style="font-size:32px;margin-bottom:0.75rem">🏌️</div><h3 style="color:#0c1b2a;margin:0 0 0.5rem 0">Nog geen indeling</h3><p style="margin:0 0 1.25rem 0;font-size:14px">Klik op <strong>Auto-indeling</strong> om automatisch flights te maken.</p></div>';
   } else {
     html += '<div style="display:grid;gap:1rem">';
+    var wdstrTijd = (w && w.tijd) || '08:00';
+    var wdstrParts = wdstrTijd.split(':');
+    var startMin = (parseInt(wdstrParts[0]) || 0) * 60 + (parseInt(wdstrParts[1]) || 0);
+    var intervalMin = (w && w.intervalMin) || 10;
     flights.forEach(function(flight, fi) {
-      var totalMin = fi * 10;
-      var hr = 8 + Math.floor(totalMin / 60);
+      var totalMin = startMin + fi * intervalMin;
+      var hr = Math.floor(totalMin / 60);
       var min = totalMin % 60;
       var time = String(hr).padStart(2,'0') + ':' + String(min).padStart(2,'0');
 
@@ -5283,7 +5287,8 @@ function dbWedstrijdNaarApp(w) {
     blindHoles: w.blind_holes || 0,
     welkeNegen: w.welke_negen || 'uit',
     publiekLeaderboard: !!w.publiek_leaderboard,
-    tsFormule: w.ts_formule || 'app',};
+    tsFormule: w.ts_formule || 'app',
+    intervalMin: w.interval_min || 10,};
 }
 function dbIngNaarApp(i) {
   return {
@@ -5438,7 +5443,8 @@ async function dbSaveWedstrijd(w) {
       blind_holes: w.blindHoles || 0,
       welke_negen: w.welkeNegen || 'uit',
       publiek_leaderboard: !!w.publiekLeaderboard,
-      ts_formule: w.tsFormule || 'app',};
+      ts_formule: w.tsFormule || 'app',
+      interval_min: w.intervalMin || 10,};
     if (w.id && String(w.id).includes('-')) {
       await supa('wedstrijden', 'PATCH', data, { id: 'eq.' + w.id });
     } else {
@@ -6669,6 +6675,8 @@ function editW(id){
     if (fblindEdit) fblindEdit.value = (w.blindHoles || 0);
     var fnegenEdit = document.getElementById('fnegen');
     if (fnegenEdit) fnegenEdit.value = w.welkeNegen || 'uit';
+    var fintEdit = document.getElementById('fint');
+    if (fintEdit) fintEdit.value = (w.intervalMin || 10);
     if (typeof toggleNegenKeuze === 'function') toggleNegenKeuze();
     if (typeof showHideDriveQuota === 'function') showHideDriveQuota();
     var fh = document.getElementById('fh'); if(fh) fh.value = w.holes;
@@ -6841,6 +6849,7 @@ function bouwWedstrijdUitFormulier(status) {
     driveMin: parseInt((document.getElementById('fdrivemin') || {}).value) || null,
     driveMax: parseInt((document.getElementById('fdrivemax') || {}).value) || null,
     welkeNegen: (document.getElementById('fnegen') || {}).value || 'uit',
+    intervalMin: parseInt((document.getElementById('fint') || {}).value) || 10,
   };
 }
 
@@ -11352,10 +11361,11 @@ function renderSpMijnStartTab(w, fase) {
     return '<div class="sp-wd-empty"><div class="icon">⏳</div><h3>Flight nog niet ingedeeld</h3><p>De wedstrijdleider maakt de flight-indeling vóór de wedstrijd. Check hier later terug.</p></div>';
   }
 
-  // Tijd berekenen: starttijd + flight-nummer * 10 min
+  // Tijd berekenen: starttijd + flight-nummer * interval
   var startStr = w.tijd || '08:00';
   var parts = startStr.split(':');
-  var totalMin = parseInt(parts[0]) * 60 + parseInt(parts[1]) + (mijnFlight * 10);
+  var intervalMin = w.intervalMin || 10;
+  var totalMin = parseInt(parts[0]) * 60 + parseInt(parts[1]) + (mijnFlight * intervalMin);
   var teeUur = Math.floor(totalMin / 60);
   var teeMin = totalMin % 60;
   var teeTijd = String(teeUur).padStart(2,'0') + ':' + String(teeMin).padStart(2,'0');
