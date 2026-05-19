@@ -775,6 +775,8 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     return b.gespeeld - a.gespeeld;
   });
 
+  var html = blindHint(w);
+
   // CARDS layout — schone PGA-stijl horizontale rij per team
   html += '<div class="lb-team-cards">';
   rows.forEach(function(r, i) {
