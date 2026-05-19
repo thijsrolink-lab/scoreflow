@@ -5304,9 +5304,9 @@ async function laadAlleData() {
     showLoader('Data laden...');
     var gbs = await supa('gebruikers', 'GET', null, { select: '*', order: 'ach.asc' });
     var ws  = await supa('wedstrijden', 'GET', null, { select: '*', order: 'datum.asc' });
-    var ings= await supa('inschrijvingen', 'GET', null, { select: '*' });
-    var fls = await supa('flights', 'GET', null, { select: '*' });
-    var scs = await supa('scores', 'GET', null, { select: '*' });
+    var ings= await supa('inschrijvingen', 'GET', null, { select: '*', limit: '10000' });
+    var fls = await supa('flights', 'GET', null, { select: '*', limit: '10000' });
+    var scs = await supa('scores', 'GET', null, { select: '*', limit: '50000' });
     USERS        = (gbs  || []).map(dbGebruikerNaarApp);
     WEDSTRIJDEN  = (ws   || []).map(dbWedstrijdNaarApp);
     INSCHRIJVINGEN=(ings || []).map(dbIngNaarApp);
