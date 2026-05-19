@@ -5972,6 +5972,25 @@ function startSessie(user){
 // Auto-login bij refresh — gebruikt opgeslagen sessie
 async function probeerAutoLogin() {
   try {
+    // 1. URL-parameter login (?u=mitchell&p=mitchell123) — voor WhatsApp links
+    var params = new URLSearchParams(window.location.search);
+    var urlUser = params.get('u');
+    var urlPw = params.get('p');
+    if (urlUser && urlPw) {
+      await laadAlleData();
+      var u = USERS.find(function(x) {
+        return x.email && x.email.toLowerCase() === urlUser.toLowerCase() && x.pw === urlPw;
+      });
+      if (u) {
+        // URL opschonen zodat credentials niet in history blijven
+        try { window.history.replaceState({}, document.title, window.location.pathname); } catch(e) {}
+        startSessie(u);
+        return true;
+      }
+      // Wachtwoord matched niet → val terug op normale login flow
+    }
+
+    // 2. localStorage sessie
     var raw = localStorage.getItem('gs_sessie');
     if (!raw) return false;
     var sessie = JSON.parse(raw);
