@@ -813,11 +813,12 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
     html += '</div>';
     // Line 2: namen (truncated met ellipsis)
     html += '<div class="lb-team-names">' + escHtml(r.teamNaam) + '</div>';
-    // Line 3: progress
-    var progressTxt = isKlaar
-      ? 'Klaar · ' + baan.holes + '/' + baan.holes + ' holes'
-      : r.gespeeld + '/' + baan.holes + ' holes gespeeld';
-    html += '<div class="lb-team-progress">' + progressTxt + '</div>';
+    // Line 3: alleen "Klaar" tonen als ronde af — anders staat 'na N' al bij score blok
+    if (isKlaar) {
+      html += '<div class="lb-team-progress">Klaar · ' + baan.holes + ' holes</div>';
+    } else if (!r.has) {
+      html += '<div class="lb-team-progress">Nog niet gestart</div>';
+    }
     html += '</div>'; // /info
 
     // Score blok (right)
