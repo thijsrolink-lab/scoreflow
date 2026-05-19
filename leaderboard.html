@@ -795,10 +795,10 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
 
     // Info block: 3 stacked lines (meta · names · progress)
     html += '<div class="lb-team-info">';
-    // Line 1: FLIGHT badge (+ SH bij HCP-mode)
+    // Line 1: FLIGHT badge (+ SH bij HCP-mode én SH > 0)
     html += '<div class="lb-team-meta">';
     html += '<span>FLIGHT ' + r.flight + '</span>';
-    if (metHcp) {
+    if (metHcp && r.teamSh > 0) {
       html += '<span class="dot">·</span>';
       html += '<span class="badge-sh">SH ' + r.teamSh + '</span>';
     }
