@@ -4779,10 +4779,11 @@ function renderWdUitslagTab(w) {
     leaderboardHtml += renderSponsorCarousel(w.id, { idSuffix: 'admin' });
   }
 
-  // Live LB knop voor publiek scherm + Print PDF
+  // Live LB knop voor publiek scherm + Print PDF + Volgorde aanpassen
   var lbBtn = '';
   if (typeof openLiveLeaderboard === 'function' && (fase === 'live' || fase === 'afgerond')) {
-    lbBtn = '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:1rem">' +
+    lbBtn = '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:1rem;flex-wrap:wrap">' +
+      '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openRangschikkingModal(\'' + w.id + '\')">🏆 Volgorde aanpassen</button>' +
       '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="printUitslagPDF(\'' + w.id + '\')">🖨️ Print uitslag (PDF)</button>' +
       '<button class="wd-btn wd-btn-neutral" style="padding:0.5rem 1rem;font-size:13px;min-height:36px" onclick="openLiveLeaderboard(\'' + w.id + '\')">📺 Open op groot scherm</button>' +
     '</div>';
@@ -5099,6 +5100,196 @@ function printUitslagPDF(wId) {
   setTimeout(function() { try { win.print(); } catch(e) {} }, 500);
 }
 
+// ── Rangschikking modal: handmatige eindvolgorde voor tiebreaks ──
+function openRangschikkingModal(wId) {
+  var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
+  if (!w) { toast('Wedstrijd niet gevonden', 'err'); return; }
+
+  // Bouw lijst van teams met huidige rang
+  var baan = getBaan(w.holes, null, null, w.welkeNegen);
+  baan.slope = w.slope; baan.cr = w.cr;
+  baan.parTotaal = baan.par.reduce(function(a, b) { return a + b; }, 0);
+
+  var flights = FLIGHTS[wId] || [];
+  if (!flights.length) { toast('Geen flights', 'err'); return; }
+  var metHcp = gebruiktHcp(w);
+  var perc = hcpPercFraction(w);
+
+  var rows = flights.map(function(flightSids, fi) {
+    var spelers = flightSids.map(function(sid) { return USERS.find(function(u) { return u.id === sid; }); }).filter(Boolean);
+    if (!spelers.length) return null;
+    var teamHcp = teamHandicapScramble(spelers, perc, (w && w.tsFormule) || 'app');
+    var teamSh = berekenSpeelhandicap(teamHcp, w.slope, w.cr, baan.parTotaal, 1.0, w.holes);
+    var scores = pickTeamScoresArray(wId, 0, spelers, fi) || Array(baan.holes).fill('');
+    var sp = berekenStrokeplay(scores, baan, teamSh, w.esc || 'geen');
+    var vsPar = metHcp ? sp.nettoVsParGespeeld : sp.brutoVsParGespeeld;
+    return {
+      fi: fi,
+      flight: fi + 1,
+      naam: spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', '),
+      score: metHcp ? sp.netto : sp.bruto,
+      vsPar: vsPar,
+      eindRank: getEindRank(wId, fi),
+      countback: berekenCountback(scores, baan),
+      has: sp.gespeeld > 0,
+    };
+  }).filter(Boolean);
+
+  // Initiële sortering: huidige automatische (incl. countback)
+  rows.sort(function(a, b) {
+    if (!a.has) return 1; if (!b.has) return -1;
+    if (a.eindRank != null && b.eindRank != null) return a.eindRank - b.eindRank;
+    if (a.eindRank != null) return -1;
+    if (b.eindRank != null) return 1;
+    if (a.vsPar !== b.vsPar) return a.vsPar - b.vsPar;
+    if (a.countback.l9 !== b.countback.l9) return a.countback.l9 - b.countback.l9;
+    if (a.countback.l6 !== b.countback.l6) return a.countback.l6 - b.countback.l6;
+    if (a.countback.l3 !== b.countback.l3) return a.countback.l3 - b.countback.l3;
+    return a.countback.l1 - b.countback.l1;
+  });
+
+  // Modal HTML
+  var modal = document.createElement('div');
+  modal.id = 'rangschikking-modal';
+  modal.className = 'modal open';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+
+  var inner = '<div style="background:#fff;border-radius:12px;max-width:560px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column">';
+  inner += '<div style="padding:1rem 1.25rem;border-bottom:1px solid #e6eaf0;display:flex;justify-content:space-between;align-items:center">';
+  inner += '<div><div style="font-size:16px;font-weight:700;color:#0c1b2a">🏆 Eindvolgorde aanpassen</div>';
+  inner += '<div style="font-size:11px;color:#8b94a3;margin-top:2px">Sleep teams om de rangschikking te wijzigen. Bv. na playoff bij gelijke score.</div></div>';
+  inner += '<button onclick="sluitRangschikkingModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#8b94a3;line-height:1;padding:4px 8px">×</button></div>';
+
+  inner += '<div id="rang-rij-list" style="overflow-y:auto;padding:0.75rem 1.25rem;flex:1">';
+  rows.forEach(function(r, idx) {
+    var vsParStr = r.vsPar > 0 ? '+' + r.vsPar : (r.vsPar < 0 ? r.vsPar : 'E');
+    var vsParCls = r.vsPar < 0 ? '#16a34a' : r.vsPar > 0 ? '#dc2626' : '#6b7280';
+    inner += '<div class="rang-rij" draggable="true" data-fi="' + r.fi + '" ' +
+      'style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;border:1px solid #e6eaf0;border-radius:8px;background:#fff;cursor:move;user-select:none">';
+    inner += '<div class="rang-nr" style="width:28px;height:28px;border-radius:50%;background:#f1f4f8;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0c1b2a">' + (idx + 1) + '</div>';
+    inner += '<div style="flex:1;min-width:0">';
+    inner += '<div style="font-size:13px;font-weight:600;color:#0c1b2a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.naam) + '</div>';
+    inner += '<div style="font-size:10px;color:#8b94a3;margin-top:1px">Flight ' + r.flight + ' · score ' + r.score + ' · ' + vsParStr + '</div>';
+    inner += '</div>';
+    inner += '<div style="color:#cbd5e1;font-size:18px">≡</div>';
+    inner += '</div>';
+  });
+  inner += '</div>';
+
+  inner += '<div style="padding:1rem 1.25rem;border-top:1px solid #e6eaf0;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">';
+  inner += '<button onclick="resetRangschikking(\'' + wId + '\')" style="background:none;border:1px solid #e6eaf0;border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer;color:#8b94a3">↺ Reset (automatisch)</button>';
+  inner += '<div style="display:flex;gap:8px">';
+  inner += '<button onclick="sluitRangschikkingModal()" style="background:none;border:1px solid #e6eaf0;border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer;color:#374151">Annuleer</button>';
+  inner += '<button onclick="opslaanRangschikking(\'' + wId + '\')" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer">✓ Opslaan</button>';
+  inner += '</div></div>';
+
+  inner += '</div>';
+  modal.innerHTML = inner;
+  document.body.appendChild(modal);
+
+  // Setup drag-and-drop
+  _setupRangschikkingDrag();
+}
+
+function sluitRangschikkingModal() {
+  var m = document.getElementById('rangschikking-modal');
+  if (m) m.remove();
+}
+
+function _setupRangschikkingDrag() {
+  var list = document.getElementById('rang-rij-list');
+  if (!list) return;
+  var dragged = null;
+  list.querySelectorAll('.rang-rij').forEach(function(el) {
+    el.addEventListener('dragstart', function(e) {
+      dragged = el;
+      el.style.opacity = '0.4';
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    el.addEventListener('dragend', function() { el.style.opacity = ''; dragged = null; _hernummerRangschikking(); });
+    el.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      if (!dragged || dragged === el) return;
+      var rect = el.getBoundingClientRect();
+      var after = (e.clientY - rect.top) > rect.height / 2;
+      if (after) el.parentNode.insertBefore(dragged, el.nextSibling);
+      else el.parentNode.insertBefore(dragged, el);
+    });
+    // Touch fallback voor mobiel: gewoon klik om omhoog/omlaag te bewegen
+    el.addEventListener('click', function() {
+      // Geen actie op desktop drag; alleen om "active" te markeren
+    });
+  });
+  // Mobiel touch alternative: pijltjes naast elke rij
+  list.querySelectorAll('.rang-rij').forEach(function(el, idx) {
+    var arrows = document.createElement('div');
+    arrows.style.cssText = 'display:flex;flex-direction:column;gap:2px;margin-right:6px';
+    arrows.innerHTML = '<button onclick="_verplaatsRang(this,-1)" style="background:#f1f4f8;border:none;width:24px;height:18px;border-radius:3px;cursor:pointer;font-size:10px;color:#374151">▲</button>' +
+                       '<button onclick="_verplaatsRang(this,1)" style="background:#f1f4f8;border:none;width:24px;height:18px;border-radius:3px;cursor:pointer;font-size:10px;color:#374151">▼</button>';
+    el.insertBefore(arrows, el.firstChild);
+  });
+}
+
+function _verplaatsRang(btn, delta) {
+  var rij = btn.closest('.rang-rij');
+  if (!rij) return;
+  if (delta < 0 && rij.previousElementSibling) rij.parentNode.insertBefore(rij, rij.previousElementSibling);
+  if (delta > 0 && rij.nextElementSibling) rij.parentNode.insertBefore(rij.nextElementSibling, rij);
+  _hernummerRangschikking();
+}
+
+function _hernummerRangschikking() {
+  document.querySelectorAll('#rang-rij-list .rang-rij').forEach(function(el, idx) {
+    var nr = el.querySelector('.rang-nr');
+    if (nr) nr.textContent = idx + 1;
+  });
+}
+
+async function opslaanRangschikking(wId) {
+  var rijen = document.querySelectorAll('#rang-rij-list .rang-rij');
+  var updates = [];
+  rijen.forEach(function(el, idx) {
+    var fi = parseInt(el.getAttribute('data-fi'));
+    updates.push({ fi: fi, rank: idx + 1 });
+  });
+
+  toast('Volgorde opslaan...', 'info');
+  var fails = 0;
+  for (var i = 0; i < updates.length; i++) {
+    try {
+      await supa('flights', 'PATCH', { eind_rank: updates[i].rank }, {
+        wid: 'eq.' + wId,
+        flight_nr: 'eq.' + updates[i].fi
+      });
+      if (!FLIGHT_RANKS[wId]) FLIGHT_RANKS[wId] = {};
+      FLIGHT_RANKS[wId][updates[i].fi] = updates[i].rank;
+    } catch(e) {
+      fails++;
+      console.warn('opslaanRangschikking:', e.message);
+    }
+  }
+  if (fails === 0) {
+    toast('Volgorde opgeslagen', 'ok');
+    sluitRangschikkingModal();
+    if (typeof renderWdTabContent === 'function') renderWdTabContent();
+  } else {
+    toast(fails + ' update(s) faalden. SQL migratie gerund?', 'err');
+  }
+}
+
+async function resetRangschikking(wId) {
+  if (!confirm('Reset alle handmatige rangschikking voor deze wedstrijd? Automatische sortering wordt weer gebruikt.')) return;
+  try {
+    await supa('flights', 'PATCH', { eind_rank: null }, { wid: 'eq.' + wId });
+    delete FLIGHT_RANKS[wId];
+    toast('Reset uitgevoerd', 'ok');
+    sluitRangschikkingModal();
+    if (typeof renderWdTabContent === 'function') renderWdTabContent();
+  } catch(e) {
+    toast('Reset faalde: ' + e.message, 'err');
+  }
+}
+
 // Action bar: lifecycle-knoppen onderaan
 function renderWdActions(w) {
   var fase = wedstrijdFase(w);
@@ -5338,10 +5529,16 @@ async function laadAlleData() {
 
     // Flights reconstrueren: { wid: [[sid1, sid2, ...], [sid3, sid4, ...]] }
     FLIGHTS = {};
+    FLIGHT_RANKS = {};
     (fls || []).forEach(function(f) {
       if (!FLIGHTS[f.wid]) FLIGHTS[f.wid] = [];
       while (FLIGHTS[f.wid].length <= f.flight_nr) FLIGHTS[f.wid].push([]);
       FLIGHTS[f.wid][f.flight_nr].push(f.sid);
+      // Eind rank: per wid, per flight_nr (alle 4 rows van dezelfde flight hebben zelfde rank)
+      if (f.eind_rank != null) {
+        if (!FLIGHT_RANKS[f.wid]) FLIGHT_RANKS[f.wid] = {};
+        FLIGHT_RANKS[f.wid][f.flight_nr] = f.eind_rank;
+      }
     });
 
     // Scores reconstrueren: SCORES[wid][ronde][sid] = [h1, h2, ..., h18]
@@ -5868,6 +6065,7 @@ var SCORES={
 };
 
 var FLIGHTS={};
+var FLIGHT_RANKS={}; // {wid: {flightNr: rank}} — handmatige eind-rangschikking na playoff
 var NOTIFICATIES=[
   {id:1,datum:'2025-05-15',onderwerp:'Bevestiging inschrijving Clubkampioenschap',ontvangers:5,gelezen:false},
   {id:2,datum:'2025-05-10',onderwerp:'Damesdag juni — inschrijving geopend',ontvangers:120,gelezen:false},
@@ -9292,6 +9490,38 @@ function pickTeamScoresArray(wId, ronde, spelers, fi) {
   return best;
 }
 
+// Countback tiebreaker: last9, last6, last3, hole18 scores vs par van die holes.
+// Geeft negatief getal = onder par (beter). Lager = beter, dus sort ascending.
+function berekenCountback(scores, baan) {
+  if (!scores || !baan || !baan.par) return { l9: 0, l6: 0, l3: 0, l1: 0 };
+  var totaal = baan.holes || 18;
+  var ranges = [
+    { naam: 'l9', start: Math.max(0, totaal - 9) },
+    { naam: 'l6', start: Math.max(0, totaal - 6) },
+    { naam: 'l3', start: Math.max(0, totaal - 3) },
+    { naam: 'l1', start: Math.max(0, totaal - 1) },
+  ];
+  var res = {};
+  ranges.forEach(function(r) {
+    var diff = 0, gespeeld = 0;
+    for (var i = r.start; i < totaal; i++) {
+      var s = scores[i];
+      if (s !== '' && s !== null && s !== undefined) {
+        diff += Number(s) - baan.par[i];
+        gespeeld++;
+      }
+    }
+    // Als niet alle holes gespeeld zijn, weeg pro-rata (penalize incomplete)
+    res[r.naam] = gespeeld > 0 ? diff : 999;
+  });
+  return res;
+}
+
+// Pak handmatige rank-override uit FLIGHTS metadata (na DB load)
+function getEindRank(wId, fi) {
+  return (FLIGHT_RANKS && FLIGHT_RANKS[wId] && FLIGHT_RANKS[wId][fi]) || null;
+}
+
 function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   var flights = FLIGHTS[wId] || [];
   if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
@@ -9312,6 +9542,7 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
 
     return {
       flight: fi + 1,
+      flightIdx: fi,
       teamNaam: spelers.map(function(s) { return s.voor[0] + '. ' + s.ach; }).join(', '),
       teamSh: teamSh,
       netto: sp.netto, bruto: sp.bruto,
@@ -9320,16 +9551,31 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
       nettoVsParGespeeld: sp.nettoVsParGespeeld,
       gespeeld: sp.gespeeld,
       has: sp.gespeeld > 0,
+      countback: berekenCountback(scores, baan),
+      eindRank: getEindRank(wId, fi),
     };
   }).filter(Boolean);
 
   var metHcp = gebruiktHcp(w);
+  // Track of countback is gebruikt om gelijke posities te ontknopen
   rows.sort(function(a,b) {
     if (!a.has) return 1; if (!b.has) return -1;
-    // Eerlijk bij partial play: vsPar t.o.v. gespeelde holes
+    // 1. Handmatige override wint altijd
+    if (a.eindRank != null && b.eindRank != null) return a.eindRank - b.eindRank;
+    if (a.eindRank != null) return -1;
+    if (b.eindRank != null) return 1;
+    // 2. vsPar t.o.v. gespeelde holes (basis ranking)
     var aVs = metHcp ? a.nettoVsParGespeeld : a.brutoVsParGespeeld;
     var bVs = metHcp ? b.nettoVsParGespeeld : b.brutoVsParGespeeld;
     if (aVs !== bVs) return aVs - bVs;
+    // 3. Countback: last9, last6, last3, hole18 vs par
+    if (a.countback && b.countback) {
+      if (a.countback.l9 !== b.countback.l9) { a._cb='l9'; b._cb='l9'; return a.countback.l9 - b.countback.l9; }
+      if (a.countback.l6 !== b.countback.l6) { a._cb='l6'; b._cb='l6'; return a.countback.l6 - b.countback.l6; }
+      if (a.countback.l3 !== b.countback.l3) { a._cb='l3'; b._cb='l3'; return a.countback.l3 - b.countback.l3; }
+      if (a.countback.l1 !== b.countback.l1) { a._cb='l1'; b._cb='l1'; return a.countback.l1 - b.countback.l1; }
+    }
+    // 4. Tiebreaker: meer gespeelde holes wint (verder in ronde)
     return b.gespeeld - a.gespeeld;
   });
 
@@ -9398,16 +9644,27 @@ function buildTeamLeaderboardCompact(wId, ronde, baan, sps, w) {
       has: sp.gespeeld > 0,
       isMij: isMij,
       scores: scores,
-      perHole: sp.perHole
+      perHole: sp.perHole,
+      countback: berekenCountback(scores, baan),
+      eindRank: getEindRank(wId, fi),
     };
   }).filter(Boolean);
 
   var metHcp = gebruiktHcp(w);
   rows.sort(function(a,b) {
     if (!a.has) return 1; if (!b.has) return -1;
+    if (a.eindRank != null && b.eindRank != null) return a.eindRank - b.eindRank;
+    if (a.eindRank != null) return -1;
+    if (b.eindRank != null) return 1;
     var aVs = metHcp ? a.nettoVsParGespeeld : a.brutoVsParGespeeld;
     var bVs = metHcp ? b.nettoVsParGespeeld : b.brutoVsParGespeeld;
     if (aVs !== bVs) return aVs - bVs;
+    if (a.countback && b.countback) {
+      if (a.countback.l9 !== b.countback.l9) return a.countback.l9 - b.countback.l9;
+      if (a.countback.l6 !== b.countback.l6) return a.countback.l6 - b.countback.l6;
+      if (a.countback.l3 !== b.countback.l3) return a.countback.l3 - b.countback.l3;
+      if (a.countback.l1 !== b.countback.l1) return a.countback.l1 - b.countback.l1;
+    }
     return b.gespeeld - a.gespeeld;
   });
 

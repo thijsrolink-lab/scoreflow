@@ -551,6 +551,7 @@ var WEDSTRIJDEN = [];
 var INSCHRIJVINGEN = [];
 var SCORES = {};
 var FLIGHTS = {};
+var FLIGHT_RANKS = {}; // {wid: {flightNr: rank}}
 var SPONSOREN = [];
 var WEDSTRIJD_SPONSOREN = [];
 var _currentUser = null;
@@ -745,6 +746,31 @@ function pickTeamScoresArray(wId, ronde, spelers, fi) {
   return best;
 }
 
+// Countback tiebreaker: last9, last6, last3, hole18 vs par
+function berekenCountback(scores, baan) {
+  if (!scores || !baan || !baan.par) return { l9: 0, l6: 0, l3: 0, l1: 0 };
+  var totaal = baan.holes || 18;
+  var ranges = [
+    { naam: 'l9', start: Math.max(0, totaal - 9) },
+    { naam: 'l6', start: Math.max(0, totaal - 6) },
+    { naam: 'l3', start: Math.max(0, totaal - 3) },
+    { naam: 'l1', start: Math.max(0, totaal - 1) },
+  ];
+  var res = {};
+  ranges.forEach(function(r) {
+    var diff = 0, gespeeld = 0;
+    for (var i = r.start; i < totaal; i++) {
+      var s = scores[i];
+      if (s !== '' && s !== null && s !== undefined) {
+        diff += Number(s) - baan.par[i];
+        gespeeld++;
+      }
+    }
+    res[r.naam] = gespeeld > 0 ? diff : 999;
+  });
+  return res;
+}
+
 function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
   var flights = FLIGHTS[wId] || [];
   if (!flights.length) return '<p style="font-size:13px;color:var(--txm);padding:1rem">Geen flights aangemaakt.</p>';
@@ -775,18 +801,27 @@ function buildTeamLeaderboard(wId, ronde, baan, sps, w) {
       nettoVsParGespeeld: sp.nettoVsParGespeeld,
       gespeeld: sp.gespeeld,
       has: sp.gespeeld > 0,
-      scores: scores
+      scores: scores,
+      countback: berekenCountback(scores, baan),
+      eindRank: (FLIGHT_RANKS[wId] && FLIGHT_RANKS[wId][fi]) || null,
     };
   }).filter(Boolean);
 
   var metHcp = gebruiktHcp(w);
   rows.sort(function(a,b) {
     if (!a.has) return 1; if (!b.has) return -1;
-    // Sorteer op vsPar t.o.v. gespeelde holes (eerlijk bij partial play),
-    // tiebreaker = aantal gespeelde holes (meer is verder, dus eerder klaar)
+    if (a.eindRank != null && b.eindRank != null) return a.eindRank - b.eindRank;
+    if (a.eindRank != null) return -1;
+    if (b.eindRank != null) return 1;
     var aVs = metHcp ? a.nettoVsParGespeeld : a.brutoVsParGespeeld;
     var bVs = metHcp ? b.nettoVsParGespeeld : b.brutoVsParGespeeld;
     if (aVs !== bVs) return aVs - bVs;
+    if (a.countback && b.countback) {
+      if (a.countback.l9 !== b.countback.l9) return a.countback.l9 - b.countback.l9;
+      if (a.countback.l6 !== b.countback.l6) return a.countback.l6 - b.countback.l6;
+      if (a.countback.l3 !== b.countback.l3) return a.countback.l3 - b.countback.l3;
+      if (a.countback.l1 !== b.countback.l1) return a.countback.l1 - b.countback.l1;
+    }
     return b.gespeeld - a.gespeeld;
   });
 
@@ -1409,9 +1444,11 @@ async function laadWedstrijdData() {
     // Flights
     var fls = await supaGET('flights', { wid: 'eq.' + WID, select: '*' });
     FLIGHTS[WID] = [];
+    FLIGHT_RANKS[WID] = {};
     (fls || []).forEach(function(f) {
       if (!FLIGHTS[WID][f.flight_nr]) FLIGHTS[WID][f.flight_nr] = [];
       FLIGHTS[WID][f.flight_nr].push(f.sid);
+      if (f.eind_rank != null) FLIGHT_RANKS[WID][f.flight_nr] = f.eind_rank;
     });
 
     // Sponsors

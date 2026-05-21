@@ -244,6 +244,51 @@ test('ESC double bogey capt scores', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// COUNTBACK (tiebreaker)
+// ═══════════════════════════════════════════════════════════════
+section('Countback tiebreaker');
+
+test('berekenCountback geeft correcte l9/l6/l3/l1 voor par-ronde', () => {
+  // Alle holes par → countback alle 0
+  const scores = BAAN_18.par.slice();
+  const r = sandbox.berekenCountback(scores, BAAN_18);
+  if (r.l9 !== 0) return 'l9 verwacht 0, kreeg ' + r.l9;
+  if (r.l6 !== 0) return 'l6 verwacht 0';
+  if (r.l3 !== 0) return 'l3 verwacht 0';
+  if (r.l1 !== 0) return 'l1 verwacht 0';
+  return true;
+});
+
+test('berekenCountback: birdie op hole 18 telt in l1', () => {
+  const scores = BAAN_18.par.slice();
+  scores[17] = BAAN_18.par[17] - 1; // birdie op hole 18
+  const r = sandbox.berekenCountback(scores, BAAN_18);
+  if (r.l1 !== -1) return 'l1 verwacht -1, kreeg ' + r.l1;
+  if (r.l3 !== -1) return 'l3 verwacht -1';
+  if (r.l9 !== -1) return 'l9 verwacht -1';
+  return true;
+});
+
+test('berekenCountback: bogey op hole 10 telt alleen in l9 niet in l3', () => {
+  const scores = BAAN_18.par.slice();
+  scores[9] = BAAN_18.par[9] + 1; // bogey op hole 10 (index 9)
+  const r = sandbox.berekenCountback(scores, BAAN_18);
+  if (r.l9 !== 1) return 'l9 verwacht 1 (bogey valt in last 9), kreeg ' + r.l9;
+  if (r.l3 !== 0) return 'l3 verwacht 0 (bogey valt buiten last 3)';
+  if (r.l1 !== 0) return 'l1 verwacht 0';
+  return true;
+});
+
+test('berekenCountback bij incomplete ronde geeft 999 voor ontbrekende segmenten', () => {
+  // Alleen hole 1-9 ingevoerd
+  const scores = BAAN_18.par.slice(0, 9).concat(Array(9).fill(''));
+  const r = sandbox.berekenCountback(scores, BAAN_18);
+  // l9 = last 9 = hole 10-18 = niets gespeeld → 999
+  if (r.l9 !== 999) return 'l9 verwacht 999 (niets in last 9 gespeeld), kreeg ' + r.l9;
+  return true;
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SNAKE FLIGHT INDELING (algoritme herbouw)
 // ═══════════════════════════════════════════════════════════════
 section('Snake flight-indeling');
