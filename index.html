@@ -9581,10 +9581,9 @@ function renderSpelerTeamScorekaart(wId, w, baan, u) {
 
   if (!SCORES[wId]) SCORES[wId] = {};
   if (!SCORES[wId][0]) SCORES[wId][0] = {};
-  var scores = SCORES[wId][0][teamKey];
-  if (!scores && spelers.length > 0) {
-    scores = SCORES[wId][0][spelers[0].id];
-  }
+  // Gebruik pickTeamScoresArray: kiest de meest-complete scores array van het team
+  // (lost bug op waar scores 'verdwijnen' na refresh als één teamlid stale data heeft)
+  var scores = pickTeamScoresArray(wId, 0, spelers, mijnFlightIdx);
   scores = scores || Array(baan.holes).fill('');
   SCORES[wId][0][teamKey] = scores;
 
@@ -9876,7 +9875,17 @@ function bouwSpelerHoleRijen(opts) {
 
   if (typeof window._spActieveTab === 'undefined') window._spActieveTab = 0;
   var actieveTab = window._spActieveTab;
-  if (actiefHole >= 9 && actieveTab === 0 && halves.length > 1) actieveTab = 1;
+  // GEEN auto-switch meer naar Tweede 9: speler moet zelf kunnen kiezen
+  // wanneer ze switchen (anders krijgen ze hole 9 driver niet meer te zien).
+  // Behoud wel auto-switch op eerste page load (als alle 9 al ingevuld zijn).
+  if (actiefHole >= 9 && actieveTab === 0 && halves.length > 1 && !window._spActieveTabUserSet) {
+    // Check of alle 9 holes al ingevoerd zijn
+    var alleEersteNegen = true;
+    for (var k = 0; k < 9; k++) {
+      if (scores[k] === '' || scores[k] === null || scores[k] === undefined) { alleEersteNegen = false; break; }
+    }
+    if (alleEersteNegen) actieveTab = 1;
+  }
 
   if (halves.length > 1) {
     html += '<div style="display:flex;gap:0;background:var(--surf);border-radius:var(--r);padding:3px;margin-bottom:.75rem;border:1px solid var(--bd)">';
@@ -9888,7 +9897,7 @@ function bouwSpelerHoleRijen(opts) {
         }
       }
       var active = hi === actieveTab;
-      html += '<button onclick="window._spActieveTab=' + hi + ';initScorekaart()" style="' +
+      html += '<button onclick="window._spActieveTab=' + hi + ';window._spActieveTabUserSet=true;initScorekaart()" style="' +
         'flex:1;padding:.6rem;font-size:13px;border:none;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:' + (active?'600':'500') + ';' +
         'background:' + (active?'var(--card)':'transparent') + ';' +
         'color:' + (active?'var(--g)':'var(--txm)') + ';' +
