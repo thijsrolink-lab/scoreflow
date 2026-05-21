@@ -5458,6 +5458,7 @@ async function supaLogout() {
 function dbGebruikerNaarApp(g) {
   return { id: g.id, voor: g.voor, ach: g.ach, email: g.email, rol: g.rol,
     hcp: g.hcp, lid: g.lid, ltype: g.ltype, gs: g.gs, jaar: g.jaar, tel: g.tel,
+    authUid: g.auth_uid || null,
     pw: g.pw || '' };
 }
 function dbWedstrijdNaarApp(w) {
@@ -6100,8 +6101,44 @@ async function doLogin(){
 
   errEl.textContent = 'Bezig met inloggen...';
 
-  // Stap 1: probeer login via DB direct (zonder eerst alle data te laden)
-  // Dit werkt voor zowel demo-users (in DB) als gewone gebruikers
+  // STAP 1: Supabase Auth proberen (de "veilige" weg na migratie)
+  // Email zonder @ → tijdens migratie kregen die "@scoreflow.local" achtervoegsel
+  var authEmail = email.indexOf('@') === -1 ? (email + '@scoreflow.local') : email;
+  try {
+    var session = await supaLogin(authEmail, pw);
+    if (session && session.access_token) {
+      // Auth gelukt — token zit nu in SUPA_SESSION
+      errEl.textContent = '';
+      // Bewaar token voor refresh-flow
+      try {
+        localStorage.setItem('gs_auth_session', JSON.stringify({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          expires_at: session.expires_at,
+          user_email: authEmail
+        }));
+      } catch(e) {}
+      await laadAlleData();
+      // Vind matching gebruiker via auth_uid (gemigreerde flow)
+      var authUserId = session.user && session.user.id;
+      var liveUser = USERS.find(function(u){
+        return (authUserId && u.authUid === authUserId) ||
+               u.email.toLowerCase() === email ||
+               u.email.toLowerCase() === authEmail;
+      });
+      if (liveUser) {
+        startSessie(liveUser);
+        return;
+      }
+      // Zou niet moeten gebeuren maar voor safety:
+      console.warn('Auth gelukt maar geen gebruiker gevonden voor', authEmail);
+    }
+  } catch(e) {
+    console.log('Supabase Auth login faalde, val terug op DB check:', e.message);
+    // Geen errEl set — we proberen de fallback
+  }
+
+  // STAP 2: Legacy DB-check (voor niet-gemigreerde users + safety net)
   try {
     var rs = await supa('gebruikers', 'GET', null, {
       select: '*',
@@ -6110,24 +6147,21 @@ async function doLogin(){
       limit: '1'
     });
     if (rs && rs.length > 0) {
-      // Gevonden in DB — laad alle data en start sessie
       errEl.textContent = '';
       await laadAlleData();
-      var liveUser = USERS.find(function(u){return u.email.toLowerCase()===email;});
-      if (liveUser) {
-        startSessie(liveUser);
+      var liveUserLegacy = USERS.find(function(u){return u.email.toLowerCase()===email;});
+      if (liveUserLegacy) {
+        startSessie(liveUserLegacy);
         return;
       }
-      // Fallback: gebruik DB-resultaat zelf
       startSessie(dbGebruikerNaarApp(rs[0]));
       return;
     }
   } catch(e) {
     console.warn('DB login check failed:', e.message);
-    // Ga door met fallback
   }
 
-  // Stap 2: fallback naar DEMO_USERS array (voor backwards compat / pre-migration)
+  // STAP 3: DEMO_USERS fallback (dev/demo flow)
   var demoUser = DEMO_USERS.find(function(u){return u.email.toLowerCase()===email&&u.pw===pw;});
   if (demoUser) {
     errEl.textContent = '';
@@ -6175,20 +6209,54 @@ async function probeerAutoLogin() {
     var urlUser = params.get('u');
     var urlPw = params.get('p');
     if (urlUser && urlPw) {
-      await laadAlleData();
-      var u = USERS.find(function(x) {
-        return x.email && x.email.toLowerCase() === urlUser.toLowerCase() && x.pw === urlPw;
-      });
-      if (u) {
-        // URL opschonen zodat credentials niet in history blijven
-        try { window.history.replaceState({}, document.title, window.location.pathname); } catch(e) {}
-        startSessie(u);
-        return true;
-      }
-      // Wachtwoord matched niet → val terug op normale login flow
+      // URL credentials → ga via doLogin zodat Supabase Auth ook geprobeerd wordt
+      try { window.history.replaceState({}, document.title, window.location.pathname); } catch(e) {}
+      document.getElementById('login-email').value = urlUser;
+      document.getElementById('login-pw').value = urlPw;
+      await doLogin();
+      return !!_currentUser;
     }
 
-    // 2. localStorage sessie
+    // 2. Supabase Auth session in localStorage (nieuwe veilige route)
+    try {
+      var authRaw = localStorage.getItem('gs_auth_session');
+      if (authRaw) {
+        var authSes = JSON.parse(authRaw);
+        if (authSes && authSes.access_token && authSes.refresh_token) {
+          // Probeer token te verversen via Supabase
+          var refreshRes = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+            method: 'POST',
+            headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: authSes.refresh_token })
+          });
+          if (refreshRes.ok) {
+            var fresh = await refreshRes.json();
+            SUPA_SESSION = fresh;
+            localStorage.setItem('gs_auth_session', JSON.stringify({
+              access_token: fresh.access_token,
+              refresh_token: fresh.refresh_token,
+              expires_at: fresh.expires_at,
+              user_email: authSes.user_email
+            }));
+            await laadAlleData();
+            var authUserId = fresh.user && fresh.user.id;
+            var liveUser = USERS.find(function(u) {
+              return (authUserId && u.authUid === authUserId) ||
+                     (authSes.user_email && u.email && u.email.toLowerCase() === authSes.user_email.replace('@scoreflow.local', ''));
+            });
+            if (liveUser) {
+              startSessie(liveUser);
+              return true;
+            }
+          } else {
+            // Token expired/invalid → cleanup
+            localStorage.removeItem('gs_auth_session');
+          }
+        }
+      }
+    } catch(e) { console.warn('Supabase auto-refresh failed:', e.message); }
+
+    // 3. Legacy localStorage sessie (voor users die nog niet via Auth zijn ingelogd)
     var raw = localStorage.getItem('gs_sessie');
     if (!raw) return false;
     var sessie = JSON.parse(raw);
@@ -6221,8 +6289,9 @@ async function probeerAutoLogin() {
 window.startSessie = startSessie;  // expliciet voor bootstrap
 
 function logout(){
-  // Wis localStorage sessie zodat refresh niet auto-inlogt
+  // Wis alle localStorage sessies zodat refresh niet auto-inlogt
   try { localStorage.removeItem('gs_sessie'); } catch(e) {}
+  try { localStorage.removeItem('gs_auth_session'); } catch(e) {}
   supaLogout().catch(function(){});
   stopRealtimeLb();
   _currentUser=null;
