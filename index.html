@@ -16238,12 +16238,15 @@ try {
               </div>
               <div class="field"><label>Uitslag tonen</label><div class="tg"><button class="tgb on" onclick="tMulti(this)">Netto</button><button class="tgb on" onclick="tMulti(this)">Bruto</button></div></div>
             </div>
-            <div class="blk" id="ts-formule-blk" style="display:none"><div class="blk-t">Texas Scramble handicap-formule</div>
-              <div class="field"><label>Hoe wordt de teamhandicap berekend?</label><select id="fts-formule">
-                <option value="app">App (gewogen gemiddelde teamleden)</option>
-                <option value="ega">EGA (35/25/20/20 van laagste naar hoogste hcp)</option>
-                <option value="koh">KOH (25/20/15/10 percentages)</option>
-              </select><div class="field-hint">Bepaalt hoe de individuele handicaps van teamleden worden samengevoegd. Alleen relevant bij Texas Scramble.</div></div>
+            <div class="blk" id="ts-formule-blk" style="display:none"><div class="blk-t">Texas Scramble team-handicap berekening</div>
+              <div class="field"><label>Hoe wordt de teamhandicap bepaald?</label><select id="fts-formule">
+                <option value="app">Gewogen × 35% (origineel — platte team-SH)</option>
+                <option value="a">10:15:20:25 met grootte-compensatie (NGF-stijl)</option>
+              </select><div class="field-hint">
+                <strong>Gewogen × 35%</strong>: gewogen som [1.0, 0.6, 0.4, 0.2] / aantal × 35%. Platte team-SH ongeacht teamgrootte.<br>
+                <strong>10:15:20:25 met compensatie</strong>: beste→slechtste verhouding 2:3:4:5. 4-mans 60%, 3-mans 75%, 2-mans 90%, 1-mans 100% van de som van handicaps.<br>
+                Alleen relevant bij Texas Scramble mét handicap-verrekening (HCP% &gt; 0).
+              </div></div>
             </div>
             <div class="blk"><div class="blk-t">Scoringsregels</div>
               <div class="g2">
