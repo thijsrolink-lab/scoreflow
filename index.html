@@ -2632,10 +2632,14 @@ function startWedstrijd(wId) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w) return;
   if (!confirm('Start deze wedstrijd nu? Inschrijvingen sluiten automatisch en scores kunnen worden ingevoerd.')) return;
+  var oudeStatus = w.status;
   w.status = 'live';
-  dbSaveWedstrijd(w).catch(function(e){console.warn(e);});
+  dbSaveWedstrijd(w).catch(function(e){
+    w.status = oudeStatus; // revert lokale state bij DB-fail
+    toast('Starten faalde: ' + e.message, 'err');
+    if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
+  });
   toast('Wedstrijd is gestart — scorekaart is nu open voor spelers.');
-  // Re-render huidige view
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
 
@@ -2644,8 +2648,13 @@ function afrondWedstrijd(wId) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w) return;
   if (!confirm('Wedstrijd afronden? Alle scores worden definitief. Alleen superadmin kan daarna nog corrigeren.')) return;
+  var oudeStatus = w.status;
   w.status = 'afgerond';
-  dbSaveWedstrijd(w).catch(function(e){console.warn(e);});
+  dbSaveWedstrijd(w).catch(function(e){
+    w.status = oudeStatus;
+    toast('Afronden faalde: ' + e.message, 'err');
+    if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
+  });
   toast('Wedstrijd afgerond — uitslag is definitief.');
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
@@ -2657,9 +2666,16 @@ function afgelastWedstrijd(wId) {
   var reden = prompt('Reden voor afgelasting (optioneel, zichtbaar voor spelers):');
   if (reden === null) return;  // cancel
   if (!confirm('Wedstrijd afgelasten? Spelers kunnen geen scores meer invoeren.')) return;
+  var oudeStatus = w.status;
+  var oudeReden = w.afgelast_reden;
   w.status = 'afgelast';
   w.afgelast_reden = reden || '';
-  dbSaveWedstrijd(w).catch(function(e){console.warn(e);});
+  dbSaveWedstrijd(w).catch(function(e){
+    w.status = oudeStatus;
+    w.afgelast_reden = oudeReden;
+    toast('Afgelasten faalde: ' + e.message, 'err');
+    if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
+  });
   toast('Wedstrijd afgelast.');
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
@@ -2669,9 +2685,16 @@ function heractiveerWedstrijd(wId) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w) return;
   if (!confirm('Wedstrijd opnieuw activeren? Status gaat terug naar Gepubliceerd.')) return;
+  var oudeStatus = w.status;
+  var oudeReden = w.afgelast_reden;
   w.status = 'gepubliceerd';
   w.afgelast_reden = '';
-  dbSaveWedstrijd(w).catch(function(e){console.warn(e);});
+  dbSaveWedstrijd(w).catch(function(e){
+    w.status = oudeStatus;
+    w.afgelast_reden = oudeReden;
+    toast('Heractiveren faalde: ' + e.message, 'err');
+    if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
+  });
   toast('Wedstrijd heractiveerd.');
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
@@ -5627,29 +5650,50 @@ async function dbSaveInschrijving(ing) {
 }
 
 async function dbSaveWedstrijd(w) {
-  try {
-    var data = { naam: w.naam, datum: w.datum, tijd: w.tijd || null, leider_id: w.leiderId || null, baan: w.baan, cr: w.cr, slope: w.slope,
-      holes: w.holes, vorm: w.vorm, rondes: w.rondes, flt: w.flt || 3, status: w.status,
-      max_deelnemers: w.max, hcp_max: w.hcpmax, hcp_min: w.hcpmin || 0,
-      hcp_perc: w.hcpperc, esc: w.esc, startgeld: w.startgeld,
-      skins_pot: w.skinsPot || 0,
-      inschrijf_open: w.inschrijfOpen || null,
-      inschrijf_sluit: w.inschrijfSluit || null,
-      omschrijving: w.omschrijving, kleur: w.kleur, afgelast_reden: w.afgelast_reden || null,
-      drive_min: w.driveMin != null ? w.driveMin : null,
-      drive_max: w.driveMax != null ? w.driveMax : null,
-      blind_holes: w.blindHoles || 0,
-      welke_negen: w.welkeNegen || 'uit',
-      publiek_leaderboard: !!w.publiekLeaderboard,
-      ts_formule: w.tsFormule || 'app',
-      interval_min: w.intervalMin || 10,};
-    if (w.id && String(w.id).includes('-')) {
-      await supa('wedstrijden', 'PATCH', data, { id: 'eq.' + w.id });
-    } else {
-      var res = await supa('wedstrijden', 'POST', data);
-      return res && res[0] ? dbWedstrijdNaarApp(res[0]) : w;
+  var data = { naam: w.naam, datum: w.datum, tijd: w.tijd || null, leider_id: w.leiderId || null, baan: w.baan, cr: w.cr, slope: w.slope,
+    holes: w.holes, vorm: w.vorm, rondes: w.rondes, flt: w.flt || 3, status: w.status,
+    max_deelnemers: w.max, hcp_max: w.hcpmax, hcp_min: w.hcpmin || 0,
+    hcp_perc: w.hcpperc, esc: w.esc, startgeld: w.startgeld,
+    skins_pot: w.skinsPot || 0,
+    inschrijf_open: w.inschrijfOpen || null,
+    inschrijf_sluit: w.inschrijfSluit || null,
+    omschrijving: w.omschrijving, kleur: w.kleur, afgelast_reden: w.afgelast_reden || null,
+    drive_min: w.driveMin != null ? w.driveMin : null,
+    drive_max: w.driveMax != null ? w.driveMax : null,
+    blind_holes: w.blindHoles || 0,
+    welke_negen: w.welkeNegen || 'uit',
+    publiek_leaderboard: !!w.publiekLeaderboard,
+    ts_formule: w.tsFormule || 'app',
+    interval_min: w.intervalMin || 10,};
+  if (w.id && String(w.id).includes('-')) {
+    // PATCH: stuur Prefer return=representation zodat we de bijgewerkte row terugkrijgen
+    var url = new URL(SUPA_URL + '/rest/v1/wedstrijden');
+    url.searchParams.set('id', 'eq.' + w.id);
+    var res = await fetch(url.toString(), {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + ((SUPA_SESSION && SUPA_SESSION.access_token) || SUPA_KEY),
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      var errText = await res.text();
+      throw new Error('Wedstrijd opslaan faalde: ' + (errText || res.statusText));
     }
-  } catch(e) { console.warn('dbSaveWedstrijd:', e.message); }
+    var rows = await res.json();
+    if (!rows || rows.length === 0) {
+      // RLS heeft de update stilletjes geweigerd (0 rows affected)
+      throw new Error('Geen rechten om deze wedstrijd te wijzigen.');
+    }
+    return dbWedstrijdNaarApp(rows[0]);
+  } else {
+    var res = await supa('wedstrijden', 'POST', data);
+    if (!res || !res[0]) throw new Error('Wedstrijd aanmaken faalde — geen response van DB.');
+    return dbWedstrijdNaarApp(res[0]);
+  }
 }
 
 async function dbSaveGebruiker(g) {
@@ -7151,39 +7195,43 @@ async function bouwEnSlaWedstrijdOp(status) {
       return;
     }
     data.id = _editId;
-    var i = WEDSTRIJDEN.findIndex(function(x) { return x.id === _editId; });
-    if (i > -1) Object.assign(WEDSTRIJDEN[i], data);
-    var bewerkteW = (i > -1) ? WEDSTRIJDEN[i] : null;
-    dbSaveWedstrijd(data).catch(function(e) { console.warn('dbSaveWedstrijd:', e.message); });
     var savedEditId = _editId;
     _editId = null;
+    // Sla op in DB en WACHT op de bijgewerkte rij
+    try {
+      var updatedW = await dbSaveWedstrijd(data);
+      // Vervang lokale row volledig met DB-versie (geen merge → geen stale velden)
+      var i = WEDSTRIJDEN.findIndex(function(x) { return x.id === savedEditId; });
+      if (i > -1 && updatedW) WEDSTRIJDEN[i] = Object.assign({ ing: WEDSTRIJDEN[i].ing || 0 }, updatedW);
+    } catch(e) {
+      toast('Opslaan faalde: ' + e.message, 'err');
+      return;
+    }
     // Koppel sponsoren (hoofdsponsor + co + hole)
     var sponsorEl = document.getElementById('fhsponsor');
     var hoofdId = sponsorEl ? (sponsorEl.value || null) : null;
     if (typeof koppelAlleSponsorenAanWedstrijd === 'function' && savedEditId) {
-      koppelAlleSponsorenAanWedstrijd(savedEditId, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || [], _wizSideGames || []);
+      try {
+        await koppelAlleSponsorenAanWedstrijd(savedEditId, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || [], _wizSideGames || []);
+      } catch(e) { console.warn('Sponsoren koppelen:', e.message); }
     }
     toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
     adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
     return;
   }
 
-  // Nieuw: lokaal toevoegen + Supabase
-  var lokaalId = Date.now();
-  var lokaalW = Object.assign({ id: lokaalId, ing: 0 }, data);
-  WEDSTRIJDEN.push(lokaalW);
-  _editId = null;
-  toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
-  adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
-
-  // Async naar Supabase — vervang lokaal ID door UUID
-  dbSaveWedstrijd(data).then(function(nieuwW) {
-    if (nieuwW && nieuwW.id) {
-      // Vervang lokaal ID door echte UUID
-      var i = WEDSTRIJDEN.findIndex(function(x) { return x.id === lokaalId; });
-      if (i > -1) WEDSTRIJDEN[i] = Object.assign(WEDSTRIJDEN[i], nieuwW);
-    }
-  }).catch(function(e) { console.warn('dbSaveWedstrijd:', e.message); });
+  // Nieuw: sla op in DB EN WACHT op echte UUID voor we lokale state updaten
+  try {
+    var nieuwW = await dbSaveWedstrijd(data);
+    if (!nieuwW || !nieuwW.id) throw new Error('Wedstrijd aanmaken faalde — geen ID van DB.');
+    // Voeg toe aan lokale state met echte DB-data (geen tussenliggende fake row)
+    WEDSTRIJDEN.push(Object.assign({ ing: 0 }, nieuwW));
+    toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
+    adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
+  } catch(e) {
+    toast('Aanmaken faalde: ' + e.message, 'err');
+    console.warn('bouwEnSlaWedstrijdOp:', e);
+  }
 }
 
 function publishW(){
