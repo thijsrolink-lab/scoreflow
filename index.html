@@ -546,6 +546,9 @@ body.offline { padding-top: 38px; }
 .speler-zoek-item.al-toegevoegd{color:var(--txh);cursor:default}
 .gw-deelnemer-rij{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--surf)}
 .gw-deelnemer-rij:last-child{border-bottom:none}
+.gw-flight-blok{background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem}
+.gw-flight-hd{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--g);text-transform:uppercase;letter-spacing:.04em;padding-bottom:.4rem;border-bottom:1px solid var(--bd);margin-bottom:.3rem}
+.gw-flight-acties{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:.6rem;margin-bottom:.6rem;border-bottom:1px solid var(--bd)}
 .gw-gast-tag{font-size:10px;background:var(--ambb);color:var(--amb);border-radius:3px;padding:1px 5px;border:1px solid var(--ambbd)}
 .gw-org-tag{font-size:10px;background:var(--goldb);color:var(--gold);border-radius:3px;padding:1px 5px;border:1px solid var(--goldbd)}
 .code-invoer{font-family:monospace;font-size:20px;font-weight:700;letter-spacing:.2em;text-align:center;padding:12px;border:2px solid var(--bd);border-radius:var(--r);width:100%;text-transform:uppercase;transition:border .15s;background:var(--card);color:var(--tx)}
@@ -13072,23 +13075,81 @@ function gwStap0Opslaan() {
 
 function gwStap1() {
   var u = _currentUser;
-  var spelers = USERS.filter(function(x) { return x.rol === 'Speler' && x.id !== u.id; });
 
-  var deelnemerLijst = _gwWizard.deelnemers.map(function(d) {
-    return '<div class="gw-deelnemer-rij">' +
-      '<div class="av" style="width:30px;height:30px;font-size:11px;background:' + (d.isGast ? 'var(--ambb)' : 'var(--gl)') + ';color:' + (d.isGast ? 'var(--amb)' : 'var(--g)') + '">' +
-      d.naam.split(' ').map(function(w) { return w[0]; }).join('').slice(0,2).toUpperCase() + '</div>' +
-      '<div style="flex:1"><div style="font-size:13px;font-weight:' + (d.isOrganisator?500:400) + '">' + escHtml(d.naam) +
-      (d.isOrganisator ? ' <span class="gw-org-tag">Organisator</span>' : '') +
-      (d.isGast ? ' <span class="gw-gast-tag">Gast</span>' : '') + '</div>' +
-      '<div style="font-size:11px;color:var(--txm)">HCP ' + (d.hcp !== null ? Number(d.hcp).toFixed(1) : '—') + '</div></div>' +
-      (!d.isOrganisator ? '<button class="btn btn-d btn-xs" onclick="gwVerwijderDeelnemer(\'' + d.uid + '\',\'' + (d.isGast?'gast':'lid') + '\')">&#215;</button>' : '') +
+  // Zorg dat elke deelnemer een flight heeft (default 1)
+  _gwWizard.deelnemers.forEach(function(d) {
+    if (!d.flight || d.flight < 1) d.flight = 1;
+  });
+
+  // Bepaal hoeveel flights er zijn (max van toegewezen, of expliciet gezet via _maxFlight)
+  var maxToegewezen = _gwWizard.deelnemers.reduce(function(m, d) {
+    return Math.max(m, d.flight || 1);
+  }, 1);
+  var maxFlight = Math.max(maxToegewezen, _gwWizard._maxFlight || 1);
+
+  // Groepeer deelnemers per flight
+  var perFlight = {};
+  for (var i = 1; i <= maxFlight; i++) perFlight[i] = [];
+  _gwWizard.deelnemers.forEach(function(d) {
+    perFlight[d.flight].push(d);
+  });
+
+  // Render per-flight blokjes
+  var flightHtml = '';
+  for (var fn = 1; fn <= maxFlight; fn++) {
+    var dn = perFlight[fn];
+    flightHtml += '<div class="gw-flight-blok">';
+    flightHtml += '<div class="gw-flight-hd">Flight ' + fn + ' <span style="font-size:11px;color:var(--txm);font-weight:400">(' + dn.length + ')</span>';
+    if (maxFlight > 1 && dn.length === 0) {
+      flightHtml += '<button class="btn btn-d btn-xs" style="margin-left:auto" onclick="gwVerwijderFlight(' + fn + ')">Flight verwijderen</button>';
+    }
+    flightHtml += '</div>';
+    if (dn.length === 0) {
+      flightHtml += '<div style="font-size:11px;color:var(--txm);padding:.4rem 0;font-style:italic">Geen deelnemers — sleep er iemand naartoe of gebruik de knoppen</div>';
+    } else {
+      dn.forEach(function(d) {
+        var initials = d.naam.split(' ').map(function(w) { return w[0]; }).join('').slice(0,2).toUpperCase();
+        flightHtml += '<div class="gw-deelnemer-rij">';
+        flightHtml += '<div class="av" style="width:30px;height:30px;font-size:11px;background:' + (d.isGast ? 'var(--ambb)' : 'var(--gl)') + ';color:' + (d.isGast ? 'var(--amb)' : 'var(--g)') + '">' + initials + '</div>';
+        flightHtml += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:' + (d.isOrganisator?500:400) + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(d.naam) +
+          (d.isOrganisator ? ' <span class="gw-org-tag">Org</span>' : '') +
+          (d.isGast ? ' <span class="gw-gast-tag">Gast</span>' : '') + '</div>';
+        flightHtml += '<div style="font-size:11px;color:var(--txm)">HCP ' + (d.hcp !== null ? Number(d.hcp).toFixed(1) : '—') + '</div></div>';
+        // Flight verplaatsen: knoppen ▲/▼ als er meerdere flights zijn
+        if (maxFlight > 1) {
+          flightHtml += '<div style="display:flex;flex-direction:column;gap:2px;margin-right:4px">';
+          flightHtml += '<button class="btn btn-s btn-xs" style="padding:1px 6px;font-size:10px;min-height:0" ' +
+            (d.flight <= 1 ? 'disabled' : '') +
+            ' onclick="gwVerplaatsDeelnemer(\'' + d.uid + '\',-1)" title="Naar flight ' + (d.flight - 1) + '">▲</button>';
+          flightHtml += '<button class="btn btn-s btn-xs" style="padding:1px 6px;font-size:10px;min-height:0" ' +
+            (d.flight >= maxFlight ? 'disabled' : '') +
+            ' onclick="gwVerplaatsDeelnemer(\'' + d.uid + '\',1)" title="Naar flight ' + (d.flight + 1) + '">▼</button>';
+          flightHtml += '</div>';
+        }
+        if (!d.isOrganisator) {
+          flightHtml += '<button class="btn btn-d btn-xs" onclick="gwVerwijderDeelnemer(\'' + d.uid + '\',\'' + (d.isGast?'gast':'lid') + '\')">&#215;</button>';
+        }
+        flightHtml += '</div>';
+      });
+    }
+    flightHtml += '</div>';
+  }
+
+  // Knoppen: auto-indelen + flight toevoegen
+  var flightActies = '';
+  if (_gwWizard.deelnemers.length > 0) {
+    flightActies = '<div class="gw-flight-acties">' +
+      '<button class="btn btn-s btn-sm" onclick="gwAutoIndeel()">🔀 Auto-indelen (per 4)</button>' +
+      '<button class="btn btn-s btn-sm" onclick="gwVoegFlightToe()">+ Flight toevoegen</button>' +
+      (maxFlight > 1 ? '<button class="btn btn-s btn-sm" onclick="gwResetFlights()">↺ Alles in Flight 1</button>' : '') +
       '</div>';
-  }).join('');
+  }
 
   return '<div class="card">' +
-    '<div class="card-hd">Deelnemers (' + _gwWizard.deelnemers.length + ')</div>' +
-    '<div id="gw-deelnemers-lijst">' + deelnemerLijst + '</div>' +
+    '<div class="card-hd">Deelnemers (' + _gwWizard.deelnemers.length + ')' +
+    (maxFlight > 1 ? ' · ' + maxFlight + ' flights' : '') + '</div>' +
+    flightActies +
+    '<div id="gw-deelnemers-lijst">' + flightHtml + '</div>' +
     '<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--bd)">' +
     '<div class="field"><label>Lid zoeken &amp; toevoegen</label>' +
     '<input id="gw-zoek" type="text" placeholder="Naam of lidnummer..." oninput="gwZoek(this.value)" autocomplete="off"/>' +
@@ -13099,6 +13160,72 @@ function gwStap1() {
     '<button class="btn btn-s" onclick="gwGaNaarStap(0)">&#8592; Terug</button>' +
     '<button class="btn btn-p" onclick="gwGaNaarStap(2)">Overzicht &#8594;</button></div>' +
     '</div>';
+}
+
+// Verplaats deelnemer +/-1 flight
+function gwVerplaatsDeelnemer(uid, delta) {
+  var d = _gwWizard.deelnemers.find(function(x) { return x.uid === uid; });
+  if (!d) return;
+  var newFlight = (d.flight || 1) + delta;
+  if (newFlight < 1) return;
+  d.flight = newFlight;
+  gwRenderWizard();
+}
+
+// Voeg een lege flight toe (verhoog max)
+function gwVoegFlightToe() {
+  // Geen actie nodig — de "+1" gebeurt als iemand naar daar verplaatst.
+  // Maar om de UI te laten zien: zet een dummy max door eerste deelnemer naar nieuwe flight te verplaatsen?
+  // Beter: track max apart op _gwWizard
+  _gwWizard._maxFlight = (_gwWizard._maxFlight || gwBerekenMaxFlight()) + 1;
+  gwRenderWizard();
+}
+
+function gwBerekenMaxFlight() {
+  return _gwWizard.deelnemers.reduce(function(m, d) { return Math.max(m, d.flight || 1); }, 1);
+}
+
+// Verwijder een lege flight (alleen mogelijk als geen deelnemers erin)
+function gwVerwijderFlight(fn) {
+  var inFlight = _gwWizard.deelnemers.filter(function(d) { return d.flight === fn; });
+  if (inFlight.length > 0) { toast('Flight is niet leeg.', 'err'); return; }
+  // Schuif alle flights boven fn omlaag
+  _gwWizard.deelnemers.forEach(function(d) {
+    if (d.flight > fn) d.flight--;
+  });
+  if (_gwWizard._maxFlight) _gwWizard._maxFlight = Math.max(1, _gwWizard._maxFlight - 1);
+  gwRenderWizard();
+}
+
+// Reset alle deelnemers naar flight 1
+function gwResetFlights() {
+  _gwWizard.deelnemers.forEach(function(d) { d.flight = 1; });
+  _gwWizard._maxFlight = 1;
+  gwRenderWizard();
+}
+
+// Auto-indeel: verdeel deelnemers in flights van 4 (laatste mag minder)
+function gwAutoIndeel() {
+  var n = _gwWizard.deelnemers.length;
+  if (n === 0) return;
+  // Snake-indeling op handicap (laagste hcp eerst verdeeld over flights)
+  var sorted = _gwWizard.deelnemers.slice().sort(function(a, b) {
+    var ha = a.hcp != null ? a.hcp : 99;
+    var hb = b.hcp != null ? b.hcp : 99;
+    return ha - hb;
+  });
+  var aantalFlights = Math.ceil(n / 4);
+  // Verdeel: speler 1 → flight 1, speler 2 → flight 2, ... snake
+  sorted.forEach(function(d, i) {
+    var ronde = Math.floor(i / aantalFlights);
+    var pos = i % aantalFlights;
+    // Snake: even ronden links→rechts, oneven rechts→links
+    var flightIdx = (ronde % 2 === 0) ? pos : (aantalFlights - 1 - pos);
+    d.flight = flightIdx + 1;
+  });
+  _gwWizard._maxFlight = aantalFlights;
+  gwRenderWizard();
+  toast('Verdeeld over ' + aantalFlights + ' flight' + (aantalFlights > 1 ? 's' : '') + ' (snake op handicap)');
 }
 
 function gwZoek(q) {
@@ -13131,7 +13258,7 @@ function gwVoegLidToe(uid) {
   var s = USERS.find(function(x) { return x.id === uid; });
   if (!s) return;
   if (_gwWizard.deelnemers.find(function(d) { return d.uid === uid; })) { toast('Al toegevoegd.', 'err'); return; }
-  _gwWizard.deelnemers.push({ uid: uid, naam: s.voor + ' ' + s.ach, hcp: s.hcp, isGast: false, isOrganisator: false });
+  _gwWizard.deelnemers.push({ uid: uid, naam: s.voor + ' ' + s.ach, hcp: s.hcp, isGast: false, isOrganisator: false, flight: 1 });
   document.getElementById('gw-zoek').value = '';
   document.getElementById('gw-zoek-results').style.display = 'none';
   gwRenderWizard();
@@ -13181,7 +13308,7 @@ function gwGastOpslaan() {
   if (isNaN(hcp) || hcp < 0 || hcp > 54) { toast('Vul een geldige handicap in (0-54).', 'err'); return; }
   // Uniek gast-id op basis van timestamp
   var gastId = 'g' + Date.now();
-  _gwWizard.deelnemers.push({ uid: gastId, naam: voor + ' ' + ach, hcp: hcp, isGast: true, isOrganisator: false });
+  _gwWizard.deelnemers.push({ uid: gastId, naam: voor + ' ' + ach, hcp: hcp, isGast: true, isOrganisator: false, flight: 1 });
   document.getElementById('gast-voor').value = '';
   document.getElementById('gast-ach').value = '';
   document.getElementById('gast-hcp').value = '';
@@ -13286,7 +13413,7 @@ function gwOpenDetail(id) {
   baan.slope = 131; baan.cr = (g.holes === 9 ? (g.welkeNegen === 'in' ? 34.5 : 35.5) : 72.1);
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
 
-  // Leaderboard
+  // Leaderboard — gegroepeerd per flight (als er meerdere zijn)
   var lbRows = g.deelnemers.map(function(deeln) {
     var sh = berekenSpeelhandicap(deeln.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes);
     var sc = (g.scores && g.scores[deeln.uid]) || Array(g.holes).fill('');
@@ -13294,30 +13421,50 @@ function gwOpenDetail(id) {
     var sf = berekenStableford(sc, baan, sh);
     return { uid: deeln.uid, naam: deeln.naam, hcp: deeln.hcp, sh: sh, isGast: deeln.isGast,
       isOrg: deeln.isOrganisator, netto: sp.netto, sfPts: sf.punten,
-      nettoVsPar: sp.nettoVsPar, gespeeld: sp.gespeeld, has: sp.gespeeld > 0 };
+      nettoVsPar: sp.nettoVsPar, gespeeld: sp.gespeeld, has: sp.gespeeld > 0,
+      flight: deeln.flight || 1 };
   });
-  if (g.vorm === 'Stableford') lbRows.sort(function(a,b){return !a.has?1:!b.has?-1:b.sfPts-a.sfPts;});
-  else lbRows.sort(function(a,b){return !a.has?1:!b.has?-1:a.netto-b.netto;});
 
-  var lbHtml = '<div class="card" style="margin-bottom:.75rem"><div class="card-hd">Leaderboard</div>';
+  // Sort helper
+  function sortRows(rows) {
+    if (g.vorm === 'Stableford') rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.sfPts-a.sfPts;});
+    else rows.sort(function(a,b){return !a.has?1:!b.has?-1:a.netto-b.netto;});
+    return rows;
+  }
+
+  // Render één deelnemer-rij
+  function renderRow(r, pos) {
+    var pcls = pos===1?'lb-1':pos===2?'lb-2':pos===3?'lb-3':'lb-n';
+    var isJij = r.uid === u.id;
+    var scoreStr = r.has ? (g.vorm==='Stableford' ? r.sfPts+' ptn' : formatVsPar(r.nettoVsPar)) : '—';
+    var scoreCls = r.has && g.vorm !== 'Stableford' ? (r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '') : '';
+    return '<div class="gw-lb-row' + (isJij?' jij':'') + '">' +
+      '<div class="lb-pos ' + pcls + '">' + pos + '</div>' +
+      '<div style="flex:1"><div style="font-weight:' + (isJij?500:400) + '">' + escHtml(r.naam) +
+      (r.isGast ? ' <span class="gw-gast-tag">Gast</span>' : '') +
+      (isJij ? ' <span style="font-size:11px;color:var(--gm)">(jij)</span>' : '') + '</div>' +
+      '<div style="font-size:11px;color:var(--txm)">SH ' + r.sh + ' &middot; ' + r.gespeeld + '/' + g.holes + ' h</div></div>' +
+      '<div style="font-weight:500" class="' + scoreCls + '">' + scoreStr + '</div>' +
+      (isJij ? '<button class="btn btn-p btn-xs" onclick="gwOpenScorekaart(\'' + g.id + '\')">Scorekaart</button>' : '') +
+      '</div>';
+  }
+
+  var maxFlight = lbRows.reduce(function(m, r) { return Math.max(m, r.flight); }, 1);
+  var lbHtml = '<div class="card" style="margin-bottom:.75rem"><div class="card-hd">Leaderboard' + (maxFlight > 1 ? ' (per flight)' : '') + '</div>';
+
   if (lbRows.filter(function(r){return r.has;}).length === 0) {
     lbHtml += '<p style="font-size:13px;color:var(--txm);padding:.5rem 0">Nog geen scores ingevoerd.</p>';
+  } else if (maxFlight === 1) {
+    // Eén grote ranking (oude gedrag)
+    lbHtml += sortRows(lbRows).map(function(r, i) { return renderRow(r, i+1); }).join('');
   } else {
-    lbHtml += lbRows.map(function(r, i) {
-      var p = i+1; var pcls = p===1?'lb-1':p===2?'lb-2':p===3?'lb-3':'lb-n';
-      var isJij = r.uid === u.id;
-      var scoreStr = r.has ? (g.vorm==='Stableford' ? r.sfPts+' ptn' : formatVsPar(r.nettoVsPar)) : '—';
-      var scoreCls = r.has && g.vorm !== 'Stableford' ? (r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '') : '';
-      return '<div class="gw-lb-row' + (isJij?' jij':'') + '">' +
-        '<div class="lb-pos ' + pcls + '">' + p + '</div>' +
-        '<div style="flex:1"><div style="font-weight:' + (isJij?500:400) + '">' + escHtml(r.naam) +
-        (r.isGast ? ' <span class="gw-gast-tag">Gast</span>' : '') +
-        (isJij ? ' <span style="font-size:11px;color:var(--gm)">(jij)</span>' : '') + '</div>' +
-        '<div style="font-size:11px;color:var(--txm)">SH ' + r.sh + ' &middot; ' + r.gespeeld + '/' + g.holes + ' h</div></div>' +
-        '<div style="font-weight:500" class="' + scoreCls + '">' + scoreStr + '</div>' +
-        (isJij ? '<button class="btn btn-p btn-xs" onclick="gwOpenScorekaart(\'' + g.id + '\')">Scorekaart</button>' : '') +
-        '</div>';
-    }).join('');
+    // Per flight een aparte ranking
+    for (var fn = 1; fn <= maxFlight; fn++) {
+      var flightRows = lbRows.filter(function(r) { return r.flight === fn; });
+      if (flightRows.length === 0) continue;
+      lbHtml += '<div style="font-size:11px;font-weight:700;color:var(--g);text-transform:uppercase;letter-spacing:.04em;margin:.8rem 0 .3rem 0;padding-top:.5rem;border-top:1px solid var(--bd)">Flight ' + fn + ' <span style="color:var(--txm);font-weight:400">(' + flightRows.length + ')</span></div>';
+      lbHtml += sortRows(flightRows).map(function(r, i) { return renderRow(r, i+1); }).join('');
+    }
   }
   lbHtml += '</div>';
 
@@ -13883,7 +14030,7 @@ function gwDeelneemViaCode() {
     fb.innerHTML = '<span style="color:var(--amb)">Je bent al deelnemer aan deze wedstrijd.</span>';
     return;
   }
-  g.deelnemers.push({ uid: u.id, naam: u.voor + ' ' + u.ach, hcp: u.hcp, isGast: false, isOrganisator: false });
+  g.deelnemers.push({ uid: u.id, naam: u.voor + ' ' + u.ach, hcp: u.hcp, isGast: false, isOrganisator: false, flight: 1 });
   closeModal('modal-code');
   document.getElementById('code-invoer').value = '';
   fb.textContent = '';
