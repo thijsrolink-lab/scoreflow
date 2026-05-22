@@ -1169,6 +1169,81 @@ async function laadGroepswedstrijdData() {
   }
 }
 
+// ── Modified Stableford (Albatros +5, Eagle +3, Birdie +1, Par 0, Bogey -1, Dubbel of slechter -3) ─
+function modifiedStablefordPunten(s, par, ex) {
+  if (s === null || s === '') return 0;
+  var diff = par - (Number(s) - ex);
+  if (diff >= 3) return 5;
+  if (diff === 2) return 3;
+  if (diff === 1) return 1;
+  if (diff === 0) return 0;
+  if (diff === -1) return -1;
+  return -3;
+}
+function berekenModifiedStableford(sc, baan, shv) {
+  var ex = extraSlagenPerHole(shv, baan.si);
+  var tot = 0;
+  sc.forEach(function(s, i) { tot += modifiedStablefordPunten(s, baan.par[i], ex[i]); });
+  return { punten: tot, ges: sc.filter(function(s){return s!==null&&s!=='';}).length };
+}
+
+// ── Bogey competition ──────────────────────────────────────
+function berekenBogeyComp(scores, baan, sh) {
+  var ex = extraSlagenPerHole(sh, baan.si);
+  var tot = 0, gewonnen = 0, gelijk = 0, verloren = 0, ges = 0;
+  scores.forEach(function(s, i) {
+    if (s === null || s === '') return;
+    ges++;
+    var n = Number(s) - ex[i];
+    var r = n <= baan.par[i] ? 1 : n === baan.par[i] + 1 ? 0 : -1;
+    tot += r;
+    if (r === 1) gewonnen++; else if (r === 0) gelijk++; else verloren++;
+  });
+  return { totaal: tot, gewonnen: gewonnen, gelijk: gelijk, verloren: verloren, ges: ges };
+}
+
+// ── Par competition ────────────────────────────────────────
+function berekenParComp(sc, baan, shv) {
+  var ex = extraSlagenPerHole(shv, baan.si);
+  var totaal = 0, gewonnen = 0, gelijk = 0, verloren = 0, ges = 0;
+  sc.forEach(function(v, i) {
+    if (!v || v === '') return;
+    ges++;
+    var netto = Number(v) - ex[i];
+    var res = netto < baan.par[i] ? 1 : netto === baan.par[i] ? 0 : -1;
+    totaal += res;
+    if (res === 1) gewonnen++; else if (res === 0) gelijk++; else verloren++;
+  });
+  return { totaal: totaal, gewonnen: gewonnen, gelijk: gelijk, verloren: verloren, ges: ges };
+}
+
+// ── Skins (carry-over bij gelijkspel) ──────────────────────
+function berekenSkins(sps, baan, pot, metHcp) {
+  pot = pot || 1; metHcp = metHcp !== false;
+  var verrijkt = sps.map(function(sp) {
+    var shv = metHcp ? berekenSpeelhandicap(sp.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, baan.holes) : 0;
+    return Object.assign({}, sp, { shv: shv, ex: extraSlagenPerHole(shv, baan.si) });
+  });
+  var carry = 0, skins = {};
+  verrijkt.forEach(function(sp) { skins[sp.id] = 0; });
+  for (var i = 0; i < baan.holes; i++) {
+    var ns = verrijkt.map(function(sp) {
+      var s = sp.scores && sp.scores[i];
+      if (!s || s === '') return { id: sp.id, netto: Infinity };
+      return { id: sp.id, netto: metHcp ? Number(s) - sp.ex[i] : Number(s) };
+    });
+    var valid = ns.filter(function(s) { return s.netto !== Infinity; });
+    if (valid.length < 2) { carry++; continue; }
+    var mn = Math.min.apply(null, valid.map(function(s) { return s.netto; }));
+    var wins = valid.filter(function(s) { return s.netto === mn; });
+    if (wins.length > 1) { carry++; }
+    else { skins[wins[0].id] += (carry + 1); carry = 0; }
+  }
+  return verrijkt.map(function(sp) {
+    return { id: sp.id, naam: sp.naam, skins: skins[sp.id] || 0 };
+  });
+}
+
 // ── Amerikaantje (4-2-0 punten per hole) ───────────────────
 function berekenAmerikaantje(sps, baan, metHcp) {
   metHcp = metHcp !== false;
@@ -1250,14 +1325,28 @@ function renderGwLeaderboard() {
     var sc = (g.scores && g.scores[d.uid]) || Array(g.holes).fill('');
     var sp = berekenStrokeplay(sc, baan, sh, 'geen');
     var sf = berekenStableford(sc, baan, sh);
-    return {
+    var row = {
       uid: d.uid, naam: d.naam, hcp: d.hcp, sh: sh,
       isGast: d.isGast, isOrg: d.isOrganisator,
       bruto: sp.bruto, netto: sp.netto, nettoVsPar: sp.nettoVsPar,
       sfPts: sf.punten, gespeeld: sp.gespeeld, has: sp.gespeeld > 0,
       flight: d.flight || 1,
-      amePts: 0
+      amePts: 0, msfPts: 0, bcRes: 0, bcWon: 0, bcVerloren: 0, bcGelijk: 0,
+      skinsPts: 0
     };
+    if (g.vorm === 'Modified Stableford') {
+      try { row.msfPts = berekenModifiedStableford(sc, baan, sh).punten || 0; } catch(e) {}
+    }
+    if (g.vorm === 'Bogey competition' || g.vorm === 'Par competition') {
+      try {
+        var bc = (g.vorm === 'Par competition') ? berekenParComp(sc, baan, sh) : berekenBogeyComp(sc, baan, sh);
+        row.bcRes = bc.totaal || 0;
+        row.bcWon = bc.gewonnen || 0;
+        row.bcVerloren = bc.verloren || 0;
+        row.bcGelijk = bc.gelijk || 0;
+      } catch(e) {}
+    }
+    return row;
   });
 
   // Amerikaantje: bereken punten per flight
@@ -1279,12 +1368,38 @@ function renderGwLeaderboard() {
     }
   }
 
+  // Skins: ook per flight
+  if (g.vorm === 'Skins') {
+    var maxFSk = rows.reduce(function(m, r) { return Math.max(m, r.flight); }, 1);
+    for (var fnSk = 1; fnSk <= maxFSk; fnSk++) {
+      var flightSk = rows.filter(function(r) { return r.flight === fnSk; });
+      if (flightSk.length < 2) continue;
+      var skSps = flightSk.map(function(r) {
+        return { id: r.uid, naam: r.naam, hcp: r.hcp,
+          scores: (g.scores && g.scores[r.uid]) || Array(g.holes).fill('') };
+      });
+      try {
+        var skRes = berekenSkins(skSps, baan, 1, metHcp);
+        skRes.forEach(function(es) {
+          var row = rows.find(function(r) { return r.uid === es.id; });
+          if (row) row.skinsPts = es.skins || 0;
+        });
+      } catch(e) {}
+    }
+  }
+
   // Sort helper (gebruikt voor zowel totaal als per-flight)
   function sortRows(arr) {
     if (isAme) {
       arr.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : b.amePts - a.amePts; });
     } else if (g.vorm === 'Stableford') {
       arr.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : b.sfPts - a.sfPts; });
+    } else if (g.vorm === 'Modified Stableford') {
+      arr.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : b.msfPts - a.msfPts; });
+    } else if (g.vorm === 'Bogey competition' || g.vorm === 'Par competition') {
+      arr.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : b.bcRes - a.bcRes; });
+    } else if (g.vorm === 'Skins') {
+      arr.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : b.skinsPts - a.skinsPts; });
     } else {
       arr.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
     }
@@ -1362,7 +1477,20 @@ function renderGwLeaderboard() {
       } else if (g.vorm === 'Stableford') {
         rowHtml += '<div class="lb-score">' + r.sfPts + ' <span style="font-size:13px;color:var(--txm);font-weight:600">pt</span></div>';
         rowHtml += '<div style="font-size:10px;color:var(--txm)">netto ' + r.netto + '</div>';
+      } else if (g.vorm === 'Modified Stableford') {
+        var msfCls = r.msfPts > 0 ? 'under' : r.msfPts < 0 ? 'over' : '';
+        rowHtml += '<div class="lb-score ' + msfCls + '">' + (r.msfPts > 0 ? '+' : '') + r.msfPts + ' <span style="font-size:13px;color:var(--txm);font-weight:600">pt</span></div>';
+        rowHtml += '<div style="font-size:10px;color:var(--txm)">netto ' + r.netto + '</div>';
+      } else if (g.vorm === 'Bogey competition' || g.vorm === 'Par competition') {
+        var bcCls = r.bcRes > 0 ? 'under' : r.bcRes < 0 ? 'over' : '';
+        rowHtml += '<div class="lb-score ' + bcCls + '">' + (r.bcRes > 0 ? '+' : '') + r.bcRes + '</div>';
+        rowHtml += '<div style="font-size:10px;color:var(--txm)">' + r.bcWon + 'W &middot; ' + r.bcGelijk + 'G &middot; ' + r.bcVerloren + 'V</div>';
+      } else if (g.vorm === 'Skins') {
+        var skCls = r.skinsPts > 0 ? 'under' : '';
+        rowHtml += '<div class="lb-score ' + skCls + '">' + r.skinsPts + ' <span style="font-size:13px;color:var(--txm);font-weight:600">skin' + (r.skinsPts !== 1 ? 's' : '') + '</span></div>';
+        rowHtml += '<div style="font-size:10px;color:var(--txm)">netto ' + r.netto + '</div>';
       } else {
+        // Strokeplay / Eclectic
         var scoreStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : r.nettoVsPar === 0 ? 'E' : '' + r.nettoVsPar;
         var scoreClass = r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '';
         rowHtml += '<div class="lb-score ' + scoreClass + '">' + scoreStr + '</div>';

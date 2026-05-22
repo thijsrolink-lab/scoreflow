@@ -8118,20 +8118,15 @@ function renderScoreInvoer() {
     { id: 'gs',     lbl: 'Greensome',       vorm: 'Greensome' },
     { id: 'pc',     lbl: 'Par competition', vorm: 'Par competition' },
     { id: 'fs',     lbl: 'Foursomes',       vorm: 'Foursomes' },
-    { id: 'ko',     lbl: 'Bracket',         vorm: 'Knockout' },
     { id: 'msf',    lbl: 'Modified SF',     vorm: 'Modified Stableford' },
     { id: 'tsf',    lbl: 'Team Stableford', vorm: 'Team Stableford' },
     { id: 'all',    lbl: 'Alliance',        vorm: 'Alliance' },
-    { id: 'vl',     lbl: 'Vlaggenwedstrijd',vorm: 'Vossenjacht' },
+    { id: 'vl',     lbl: 'Vlaggenwedstrijd',vorm: 'Vlaggenwedstrijd' },
     { id: 'so',     lbl: 'Shoot-out',       vorm: 'Shoot-out' },
     { id: 'am',     lbl: 'Amerikaantje',    vorm: 'Amerikaantje' },
-    { id: 'bbb',    lbl: 'Bingo Bango',     vorm: 'Bingo Bango Bongo' },
     { id: 'rb',     lbl: 'Rabbit',          vorm: 'Rabbit' },
     { id: 'sh',     lbl: 'Shamble',         vorm: 'Shamble' },
     { id: 'ch',     lbl: 'Chapman',         vorm: 'Chapman' },
-    { id: 'vos',    lbl: 'Vossenjacht',     vorm: 'Vossenjacht' },
-    { id: 'hh',     lbl: 'Hidden holes',    vorm: 'Hidden holes' },
-    { id: 'stok',   lbl: 'Stokkenroof',     vorm: 'Stokkenroof' },
     { id: 'oom',    lbl: 'Order of Merit',  vorm: 'Order of Merit' },
     { id: 'multi',  lbl: 'Multi-ronde',     meerdereRondes: true },
   ].filter(function(t) {
@@ -8164,7 +8159,6 @@ function renderScoreInvoer() {
 // NIEUWE WEDSTRIJDVORMEN
 // 1. Par competition (Tegen Par)
 // 2. Foursomes / Alternate Shot
-// 3. Knockout bracket
 // ============================================================
 
 // ── 1. PAR COMPETITION ──────────────────────────────────────
@@ -8789,66 +8783,6 @@ function uiAmerikaans(wId, ronde, baan, sps, w) {
   return html+'</tbody></table>';
 }
 
-// ── 7. Bingo Bango Bongo ─────────────────────────────────────
-// 3 punten per hole:
-// Bingo: eerst op de green
-// Bango: dichtst bij de pin als iedereen op de green staat
-// Bongo: eerst de bal in de hole
-function uiBingoBangoBongo(wId, ronde, baan, sps, w) {
-  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Bingo Bango Bongo · 3 punten per hole: <strong>Bingo</strong> = eerst op green · <strong>Bango</strong> = dichtst bij pin · <strong>Bongo</strong> = eerst in hole</div>';
-  html += '<div class="blk"><div class="blk-t">Score invoer</div>';
-  html += '<p style="font-size:12px;color:var(--txm);margin-bottom:.75rem">Registreer per hole wie welk punt verdiend heeft.</p>';
-
-  if (!SCORES[wId]) SCORES[wId] = {};
-  if (!SCORES[wId]['bbb']) SCORES[wId]['bbb'] = {};
-
-  baan.par.forEach(function(par, i) {
-    var hole = i + 1;
-    if (!SCORES[wId]['bbb'][hole]) SCORES[wId]['bbb'][hole] = {bingo:null,bango:null,bongo:null};
-    var bbb = SCORES[wId]['bbb'][hole];
-
-    html += '<div style="padding:.6rem 0;border-bottom:1px solid var(--surf)">';
-    html += '<div style="font-size:12px;font-weight:500;margin-bottom:.4rem">Hole '+hole+' (par '+par+')</div>';
-    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
-    ['bingo','bango','bongo'].forEach(function(type) {
-      html += '<div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--txm);margin-bottom:2px">'+type.charAt(0).toUpperCase()+type.slice(1)+'</div>';
-      html += '<select class="fi" style="padding:5px;font-size:12px" onchange="bbbSet('+wId+','+hole+',\''+type+'\',this.value)">';
-      html += '<option value="">—</option>';
-      sps.forEach(function(s){html+='<option value="'+s.id+'"'+(bbb[type]==s.id?' selected':'')+'>'+escHtml(s.voor+' '+s.ach)+'</option>';});
-      html += '</select></div>';
-    });
-    html += '</div></div>';
-  });
-  html += '</div>';
-
-  // Leaderboard
-  var totalen = {};
-  sps.forEach(function(s){totalen[s.id]={bingo:0,bango:0,bongo:0,totaal:0};});
-  baan.par.forEach(function(par,i){
-    var bbb = SCORES[wId]['bbb'] && SCORES[wId]['bbb'][i+1];
-    if (!bbb) return;
-    ['bingo','bango','bongo'].forEach(function(type){
-      if (bbb[type] && totalen[bbb[type]]) { totalen[bbb[type]][type]++; totalen[bbb[type]].totaal++; }
-    });
-  });
-
-  var rows = sps.map(function(s){return{naam:s.voor+' '+s.ach,t:totalen[s.id]};}).sort(function(a,b){return b.t.totaal-a.t.totaal;});
-  html += '<div class="blk-t" style="margin:1rem 0 .5rem">Leaderboard</div>';
-  html += '<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>Bingo</th><th>Bango</th><th>Bongo</th><th>Totaal</th></tr></thead><tbody>';
-  rows.forEach(function(r,i){
-    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+escHtml(r.naam)+'</td><td>'+r.t.bingo+'</td><td>'+r.t.bango+'</td><td>'+r.t.bongo+'</td><td style="font-weight:600;color:var(--gm)">'+r.t.totaal+'</td></tr>';
-  });
-  return html+'</tbody></table>';
-}
-
-function bbbSet(wId, hole, type, sid) {
-  if (!SCORES[wId]) SCORES[wId] = {};
-  if (!SCORES[wId]['bbb']) SCORES[wId]['bbb'] = {};
-  if (!SCORES[wId]['bbb'][hole]) SCORES[wId]['bbb'][hole] = {bingo:null,bango:null,bongo:null};
-  SCORES[wId]['bbb'][hole][type] = sid ? parseInt(sid) : null;
-}
-
 // ── 8. Rabbit / Haas ─────────────────────────────────────────
 function berekenRabbit(spScores, baan, pot) {
   pot = pot || 1;
@@ -9080,99 +9014,6 @@ function uiOrderOfMerit() {
 // ════════════════════════════════════════════════════════════
 // GROEP 5 — FUN / CLUBDAG REGISTRATIE
 // ════════════════════════════════════════════════════════════
-
-// ── 12. Vossenjacht ──────────────────────────────────────────
-function uiVossenjacht(wId, baan, sps, w) {
-  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Vossenjacht · spelers starten op verschillende holes. De "vos" (voorste speler) wordt gevangen als een andere speler hem inhaalt.</div>';
-  html+='<div class="blk"><div class="blk-t">Startposities</div>';
-  html+='<p style="font-size:12px;color:var(--txm);margin-bottom:.75rem">Wijs elke speler een starthoel toe. Score wordt op papier bijgehouden.</p>';
-  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['vos'])SCORES[wId]['vos']={};
-  sps.forEach(function(s){
-    var start=SCORES[wId]['vos'][s.id]||1;
-    html+='<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--surf)">';
-    html+='<div style="flex:1;font-size:13px">'+escHtml(s.voor+' '+s.ach)+'</div>';
-    html+='<div style="display:flex;align-items:center;gap:6px"><label style="font-size:12px;color:var(--txm)">Start hole:</label>';
-    html+='<select class="fi" style="width:70px;padding:5px" onchange="vosSetStart('+wId+','+s.id+',this.value)">';
-    for(var hi=1;hi<=baan.holes;hi++)html+='<option value="'+hi+'"'+(start==hi?' selected':'')+'>'+hi+'</option>';
-    html+='</select></div></div>';
-  });
-  html+='</div>';
-  html+='<div class="blk"><div class="blk-t">Vossenjacht — werkt op papier</div><p style="font-size:12px;color:var(--txm)">Spelers starten op hun hole en gaan in de richting van hole 18. Wie een andere speler op dezelfde hole inhaalt, "vangt de vos". Eindscore: meeste holes gespeeld voor gevangen te worden.</p></div>';
-  return html;
-}
-
-function vosSetStart(wId,sid,hole){
-  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['vos'])SCORES[wId]['vos']={};
-  SCORES[wId]['vos'][sid]=parseInt(hole);
-}
-
-// ── 13. Hidden / Blind holes ─────────────────────────────────
-function uiHiddenHoles(wId, ronde, baan, sps, w) {
-  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['hidden'])SCORES[wId]['hidden']=[];
-  var hidden=SCORES[wId]['hidden'];
-  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Hidden holes · na afloop wordt bekendgemaakt welke holes tellen. Stableford scoring op de gekozen holes.</div>';
-
-  // Admin: kies welke holes tellen
-  html+='<div class="blk"><div class="blk-t">Kies welke holes tellen (onbekend voor spelers)</div>';
-  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.5rem">';
-  for(var hi=1;hi<=baan.holes;hi++){
-    var isHidden=hidden.indexOf(hi)>=0;
-    html+='<button class="btn '+(isHidden?'btn-p':'btn-s')+' btn-xs" onclick="hiddenToggle('+wId+','+hi+',this)">H'+hi+'</button>';
-  }
-  html+='</div><p style="font-size:11px;color:var(--txm)">'+hidden.length+' holes geselecteerd</p></div>';
-
-  if(!hidden.length)return html+'<p style="font-size:13px;color:var(--txm)">Selecteer holes om het leaderboard te zien.</p>';
-
-  // Leaderboard op basis van geselecteerde holes
-  var rows=sps.map(function(s){
-    var shv=berekenSpeelhandicap(s.hcp,w.slope,w.cr,baan.parTotaal,(w.hcpperc||100)/100,w.holes);
-    var ex=extraSlagenPerHole(shv,baan.si);
-    var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
-    var punten=0;
-    hidden.forEach(function(h){punten+=stabPts(sc[h-1],baan.par[h-1],ex[h-1]);});
-    return{naam:s.voor+' '+s.ach,shv:shv,punten:punten};
-  }).sort(function(a,b){return b.punten-a.punten;});
-
-  html+='<div class="blk-t" style="margin:.75rem 0 .5rem">Leaderboard ('+hidden.length+' holes)</div>';
-  html+='<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>SH</th><th>Punten</th></tr></thead><tbody>';
-  rows.forEach(function(r,i){
-    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+escHtml(r.naam)+'</td><td><span class="badge bg">'+r.shv+'</span></td><td style="font-weight:600;color:var(--gm)">'+r.punten+'</td></tr>';
-  });
-  return html+'</tbody></table>';
-}
-
-function hiddenToggle(wId,hole,btn){
-  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['hidden'])SCORES[wId]['hidden']=[];
-  var idx=SCORES[wId]['hidden'].indexOf(hole);
-  if(idx>=0){SCORES[wId]['hidden'].splice(idx,1);btn.className='btn btn-s btn-xs';}
-  else{SCORES[wId]['hidden'].push(hole);btn.className='btn btn-p btn-xs';}
-  // Herrender
-  var el=document.getElementById('stab-hh');
-  if(el){var wId2=document.getElementById('sc-w').value;var w=WEDSTRIJDEN.find(function(x){return x.id===wId2;});if(w){var baan=getBaan(w.holes, null, null, w.welkeNegen);baan.slope=w.slope;baan.cr=w.cr;baan.parTotaal=baan.par.reduce(function(a,b){return a+b;},0);var sps=INSCHRIJVINGEN.filter(function(i){return i.wid===wId2&&i.status==='ingeschreven';}).map(function(i){return USERS.find(function(s){return s.id===i.sid;});}).filter(Boolean);el.innerHTML=uiHiddenHoles(wId2,0,baan,sps,w);}}
-}
-
-// ── 14. Stokkenroof ──────────────────────────────────────────
-function uiStokkenroof(wId, ronde, baan, sps, w) {
-  if(!SCORES[wId])SCORES[wId]={};if(!SCORES[wId]['stok'])SCORES[wId]['stok']={};
-  // Elke speler begint met 1 club. Bij bogey of slechter verliest ie een club aan de wedstrijdleider.
-  // Speler met meeste clubs aan het einde wint.
-  var stokken={};
-  sps.forEach(function(s){stokken[s.id]=SCORES[wId]['stok'][s.id]!==undefined?SCORES[wId]['stok'][s.id]:14;});
-
-  var html='<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Stokkenroof · elke speler begint met 14 clubs. Bij bogey of slechter (bruto) verliest ie een club. Minste clubs verloren wint.</div>';
-  html+='<table class="tbl"><thead><tr><th>Speler</th><th>Clubs over</th><th>Verloren</th><th></th></tr></thead><tbody>';
-  sps.forEach(function(s){
-    var sc=(SCORES[wId]&&SCORES[wId][ronde]&&SCORES[wId][ronde][s.id])||Array(baan.holes).fill('');
-    var verloren=0;
-    sc.forEach(function(v,i){if(v&&v!==''&&Number(v)>baan.par[i])verloren++;});
-    html+='<tr><td style="font-weight:500">'+escHtml(s.voor+' '+s.ach)+'</td>';
-    html+='<td style="font-weight:600">'+(14-verloren)+'</td>';
-    html+='<td style="color:var(--red)">'+verloren+'</td>';
-    html+='<td><span style="font-size:20px">'+'🏌'.repeat(Math.max(0,Math.min(5,14-verloren)))+'</span></td></tr>';
-  });
-  return html+'</tbody></table>';
-}
 
 function uiBogeyComp(wId, ronde, baan, sps, w) {
   var rows = sps.map(function(s) {
@@ -13134,7 +12975,7 @@ function gwStap0() {
     '<div class="field"><label>Baan</label><input id="gw-baan" type="text" placeholder="De Hooge Rotterdamsche" value="' + escHtml(w.baan) + '"/></div>' +
     '</div>' +
     '<div class="field"><label>Spelervorm</label><div class="tg" id="gw-vorm-tg">' +
-    ['Stableford','Strokeplay','Bogey competition','Matchplay','Skins','Amerikaantje','Texas Scramble'].map(function(v) {
+    ['Stableford','Strokeplay','Modified Stableford','Bogey competition','Par competition','Skins','Amerikaantje','Eclectic'].map(function(v) {
       return '<button class="tgb' + (w.vorm === v ? ' on' : '') + '" data-gwvorm="' + v + '" onclick="gwKiesVorm(this)">' + v + '</button>';
     }).join('') + '</div></div>' +
     '<div class="field"><label>Handicap-verrekening</label><div class="tg" id="gw-hcp-tg">' +
@@ -13534,12 +13375,36 @@ function gwOpenDetail(id) {
     var sc = (g.scores && g.scores[deeln.uid]) || Array(g.holes).fill('');
     var sp = berekenStrokeplay(sc, baan, sh);
     var sf = berekenStableford(sc, baan, sh);
-    return { uid: deeln.uid, naam: deeln.naam, hcp: deeln.hcp, sh: sh, isGast: deeln.isGast,
-      isOrg: deeln.isOrganisator, netto: sp.netto, sfPts: sf.punten,
+    var row = { uid: deeln.uid, naam: deeln.naam, hcp: deeln.hcp, sh: sh, isGast: deeln.isGast,
+      isOrg: deeln.isOrganisator, netto: sp.netto, bruto: sp.bruto, sfPts: sf.punten,
       nettoVsPar: sp.nettoVsPar, gespeeld: sp.gespeeld, has: sp.gespeeld > 0,
       flight: deeln.flight || 1,
-      amePts: 0  // Amerikaantje punten — gevuld hieronder per flight als vorm = Amerikaantje
+      amePts: 0,    // Amerikaantje punten
+      msfPts: 0,    // Modified Stableford
+      bcRes: 0,     // Bogey/Par competition resultaat (won-verloren)
+      bcWon: 0, bcVerloren: 0, bcGelijk: 0,
+      skinsPts: 0   // Skins aantal skins
     };
+    // Modified Stableford
+    if (g.vorm === 'Modified Stableford') {
+      try {
+        var msf = berekenModifiedStableford(sc, baan, sh);
+        row.msfPts = msf.punten || 0;
+      } catch(e) { row.msfPts = 0; }
+    }
+    // Bogey/Par competition
+    if (g.vorm === 'Bogey competition' || g.vorm === 'Par competition') {
+      try {
+        var bc = (g.vorm === 'Par competition')
+          ? berekenParComp(sc, baan, sh)
+          : berekenBogeyComp(sc, baan, sh);
+        row.bcRes = bc.totaal || 0;
+        row.bcWon = bc.gewonnen || 0;
+        row.bcVerloren = bc.verloren || 0;
+        row.bcGelijk = bc.gelijkspel || bc.gelijk || 0;
+      } catch(e) { row.bcRes = 0; }
+    }
+    return row;
   });
 
   // Amerikaantje: bereken per flight de punten-verdeling, vul amePts
@@ -13564,13 +13429,43 @@ function gwOpenDetail(id) {
     }
   }
 
-  // Sort helper — voor Amerikaantje: meeste punten wint
+  // Skins: ook per flight (winnaar per hole; carry over)
+  if (g.vorm === 'Skins') {
+    var maxFSk = lbRows.reduce(function(m, r) { return Math.max(m, r.flight); }, 1);
+    for (var fnSk = 1; fnSk <= maxFSk; fnSk++) {
+      var flightSk = lbRows.filter(function(r) { return r.flight === fnSk; });
+      if (flightSk.length < 2) continue;
+      var skSps = flightSk.map(function(r) {
+        return {
+          id: r.uid, naam: r.naam, hcp: r.hcp,
+          scores: (g.scores && g.scores[r.uid]) || Array(g.holes).fill('')
+        };
+      });
+      try {
+        var skRes = berekenSkins(skSps, baan, 1, g.hcpVerrekening !== false);
+        skRes.eindstand.forEach(function(es) {
+          var row = lbRows.find(function(r) { return r.uid === es.id; });
+          if (row) row.skinsPts = es.skins || 0;
+        });
+      } catch(e) { console.warn('Skins:', e.message); }
+    }
+  }
+
+  // Sort helper — afhankelijk van wedstrijdvorm
   function sortRows(rows) {
     if (g.vorm === 'Amerikaantje') {
       rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.amePts-a.amePts;});
     } else if (g.vorm === 'Stableford') {
       rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.sfPts-a.sfPts;});
+    } else if (g.vorm === 'Modified Stableford') {
+      rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.msfPts-a.msfPts;});
+    } else if (g.vorm === 'Bogey competition' || g.vorm === 'Par competition') {
+      // Hoger resultaat (won-verloren) is beter
+      rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.bcRes-a.bcRes;});
+    } else if (g.vorm === 'Skins') {
+      rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.skinsPts-a.skinsPts;});
     } else {
+      // Strokeplay, Eclectic (en fallback): laagste netto eerst
       rows.sort(function(a,b){return !a.has?1:!b.has?-1:a.netto-b.netto;});
     }
     return rows;
@@ -13589,7 +13484,17 @@ function gwOpenDetail(id) {
       scoreCls = r.amePts >= 3 ? 'under' : r.amePts <= 1 ? 'over' : '';
     } else if (g.vorm === 'Stableford') {
       scoreStr = r.sfPts + ' ptn';
+    } else if (g.vorm === 'Modified Stableford') {
+      scoreStr = r.msfPts + ' ptn';
+      scoreCls = r.msfPts > 0 ? 'under' : r.msfPts < 0 ? 'over' : '';
+    } else if (g.vorm === 'Bogey competition' || g.vorm === 'Par competition') {
+      scoreStr = (r.bcRes > 0 ? '+' : '') + r.bcRes;
+      scoreCls = r.bcRes > 0 ? 'under' : r.bcRes < 0 ? 'over' : '';
+    } else if (g.vorm === 'Skins') {
+      scoreStr = r.skinsPts + ' skin' + (r.skinsPts !== 1 ? 's' : '');
+      scoreCls = r.skinsPts > 0 ? 'under' : '';
     } else {
+      // Strokeplay, Eclectic
       scoreStr = formatVsPar(r.nettoVsPar);
       scoreCls = r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '';
     }
@@ -13961,11 +13866,24 @@ function gwBouwLeaderboardTab(g, baan, u) {
     var sc = (g.scores && g.scores[d.uid]) || Array(g.holes).fill('');
     var sp_res = berekenStrokeplay(sc, baan, sh, 'geen');
     var sf = berekenStableford(sc, baan, sh);
-    return { d: d, sh: sh, gespeeld: sp_res.gespeeld,
+    var row = { d: d, sh: sh, gespeeld: sp_res.gespeeld,
       bruto: sp_res.bruto, netto: sp_res.netto, nettoVsPar: sp_res.nettoVsPar,
       sfPts: sf.punten, has: sp_res.gespeeld > 0,
       flight: d.flight || 1,
-      amePts: 0 };
+      amePts: 0, msfPts: 0, bcRes: 0, bcWon: 0, bcVerloren: 0, bcGelijk: 0, skinsPts: 0 };
+    if (g.vorm === 'Modified Stableford') {
+      try { row.msfPts = berekenModifiedStableford(sc, baan, sh).punten || 0; } catch(e) {}
+    }
+    if (g.vorm === 'Bogey competition' || g.vorm === 'Par competition') {
+      try {
+        var bc = (g.vorm === 'Par competition') ? berekenParComp(sc, baan, sh) : berekenBogeyComp(sc, baan, sh);
+        row.bcRes = bc.totaal || 0;
+        row.bcWon = bc.gewonnen || 0;
+        row.bcVerloren = bc.verloren || 0;
+        row.bcGelijk = bc.gelijk || bc.gelijkspel || 0;
+      } catch(e) {}
+    }
+    return row;
   });
 
   // Amerikaantje: vul amePts per speler door per-flight berekening
@@ -13986,11 +13904,37 @@ function gwBouwLeaderboardTab(g, baan, u) {
     }
   }
 
-  // Sorteer (stableford = hoog naar laag, ame = punten hoog naar laag, anders laag-netto eerst)
+  // Skins per flight
+  if (g.vorm === 'Skins') {
+    var maxFSk = rows.reduce(function(m, r) { return Math.max(m, r.flight); }, 1);
+    for (var fnSk = 1; fnSk <= maxFSk; fnSk++) {
+      var flightSk = rows.filter(function(r) { return r.flight === fnSk; });
+      if (flightSk.length < 2) continue;
+      var skSps = flightSk.map(function(r) {
+        return { id: r.d.uid, naam: r.d.naam, hcp: r.d.hcp,
+          scores: (g.scores && g.scores[r.d.uid]) || Array(g.holes).fill('') };
+      });
+      try {
+        var skRes = berekenSkins(skSps, baan, 1, g.hcpVerrekening !== false);
+        skRes.eindstand.forEach(function(es) {
+          var row = rows.find(function(r) { return r.d.uid === es.id; });
+          if (row) row.skinsPts = es.skins || 0;
+        });
+      } catch(e) {}
+    }
+  }
+
+  // Sorteer (afhankelijk van vorm)
   if (g.vorm === 'Amerikaantje') {
     rows.sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : b.amePts - a.amePts; });
   } else if (g.vorm === 'Stableford') {
     rows.sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : b.sfPts - a.sfPts; });
+  } else if (g.vorm === 'Modified Stableford') {
+    rows.sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : b.msfPts - a.msfPts; });
+  } else if (g.vorm === 'Bogey competition' || g.vorm === 'Par competition') {
+    rows.sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : b.bcRes - a.bcRes; });
+  } else if (g.vorm === 'Skins') {
+    rows.sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : b.skinsPts - a.skinsPts; });
   } else {
     rows.sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
   }
@@ -14005,14 +13949,27 @@ function gwBouwLeaderboardTab(g, baan, u) {
     var posCls = pos === 1 ? 'lb-1' : pos === 2 ? 'lb-2' : pos === 3 ? 'lb-3' : 'lb-n';
     var isJij = r.d.uid === u.id;
     var scoreStr;
+    var subStr = '';
     if (!r.has) {
       scoreStr = '—';
     } else if (g.vorm === 'Amerikaantje') {
       scoreStr = r.amePts.toFixed(1) + ' pt';
+      subStr = 'bruto ' + r.bruto;
     } else if (g.vorm === 'Stableford') {
       scoreStr = r.sfPts + ' pt';
+      subStr = 'netto ' + r.netto;
+    } else if (g.vorm === 'Modified Stableford') {
+      scoreStr = (r.msfPts > 0 ? '+' : '') + r.msfPts + ' pt';
+      subStr = 'netto ' + r.netto;
+    } else if (g.vorm === 'Bogey competition' || g.vorm === 'Par competition') {
+      scoreStr = (r.bcRes > 0 ? '+' : '') + r.bcRes;
+      subStr = r.bcWon + 'W · ' + r.bcGelijk + 'G · ' + r.bcVerloren + 'V';
+    } else if (g.vorm === 'Skins') {
+      scoreStr = r.skinsPts + ' skin' + (r.skinsPts !== 1 ? 's' : '');
+      subStr = 'netto ' + r.netto;
     } else {
       scoreStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : r.nettoVsPar === 0 ? 'E' : '' + r.nettoVsPar;
+      subStr = 'netto ' + r.netto;
     }
 
     html += '<div style="display:flex;align-items:center;gap:12px;padding:.85rem 1rem;border-bottom:1px solid #f1f4f8;background:' + (isJij ? 'rgba(22,163,74,0.04)' : '#fff') + '">';
@@ -14028,8 +13985,7 @@ function gwBouwLeaderboardTab(g, baan, u) {
     html += '</div>';
     html += '<div style="text-align:right">';
     html += '<div style="font-size:18px;font-weight:800;color:' + (r.has ? '#16a34a' : '#cbd5e1') + '">' + scoreStr + '</div>';
-    if (r.has && g.vorm === 'Stableford') html += '<div style="font-size:10px;color:#8b94a3;margin-top:2px">netto ' + r.netto + '</div>';
-    if (r.has && g.vorm === 'Amerikaantje') html += '<div style="font-size:10px;color:#8b94a3;margin-top:2px">bruto ' + r.bruto + '</div>';
+    if (r.has && subStr) html += '<div style="font-size:10px;color:#8b94a3;margin-top:2px">' + subStr + '</div>';
     html += '</div>';
     html += '</div>';
   });
@@ -14894,13 +14850,9 @@ function switchScoreTab(tab) {
   else if (tab === 'vl') el.innerHTML = uiVlaggenwedstrijd(wId, ronde, baan, sps, w);
   else if (tab === 'so') el.innerHTML = uiShootout(wId, ronde, baan, sps, w);
   else if (tab === 'am') el.innerHTML = uiAmerikaans(wId, ronde, baan, sps, w);
-  else if (tab === 'bbb') el.innerHTML = uiBingoBangoBongo(wId, ronde, baan, sps, w);
   else if (tab === 'rb') el.innerHTML = uiRabbit(wId, ronde, baan, sps, w);
   else if (tab === 'sh') el.innerHTML = uiShamble(wId, ronde, baan, sps, w);
   else if (tab === 'ch') el.innerHTML = uiChapman(wId, ronde, baan, sps, w);
-  else if (tab === 'vos') el.innerHTML = uiVossenjacht(wId, baan, sps, w);
-  else if (tab === 'hh') el.innerHTML = uiHiddenHoles(wId, ronde, baan, sps, w);
-  else if (tab === 'stok') el.innerHTML = uiStokkenroof(wId, ronde, baan, sps, w);
   else if (tab === 'oom') el.innerHTML = uiOrderOfMerit();
 }
 
@@ -15292,14 +15244,6 @@ var VORM_HELP = {
     voorbeeld: 'Hole 5: Jan 3 ptn (birdie), Maria 2 ptn (par), Pieter 1 ptn (bogey), Tom 0 ptn (dubbel). Beste 2 = 3+2 = 5.',
     tip: 'Team Stableford combineert het teamgevoel van scramble met de spanning van individueel scoren.',
   },
-  'Knockout': {
-    omschrijving: 'Toernooisysteem. Spelers worden gekoppeld via loting of seeding op basis van HCP. Winnaar gaat door, verliezer is uitgeschakeld.',
-    handicap: 'Per match: matchplay handicap-berekening (verschil verdelen over SI).',
-    punten: null,
-    esc: 'Geen ESC.',
-    voorbeeld: 'Bij 16 spelers: kwartfinale (8 matches), halve finale (4), finale (2), finale (1). Winner takes all.',
-    tip: 'Gebruik de bracket-generator (Scores tab) om automatisch een schema te maken. Bij oneven aantallen worden byes toegewezen aan de beste spelers.',
-  },
   'Order of Merit': {
     omschrijving: 'Seizoenscompetitie. Punten per wedstrijd op basis van eindpositie. Speler met meeste punten aan het einde van het seizoen wint.',
     handicap: 'Per wedstrijd normale HCP-berekening. OoM-punten op basis van eindpositie.',
@@ -15332,14 +15276,6 @@ var VORM_HELP = {
     voorbeeld: '4 spelers op hole 3 (netto): 3, 4, 4, 5. Verdeling: 4 ptn (score 3), 2.5 ptn elk (score 4), 1 ptn (score 5).',
     tip: 'Amerikaantje is altijd spannend — elke hole telt. Populair bij vaste vrijdagroepjes als alternatief voor skins.',
   },
-  'Bingo Bango Bongo': {
-    omschrijving: '3 punten per hole: Bingo = eerst op de green, Bango = dichtst bij de pin als iedereen op de green staat, Bongo = eerst de bal in de hole.',
-    handicap: 'Speelhandicap-slagen gelden bij Bingo/Bongo niet direct, maar kunnen de volgorde van spelen beïnvloeden.',
-    punten: 'Bingo: 1 pnt · Bango: 1 pnt · Bongo: 1 pnt · Max 3 punten per hole per speler',
-    esc: 'Geen ESC.',
-    voorbeeld: 'Op hole 7: Jan eerst op green (Bingo +1). Maria dichtst bij pin (Bango +1). Tom eerst in hole (Bongo +1).',
-    tip: 'Bingo Bango Bongo nivellert handicap-verschillen. Ook een beginner kan een Bongo scoren door handig te puten. Leuk voor gemengde groepen.',
-  },
   'Rabbit': {
     omschrijving: 'Wie een hole wint "heeft de haas". De haas moet verdedigd worden. Verlies je een hole met de haas → haas gaat naar de winner. Pot per haas.',
     handicap: 'Netto scoring via speelhandicap en SI.',
@@ -15347,30 +15283,6 @@ var VORM_HELP = {
     esc: 'Geen ESC.',
     voorbeeld: 'Jan wint hole 1 → heeft de haas. Hole 2 wint Maria → haas gaat naar Maria. Maria verdedigt t/m hole 5, dan wint Jan terug. Maria verdient de pot voor holes 2-5.',
     tip: 'Combineer Rabbit met Skins voor een extra spannende variatie. Stel de pot in bij wedstrijd aanmaken (Skins pot veld).',
-  },
-  'Vossenjacht': {
-    omschrijving: 'Spelers starten op verschillende holes. De voorste speler is de "vos". Wie de vos inhaalt (op dezelfde hole komt) vangt de vos en wordt zelf de nieuwe vos.',
-    handicap: 'Geen handicap-correctie tijdens de jacht zelf. Speelhandicap kan gebruikt worden voor startposities.',
-    punten: null,
-    esc: 'Geen ESC.',
-    voorbeeld: 'Jan start op hole 10, Maria op hole 12. Als Maria Jan inhaalt op hole 15, vangt ze de vos en gaat verder als vos.',
-    tip: 'Vossenjacht werkt het best op een rustige baan. Registreer startposities in de app, de verdere afhandeling gebeurt op de baan zelf.',
-  },
-  'Hidden holes': {
-    omschrijving: 'Na afloop wordt bekendgemaakt welke holes tellen voor de eindstand. Spelers weten dit niet van tevoren en moeten elke hole serieus nemen.',
-    handicap: 'Stableford scoring op de geselecteerde holes.',
-    punten: 'Stableford punten op de uitgekozen holes.',
-    esc: 'Geen ESC.',
-    voorbeeld: '18 holes gespeeld. Na afloop: holes 3, 7, 12, 16 tellen. Wie op die 4 holes de meeste Stableford punten heeft wint.',
-    tip: 'Selecteer de hidden holes in de Scores tab vóór het bekendmaken. Pas na bekendmaking zichtbaar voor spelers.',
-  },
-  'Stokkenroof': {
-    omschrijving: 'Elke speler begint met 14 clubs. Bij een bogey of slechter (bruto) verliest de speler een club. Speler die het seizoen eindigt met de meeste clubs wint.',
-    handicap: 'Geen handicap in Stokkenroof — het gaat om bruto scores.',
-    punten: null,
-    esc: 'Geen ESC.',
-    voorbeeld: 'Jan speelt hole 4 in 6 (par 4, dus bogey). Hij verliest een club: 13 over. Na 18 holes: 14 − 5 bogeys of slechter = 9 clubs over.',
-    tip: 'Stokkenroof werkt goed als seizoenscompetitie naast de reguliere wedstrijden. Bijhouden via de scores invoer.',
   },
 };
 
@@ -16587,14 +16499,10 @@ try {
                 <button class="tgb" data-vorm="Alliance" onclick="tSingle(this,'v');updateVormInfo()">Alliance</button>
                 <button class="tgb" data-vorm="Team Stableford" onclick="tSingle(this,'v');updateVormInfo()">Team Stableford</button>
                 <button class="tgb" data-vorm="Chapman" onclick="tSingle(this,'v');updateVormInfo()">Chapman</button>
-                <button class="tgb" data-vorm="Vossenjacht" onclick="tSingle(this,'v');updateVormInfo()">Vossenjacht</button>
                 <button class="tgb" data-vorm="Shoot-out" onclick="tSingle(this,'v');updateVormInfo()">Shoot-out</button>
+                <button class="tgb" data-vorm="Vlaggenwedstrijd" onclick="tSingle(this,'v');updateVormInfo()">Vlaggenwedstrijd</button>
                 <button class="tgb" data-vorm="Amerikaantje" onclick="tSingle(this,'v');updateVormInfo()">Amerikaantje</button>
-                <button class="tgb" data-vorm="Bingo Bango Bongo" onclick="tSingle(this,'v');updateVormInfo()">Bingo Bango Bongo</button>
                 <button class="tgb" data-vorm="Rabbit" onclick="tSingle(this,'v');updateVormInfo()">Rabbit</button>
-                <button class="tgb" data-vorm="Hidden holes" onclick="tSingle(this,'v');updateVormInfo()">Hidden holes</button>
-                <button class="tgb" data-vorm="Stokkenroof" onclick="tSingle(this,'v');updateVormInfo()">Stokkenroof</button>
-                <button class="tgb" data-vorm="Knockout" onclick="tSingle(this,'v');updateVormInfo()">Knockout</button>
                 <button class="tgb" data-vorm="Order of Merit" onclick="tSingle(this,'v');updateVormInfo()">Order of Merit</button>
               </div>
             </div>
@@ -17292,7 +17200,6 @@ try {
         <button class="quick-vorm-btn" data-snvorm="Fourball" onclick="snVorm(this)">Fourball</button>
         <button class="quick-vorm-btn" data-snvorm="Greensome" onclick="snVorm(this)">Greensome</button>
         <button class="quick-vorm-btn" data-snvorm="Foursomes" onclick="snVorm(this)">Foursomes</button>
-        <button class="quick-vorm-btn" data-snvorm="Knockout" onclick="snVorm(this)">Knockout</button>
       </div>
     </div>
     <div class="field"><label>Startgeld (€)</label><input id="sn-geld" type="number" min="0" step="0.5" placeholder="0"/></div>
