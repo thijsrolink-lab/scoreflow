@@ -13240,14 +13240,20 @@ function gwStap1() {
     flightHtml += '</div>';
   }
 
-  // Knoppen: auto-indelen + flight toevoegen
+  // Knoppen: auto-indelen + flight toevoegen — duidelijk uitgelegd
   var flightActies = '';
   if (_gwWizard.deelnemers.length > 0) {
-    flightActies = '<div class="gw-flight-acties">' +
-      '<button class="btn btn-s btn-sm" onclick="gwAutoIndeel()">🔀 Auto-indelen (per 4)</button>' +
-      '<button class="btn btn-s btn-sm" onclick="gwVoegFlightToe()">+ Flight toevoegen</button>' +
-      (maxFlight > 1 ? '<button class="btn btn-s btn-sm" onclick="gwResetFlights()">↺ Alles in Flight 1</button>' : '') +
-      '</div>';
+    var aantal = _gwWizard.deelnemers.length;
+    var ideaalFlights = Math.ceil(aantal / 4);
+    var autoHint = aantal >= 5 ?
+      ' <span style="font-size:11px;color:var(--g);font-weight:400">(maakt ' + ideaalFlights + ' flights van ' + Math.ceil(aantal/ideaalFlights) + ')</span>' : '';
+    flightActies = '<div class="gw-flight-acties" style="background:var(--surf);padding:.6rem .7rem;border-radius:8px;margin-bottom:.6rem">' +
+      '<div style="font-size:11px;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:.4rem">Flight-indeling</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+      '<button class="btn btn-p btn-sm" onclick="gwAutoIndeel()">🔀 Auto-indelen' + autoHint + '</button>' +
+      '<button class="btn btn-s btn-sm" onclick="gwVoegFlightToe()">+ Lege flight toevoegen</button>' +
+      (maxFlight > 1 ? '<button class="btn btn-s btn-sm" onclick="gwResetFlights()">↺ Alles in 1 flight</button>' : '') +
+      '</div></div>';
   }
 
   return '<div class="card">' +
@@ -14123,26 +14129,10 @@ async function gwTapScore(uid, hole, score) {
 
   // Auto-door naar volgende hole:
   // - Standaard vormen: zodra IK heb gescoord → vooruit
-  // - Amerikaantje: wachten tot ALLE flight-leden op deze hole hebben gescoord
-  //   (anders kan de punt-verdeling nog niet berekend worden)
+  // - Amerikaantje: NOOIT auto-door (je voert vaak voor meerdere spelers in,
+  //   dan zou auto-door verkeerd zijn). Tik zelf op 'Volgende hole'.
   var huidigeUid = _currentUser && _currentUser.id ? _currentUser.id : '_anon';
-  var moetVooruit = false;
-  if (score !== '' && hole < g.holes - 1) {
-    if (g.vorm === 'Amerikaantje') {
-      // Vind de flight van de speler waarvoor we net invoerden
-      var ingevoerdeDeeln = g.deelnemers.find(function(d) { return d.uid === uid; });
-      var mijnFlight = ingevoerdeDeeln ? (ingevoerdeDeeln.flight || 1) : 1;
-      var flightLeden = g.deelnemers.filter(function(d) { return (d.flight || 1) === mijnFlight; });
-      var alleFlightLedenKlaar = flightLeden.every(function(d) {
-        var sc = (g.scores && g.scores[d.uid]) || [];
-        return sc[hole] !== '' && sc[hole] != null;
-      });
-      moetVooruit = alleFlightLedenKlaar;
-    } else {
-      moetVooruit = true;
-    }
-  }
-  if (moetVooruit) {
+  if (score !== '' && hole < g.holes - 1 && g.vorm !== 'Amerikaantje') {
     setTimeout(function() {
       _gwSetHole(huidigeUid, hole + 1);
       gwRenderScorekaartView();
