@@ -13432,15 +13432,18 @@ function gwOpenDetail(id) {
     return rows;
   }
 
-  // Render één deelnemer-rij
-  function renderRow(r, pos) {
+  // Render één deelnemer-rij. showFlight=true toont F1/F2/F3 tag in naam.
+  function renderRow(r, pos, showFlight) {
     var pcls = pos===1?'lb-1':pos===2?'lb-2':pos===3?'lb-3':'lb-n';
     var isJij = r.uid === u.id;
     var scoreStr = r.has ? (g.vorm==='Stableford' ? r.sfPts+' ptn' : formatVsPar(r.nettoVsPar)) : '—';
     var scoreCls = r.has && g.vorm !== 'Stableford' ? (r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '') : '';
+    var flightTag = showFlight ?
+      ' <span style="font-size:10px;background:var(--gl);color:var(--g);border-radius:3px;padding:1px 5px;font-weight:600">F' + r.flight + '</span>' : '';
     return '<div class="gw-lb-row' + (isJij?' jij':'') + '">' +
       '<div class="lb-pos ' + pcls + '">' + pos + '</div>' +
       '<div style="flex:1"><div style="font-weight:' + (isJij?500:400) + '">' + escHtml(r.naam) +
+      flightTag +
       (r.isGast ? ' <span class="gw-gast-tag">Gast</span>' : '') +
       (isJij ? ' <span style="font-size:11px;color:var(--gm)">(jij)</span>' : '') + '</div>' +
       '<div style="font-size:11px;color:var(--txm)">SH ' + r.sh + ' &middot; ' + r.gespeeld + '/' + g.holes + ' h</div></div>' +
@@ -13450,13 +13453,32 @@ function gwOpenDetail(id) {
   }
 
   var maxFlight = lbRows.reduce(function(m, r) { return Math.max(m, r.flight); }, 1);
-  var lbHtml = '<div class="card" style="margin-bottom:.75rem"><div class="card-hd">Leaderboard' + (maxFlight > 1 ? ' (per flight)' : '') + '</div>';
+
+  // LB-view toggle persistentie: per groepswedstrijd onthouden
+  if (typeof _gwLbView === 'undefined') _gwLbView = {};
+  if (maxFlight > 1 && !_gwLbView[g.id]) _gwLbView[g.id] = 'flight'; // default bij meerdere flights
+  var view = _gwLbView[g.id] || 'totaal';
+
+  var headerHtml = '<div class="card-hd" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+    '<span>Leaderboard</span>';
+  if (maxFlight > 1) {
+    headerHtml += '<div class="tg" style="margin-left:auto">' +
+      '<button class="tgb' + (view === 'flight' ? ' on' : '') + '" onclick="gwToggleLbView(\'' + g.id + '\',\'flight\')">Per flight</button>' +
+      '<button class="tgb' + (view === 'totaal' ? ' on' : '') + '" onclick="gwToggleLbView(\'' + g.id + '\',\'totaal\')">Totaal</button>' +
+      '</div>';
+  }
+  headerHtml += '</div>';
+
+  var lbHtml = '<div class="card" style="margin-bottom:.75rem">' + headerHtml;
 
   if (lbRows.filter(function(r){return r.has;}).length === 0) {
     lbHtml += '<p style="font-size:13px;color:var(--txm);padding:.5rem 0">Nog geen scores ingevoerd.</p>';
-  } else if (maxFlight === 1) {
-    // Eén grote ranking (oude gedrag)
-    lbHtml += sortRows(lbRows).map(function(r, i) { return renderRow(r, i+1); }).join('');
+  } else if (maxFlight === 1 || view === 'totaal') {
+    // Eén grote ranking — alle deelnemers samen, met Flight-tag erbij als er meerdere flights zijn
+    var sorted = sortRows(lbRows);
+    lbHtml += sorted.map(function(r, i) {
+      return renderRow(r, i+1, maxFlight > 1);
+    }).join('');
   } else {
     // Per flight een aparte ranking
     for (var fn = 1; fn <= maxFlight; fn++) {
@@ -13999,6 +14021,13 @@ async function gwScorekaartOpslaan() {
 
 
 // Open leaderboard van groepswedstrijd in nieuw tab (TV-mode)
+// Toggle LB-view (per flight / totaal) en re-render detail
+function gwToggleLbView(gwId, view) {
+  if (typeof _gwLbView === 'undefined') _gwLbView = {};
+  _gwLbView[gwId] = view;
+  gwOpenDetail(gwId);
+}
+
 function gwOpenLeaderboard(code) {
   var url = './leaderboard.html?gw=' + encodeURIComponent(code);
   window.open(url, '_blank', 'noopener');
