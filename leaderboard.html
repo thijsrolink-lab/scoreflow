@@ -1242,8 +1242,11 @@ function renderGwLeaderboard() {
 
   // Bereken stand per deelnemer
   var deelnemers = g.deelnemers || [];
+  var metHcp = g.hcp_verrekening !== false;  // default true (legacy)
   var rows = deelnemers.map(function(d) {
-    var sh = berekenSpeelhandicap(d.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes);
+    var sh = metHcp
+      ? berekenSpeelhandicap(d.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes)
+      : 0;
     var sc = (g.scores && g.scores[d.uid]) || Array(g.holes).fill('');
     var sp = berekenStrokeplay(sc, baan, sh, 'geen');
     var sf = berekenStableford(sc, baan, sh);
@@ -1268,7 +1271,7 @@ function renderGwLeaderboard() {
         return { id: r.uid, naam: r.naam, hcp: r.hcp,
           scores: (g.scores && g.scores[r.uid]) || Array(g.holes).fill('') };
       });
-      var ameRes = berekenAmerikaantje(ameSps, baan, true);
+      var ameRes = berekenAmerikaantje(ameSps, baan, metHcp);
       ameRes.forEach(function(es) {
         var row = rows.find(function(r) { return r.uid === es.id; });
         if (row) row.amePts = es.punten;

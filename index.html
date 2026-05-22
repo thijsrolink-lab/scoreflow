@@ -12937,7 +12937,8 @@ var _gwWizard = {
   stap: 0,
   naam: '', datum: '', baan: '', vorm: 'Stableford', holes: 18, welkeNegen: 'uit',
   startgeld: 0, omschrijving: '',
-  deelnemers: [], // [{uid, naam, hcp, isGast, isOrganisator}]
+  hcpVerrekening: true,  // default met HCP-verrekening
+  deelnemers: [], // [{uid, naam, hcp, isGast, isOrganisator, flight}]
   gwId: null // als we bewerken
 };
 
@@ -13079,7 +13080,8 @@ function gwNieuwWizard() {
     stap: 0, gwId: null,
     naam: '', datum: datum.toISOString().split('T')[0],
     baan: '', vorm: 'Stableford', holes: 18, welkeNegen: 'uit', startgeld: 0, omschrijving: '',
-    deelnemers: [{ uid: _currentUser.id, naam: _currentUser.voor + ' ' + _currentUser.ach, hcp: _currentUser.hcp, isGast: false, isOrganisator: true }]
+    hcpVerrekening: true,
+    deelnemers: [{ uid: _currentUser.id, naam: _currentUser.voor + ' ' + _currentUser.ach, hcp: _currentUser.hcp, isGast: false, isOrganisator: true, flight: 1 }]
   };
   spNav('groep-detail', null);
   gwRenderWizard();
@@ -13091,7 +13093,9 @@ function gwBewerken(id) {
   _gwWizard = {
     stap: 0, gwId: id,
     naam: g.naam, datum: g.datum, baan: g.baan || '', vorm: g.vorm,
-    holes: g.holes || 18, startgeld: g.startgeld || 0, omschrijving: g.omschrijving || '',
+    holes: g.holes || 18, welkeNegen: g.welkeNegen || 'uit',
+    startgeld: g.startgeld || 0, omschrijving: g.omschrijving || '',
+    hcpVerrekening: g.hcpVerrekening !== false,
     deelnemers: g.deelnemers.slice()
   };
   spNav('groep-detail', null);
@@ -13133,6 +13137,10 @@ function gwStap0() {
     ['Stableford','Strokeplay','Bogey competition','Matchplay','Skins','Amerikaantje','Texas Scramble'].map(function(v) {
       return '<button class="tgb' + (w.vorm === v ? ' on' : '') + '" data-gwvorm="' + v + '" onclick="gwKiesVorm(this)">' + v + '</button>';
     }).join('') + '</div></div>' +
+    '<div class="field"><label>Handicap-verrekening</label><div class="tg" id="gw-hcp-tg">' +
+      '<button class="tgb' + (w.hcpVerrekening !== false ? ' on' : '') + '" data-gwhcp="ja" onclick="gwKiesHcp(this)">Met HCP (netto)</button>' +
+      '<button class="tgb' + (w.hcpVerrekening === false ? ' on' : '') + '" data-gwhcp="nee" onclick="gwKiesHcp(this)">Zonder HCP (bruto)</button>' +
+    '</div><div class="field-hint">Met HCP: extra slagen per hole obv stroke-index. Zonder HCP: pure bruto scores (handig op vreemde baan zoals De Goyer/De Pan).</div></div>' +
     '<div class="g2">' +
     '<div class="field"><label>Holes</label><select id="gw-holes" onchange="gwToggleNegen()"><option value="18"' + (w.holes===18?' selected':'') + '>18 holes</option><option value="9"' + (w.holes===9?' selected':'') + '>9 holes</option></select></div>' +
     '<div class="field"><label>Startgeld per persoon (€)</label><input id="gw-geld" type="number" min="0" step="0.5" value="' + w.startgeld + '" placeholder="0"/></div>' +
@@ -13148,6 +13156,12 @@ function gwKiesVorm(btn) {
   document.querySelectorAll('#gw-vorm-tg .tgb').forEach(function(b) { b.classList.remove('on'); });
   btn.classList.add('on');
   _gwWizard.vorm = btn.dataset.gwvorm;
+}
+
+function gwKiesHcp(btn) {
+  document.querySelectorAll('#gw-hcp-tg .tgb').forEach(function(b) { b.classList.remove('on'); });
+  btn.classList.add('on');
+  _gwWizard.hcpVerrekening = btn.dataset.gwhcp === 'ja';
 }
 
 function gwStap0Opslaan() {
@@ -13454,6 +13468,7 @@ async function gwOpslaan() {
       g.naam = w.naam; g.datum = w.datum; g.baan = w.baan; g.vorm = w.vorm;
       g.holes = w.holes; g.welkeNegen = w.welkeNegen || 'uit';
       g.startgeld = w.startgeld; g.omschrijving = w.omschrijving;
+      g.hcpVerrekening = w.hcpVerrekening !== false;
       g.deelnemers = w.deelnemers;
       // Save naar DB
       await dbSaveGroepswedstrijd(g);
@@ -13466,6 +13481,7 @@ async function gwOpslaan() {
       naam: w.naam, datum: w.datum, baan: w.baan, vorm: w.vorm,
       holes: w.holes, welkeNegen: w.welkeNegen || 'uit',
       startgeld: w.startgeld, omschrijving: w.omschrijving,
+      hcpVerrekening: w.hcpVerrekening !== false,
       deelnemers: w.deelnemers, scores: {}, flights: [],
       organisatorId: _currentUser ? _currentUser.id : null,
       status: 'actief'
@@ -13506,7 +13522,9 @@ function gwOpenDetail(id) {
 
   // Leaderboard — gegroepeerd per flight (als er meerdere zijn)
   var lbRows = g.deelnemers.map(function(deeln) {
-    var sh = berekenSpeelhandicap(deeln.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes);
+    var sh = (g.hcpVerrekening !== false)
+      ? berekenSpeelhandicap(deeln.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes)
+      : 0;
     var sc = (g.scores && g.scores[deeln.uid]) || Array(g.holes).fill('');
     var sp = berekenStrokeplay(sc, baan, sh);
     var sf = berekenStableford(sc, baan, sh);
@@ -13532,7 +13550,7 @@ function gwOpenDetail(id) {
           scores: (g.scores && g.scores[r.uid]) || Array(g.holes).fill('')
         };
       });
-      var ameResult = berekenAmerikaantje(ameSps, baan, true);
+      var ameResult = berekenAmerikaantje(ameSps, baan, g.hcpVerrekening !== false);
       ameResult.eindstand.forEach(function(es) {
         var row = lbRows.find(function(r) { return r.uid === es.id; });
         if (row) row.amePts = es.punten;
@@ -13838,7 +13856,9 @@ function gwBouwInvoerTab(g, baan, actieveSpId, u) {
   var spelersHtml = '<div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem">';
 
   g.deelnemers.forEach(function(deeln) {
-    var sh = berekenSpeelhandicap(deeln.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes);
+    var sh = (g.hcpVerrekening !== false)
+      ? berekenSpeelhandicap(deeln.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes)
+      : 0;
     var ex = extraSlagenPerHole(sh, baan.si);
     var sc = (g.scores && g.scores[deeln.uid]) || Array(g.holes).fill('');
     var huidig = sc[hi];
@@ -13929,7 +13949,9 @@ function gwBouwInvoerTab(g, baan, actieveSpId, u) {
 function gwBouwLeaderboardTab(g, baan, u) {
   // Bereken stand per speler
   var rows = g.deelnemers.map(function(d) {
-    var sh = berekenSpeelhandicap(d.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes);
+    var sh = (g.hcpVerrekening !== false)
+      ? berekenSpeelhandicap(d.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, g.holes)
+      : 0;
     var sc = (g.scores && g.scores[d.uid]) || Array(g.holes).fill('');
     var sp_res = berekenStrokeplay(sc, baan, sh, 'geen');
     var sf = berekenStableford(sc, baan, sh);
@@ -13950,7 +13972,7 @@ function gwBouwLeaderboardTab(g, baan, u) {
         return { id: r.d.uid, naam: r.d.naam, hcp: r.d.hcp,
           scores: (g.scores && g.scores[r.d.uid]) || Array(g.holes).fill('') };
       });
-      var ameResult = berekenAmerikaantje(ameSps, baan, true);
+      var ameResult = berekenAmerikaantje(ameSps, baan, g.hcpVerrekening !== false);
       ameResult.eindstand.forEach(function(es) {
         var row = rows.find(function(r) { return r.d.uid === es.id; });
         if (row) row.amePts = es.punten;
@@ -15917,6 +15939,7 @@ async function dbSaveGroepswedstrijd(gw) {
       welke_negen: gw.welkeNegen || 'uit',
       startgeld: gw.startgeld || 0,
       omschrijving: gw.omschrijving || '',
+      hcp_verrekening: gw.hcpVerrekening !== false,
       deelnemers: gw.deelnemers || [],
       scores: gw.scores || {},
       flights: gw.flights || [],
@@ -15949,8 +15972,50 @@ async function dbSaveGroepswedstrijd(gw) {
       try {
         return await probeerSave(false);
       } catch(e2) {
+        // Tweede fallback: misschien ontbreekt hcp_verrekening kolom
+        var msg2 = e2.message || '';
+        if (msg2.indexOf('hcp_verrekening') >= 0 || msg2.indexOf('PGRST204') >= 0) {
+          console.warn('Retry zonder hcp_verrekening:', msg2);
+          try {
+            // Bouw data zonder hcp_verrekening
+            var data = bouwData(false);
+            delete data.hcp_verrekening;
+            if (gw.id && String(gw.id).indexOf('-') > 0) {
+              await supa('groepswedstrijden', 'PATCH', data, { id: 'eq.' + gw.id });
+              return gw;
+            } else {
+              var res = await supa('groepswedstrijden', 'POST', data);
+              if (res && res[0]) return dbGroepswedstrijdNaarApp(res[0]);
+              return gw;
+            }
+          } catch(e3) {
+            console.warn('dbSaveGroepswedstrijd 3e fallback ook mislukt:', e3.message);
+            toast('Opslaan mislukt: ' + e3.message, 'err');
+            return null;
+          }
+        }
         console.warn('dbSaveGroepswedstrijd fallback ook mislukt:', e2.message);
         toast('Opslaan mislukt: ' + e2.message, 'err');
+        return null;
+      }
+    }
+    // Direct check op hcp_verrekening (zonder bijgewerkt-issue)
+    if (msg.indexOf('hcp_verrekening') >= 0) {
+      console.warn('hcp_verrekening kolom ontbreekt — retry zonder:', msg);
+      try {
+        var data2 = bouwData(true);
+        delete data2.hcp_verrekening;
+        if (gw.id && String(gw.id).indexOf('-') > 0) {
+          await supa('groepswedstrijden', 'PATCH', data2, { id: 'eq.' + gw.id });
+          return gw;
+        } else {
+          var res2 = await supa('groepswedstrijden', 'POST', data2);
+          if (res2 && res2[0]) return dbGroepswedstrijdNaarApp(res2[0]);
+          return gw;
+        }
+      } catch(e4) {
+        console.warn('dbSaveGroepswedstrijd hcp_verrekening fallback mislukt:', e4.message);
+        toast('Opslaan mislukt: ' + e4.message, 'err');
         return null;
       }
     }
@@ -15972,6 +16037,7 @@ function dbGroepswedstrijdNaarApp(g) {
     welkeNegen: g.welke_negen || 'uit',
     startgeld: g.startgeld || 0,
     omschrijving: g.omschrijving || '',
+    hcpVerrekening: g.hcp_verrekening !== false,  // default true (legacy data)
     deelnemers: g.deelnemers || [],
     scores: g.scores || {},
     flights: g.flights || [],
