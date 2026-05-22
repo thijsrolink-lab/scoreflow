@@ -441,16 +441,34 @@ test('1 winnaar + 2 gelijke laatsten → 4-1-1 op die hole', () => {
   return true;
 });
 
-test('Hole zonder alle scores wordt geskipt', () => {
-  // Slechts 2 van 3 spelers hebben score op hole 1
+test('Hole met slechts 1 score wordt geskipt', () => {
+  // Slechts 1 van 3 spelers heeft score op hole 1
   const sps = [
     { id: 'A', naam: 'A', hcp: 0, scores: [4].concat(Array(17).fill('')) },
-    { id: 'B', naam: 'B', hcp: 0, scores: [5].concat(Array(17).fill('')) },
+    { id: 'B', naam: 'B', hcp: 0, scores: Array(18).fill('') },
     { id: 'C', naam: 'C', hcp: 0, scores: Array(18).fill('') },
   ];
   const r = sandbox.berekenAmerikaantje(sps, ameBaan, false);
-  // Geen hole heeft alle 3 scores → iedereen 0 punten
+  // 1 score = niemand om mee te vergelijken → iedereen 0 punten
   return r.eindstand.every(e => e.punten === 0) || 'Niet alle 0: ' + JSON.stringify(r.eindstand.map(e=>e.punten));
+});
+
+test('Hole met 2 van 3 scores: punten verdeeld over die 2', () => {
+  // A heeft birdie, B heeft par; C heeft niets
+  const sps = [
+    { id: 'A', naam: 'A', hcp: 0, scores: [ameBaan.par[0] - 1].concat(Array(17).fill('')) },
+    { id: 'B', naam: 'B', hcp: 0, scores: [ameBaan.par[0]].concat(Array(17).fill('')) },
+    { id: 'C', naam: 'C', hcp: 0, scores: Array(18).fill('') },
+  ];
+  const r = sandbox.berekenAmerikaantje(sps, ameBaan, false);
+  const a = r.eindstand.find(e => e.id === 'A');
+  const b = r.eindstand.find(e => e.id === 'B');
+  const c = r.eindstand.find(e => e.id === 'C');
+  // A wint → 4 pt, B tweede → 2 pt (posPunten = [4,2,0,...])
+  if (a.punten !== 4) return 'A: 4 verwacht, kreeg ' + a.punten;
+  if (b.punten !== 2) return 'B: 2 verwacht, kreeg ' + b.punten;
+  if (c.punten !== 0) return 'C: 0 verwacht, kreeg ' + c.punten;
+  return true;
 });
 
 // ═══════════════════════════════════════════════════════════════
