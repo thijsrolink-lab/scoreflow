@@ -1169,6 +1169,50 @@ async function laadGroepswedstrijdData() {
   }
 }
 
+// ── Amerikaantje (4-2-0 punten per hole) ───────────────────
+function berekenAmerikaantje(sps, baan, metHcp) {
+  metHcp = metHcp !== false;
+  var verrijkt = sps.map(function(sp) {
+    var shv = metHcp ? berekenSpeelhandicap(sp.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, baan.holes) : 0;
+    return Object.assign({}, sp, { shv: shv, ex: extraSlagenPerHole(shv, baan.si) });
+  });
+  var puntenPerSpeler = {};
+  verrijkt.forEach(function(sp) { puntenPerSpeler[sp.id] = 0; });
+  for (var i = 0; i < baan.holes; i++) {
+    var rondeScores = verrijkt.map(function(sp) {
+      var s = sp.scores && sp.scores[i];
+      var ingevoerd = s !== '' && s != null;
+      return { id: sp.id, naam: sp.naam,
+        netto: ingevoerd ? (metHcp ? Number(s) - sp.ex[i] : Number(s)) : null,
+        ingevoerd: ingevoerd };
+    });
+    var ingevoerd = rondeScores.filter(function(r) { return r.ingevoerd; });
+    if (ingevoerd.length < 2) continue;
+    var sorted = ingevoerd.slice().sort(function(a, b) { return a.netto - b.netto; });
+    var posPunten = [4, 2, 0];
+    while (posPunten.length < sorted.length) posPunten.push(0);
+    var groepen = [], huidig = null;
+    sorted.forEach(function(r) {
+      if (!huidig || huidig.netto !== r.netto) {
+        huidig = { netto: r.netto, spelers: [r] };
+        groepen.push(huidig);
+      } else huidig.spelers.push(r);
+    });
+    var pos = 0;
+    groepen.forEach(function(grp) {
+      var n = grp.spelers.length, som = 0;
+      for (var k = 0; k < n; k++) som += posPunten[pos + k];
+      var pnt = som / n;
+      grp.spelers.forEach(function(sp) { puntenPerSpeler[sp.id] += pnt; });
+      pos += n;
+    });
+  }
+  return verrijkt.map(function(sp) {
+    return { id: sp.id, naam: sp.naam, hcp: sp.hcp, shv: sp.shv,
+      punten: Math.round((puntenPerSpeler[sp.id] || 0) * 10) / 10 };
+  });
+}
+
 function renderGwLeaderboard() {
   if (!GW_DATA) return;
   var g = GW_DATA;
@@ -1207,16 +1251,43 @@ function renderGwLeaderboard() {
       uid: d.uid, naam: d.naam, hcp: d.hcp, sh: sh,
       isGast: d.isGast, isOrg: d.isOrganisator,
       bruto: sp.bruto, netto: sp.netto, nettoVsPar: sp.nettoVsPar,
-      sfPts: sf.punten, gespeeld: sp.gespeeld, has: sp.gespeeld > 0
+      sfPts: sf.punten, gespeeld: sp.gespeeld, has: sp.gespeeld > 0,
+      flight: d.flight || 1,
+      amePts: 0
     };
   });
 
-  // Sorteer
-  if (g.vorm === 'Stableford') {
-    rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : b.sfPts - a.sfPts; });
-  } else {
-    rows.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+  // Amerikaantje: bereken punten per flight
+  var isAme = g.vorm === 'Amerikaantje';
+  if (isAme) {
+    var maxF = rows.reduce(function(m, r) { return Math.max(m, r.flight); }, 1);
+    for (var fn = 1; fn <= maxF; fn++) {
+      var flightLeden = rows.filter(function(r) { return r.flight === fn; });
+      if (flightLeden.length < 2) continue;
+      var ameSps = flightLeden.map(function(r) {
+        return { id: r.uid, naam: r.naam, hcp: r.hcp,
+          scores: (g.scores && g.scores[r.uid]) || Array(g.holes).fill('') };
+      });
+      var ameRes = berekenAmerikaantje(ameSps, baan, true);
+      ameRes.forEach(function(es) {
+        var row = rows.find(function(r) { return r.uid === es.id; });
+        if (row) row.amePts = es.punten;
+      });
+    }
   }
+
+  // Sort helper (gebruikt voor zowel totaal als per-flight)
+  function sortRows(arr) {
+    if (isAme) {
+      arr.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : b.amePts - a.amePts; });
+    } else if (g.vorm === 'Stableford') {
+      arr.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : b.sfPts - a.sfPts; });
+    } else {
+      arr.sort(function(a,b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
+    }
+    return arr;
+  }
+  sortRows(rows);
 
   // Render leaderboard
   var hasScores = rows.some(function(r) { return r.has; });
@@ -1262,47 +1333,56 @@ function renderGwLeaderboard() {
   if (!hasScores) {
     html += '<div class="lb-loading" style="width:100%"><div style="font-size:32px;margin-bottom:8px">⛳</div><div style="font-size:16px;font-weight:600;color:#fff;margin-bottom:6px">Nog geen scores</div><div style="font-size:13px">Wacht tot de eerste spelers hun scores invoeren.</div></div>';
   } else {
-    html += '<div style="display:flex;flex-direction:column;gap:10px;width:100%">';
-    rows.forEach(function(r, i) {
-      var pos = i + 1;
+
+    // Render één rij van een deelnemer
+    function renderRow(r, pos) {
       var posCls = pos === 1 ? 'lb-1' : pos === 2 ? 'lb-2' : pos === 3 ? 'lb-3' : 'lb-n';
       var goud = pos <= 3;
-      var scoreStr, scoreSub = '';
-      if (r.has) {
-        if (g.vorm === 'Stableford') {
-          scoreStr = r.sfPts;
-          scoreSub = '<div style="font-size:11px;color:var(--txm);font-weight:500;margin-top:-2px">punten</div>';
-        } else {
-          scoreStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : r.nettoVsPar === 0 ? 'E' : '' + r.nettoVsPar;
-          scoreSub = '<div style="font-size:11px;color:var(--txm);font-weight:500;margin-top:-2px">netto ' + r.netto + '</div>';
-        }
+      var rowHtml = '<div class="lb-row' + (goud ? ' top' : '') + '">';
+      rowHtml += '<div class="lb-pos ' + posCls + '">' + pos + '</div>';
+      rowHtml += '<div class="lb-naam">';
+      rowHtml += '<div class="lb-naam-tx"><span class="lb-naam-text">' + escHtml(r.naam) + '</span>';
+      if (r.isOrg) rowHtml += '<span class="gw-tag" style="background:rgba(245,158,11,0.2);color:#fbbf24;flex-shrink:0">Org</span>';
+      if (r.isGast) rowHtml += '<span class="gw-tag" style="background:rgba(139,148,163,0.2);color:#94a3b8;flex-shrink:0">Gast</span>';
+      rowHtml += '</div>';
+      rowHtml += '<div class="lb-naam-sub">SH ' + r.sh + ' · ' + r.gespeeld + '/' + g.holes + (r.has ? ' · bruto ' + r.bruto : '') + '</div>';
+      rowHtml += '</div>';
+      rowHtml += '<div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:1px">';
+      if (!r.has) {
+        rowHtml += '<div class="lb-score" style="color:#475569">—</div>';
+      } else if (isAme) {
+        rowHtml += '<div class="lb-score">' + r.amePts.toFixed(1) + ' <span style="font-size:13px;color:var(--txm);font-weight:600">pt</span></div>';
+        rowHtml += '<div style="font-size:10px;color:var(--txm)">bruto ' + r.bruto + '</div>';
+      } else if (g.vorm === 'Stableford') {
+        rowHtml += '<div class="lb-score">' + r.sfPts + ' <span style="font-size:13px;color:var(--txm);font-weight:600">pt</span></div>';
+        rowHtml += '<div style="font-size:10px;color:var(--txm)">netto ' + r.netto + '</div>';
       } else {
-        scoreStr = '—';
+        var scoreStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : r.nettoVsPar === 0 ? 'E' : '' + r.nettoVsPar;
+        var scoreClass = r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '';
+        rowHtml += '<div class="lb-score ' + scoreClass + '">' + scoreStr + '</div>';
+        rowHtml += '<div style="font-size:10px;color:var(--txm)">netto ' + r.netto + '</div>';
       }
-      var scoreClass = r.has && g.vorm !== 'Stableford' ? (r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '') : '';
+      rowHtml += '</div>';
+      rowHtml += '</div>';
+      return rowHtml;
+    }
 
-      html += '<div class="lb-row' + (goud ? ' top' : '') + '">';
-      html += '<div class="lb-pos ' + posCls + '">' + pos + '</div>';
-      html += '<div class="lb-naam">';
-      html += '<div class="lb-naam-tx"><span class="lb-naam-text">' + escHtml(r.naam) + '</span>';
-      if (r.isOrg) html += '<span class="gw-tag" style="background:rgba(245,158,11,0.2);color:#fbbf24;flex-shrink:0">Org</span>';
-      if (r.isGast) html += '<span class="gw-tag" style="background:rgba(139,148,163,0.2);color:#94a3b8;flex-shrink:0">Gast</span>';
-      html += '</div>';
-      html += '<div class="lb-naam-sub">SH ' + r.sh + ' · ' + r.gespeeld + '/' + g.holes + (r.has ? ' · bruto ' + r.bruto : '') + '</div>';
-      html += '</div>';
-      html += '<div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:1px">';
-      if (r.has && g.vorm === 'Stableford') {
-        html += '<div class="lb-score">' + r.sfPts + ' <span style="font-size:13px;color:var(--txm);font-weight:600">pt</span></div>';
-        html += '<div style="font-size:10px;color:var(--txm)">netto ' + r.netto + '</div>';
-      } else if (r.has) {
-        html += '<div class="lb-score ' + scoreClass + '">' + scoreStr + '</div>';
-        html += '<div style="font-size:10px;color:var(--txm)">netto ' + r.netto + '</div>';
-      } else {
-        html += '<div class="lb-score" style="color:#475569">—</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:10px;width:100%">';
+    var maxFlight = rows.reduce(function(m, r) { return Math.max(m, r.flight); }, 1);
+
+    // Bij Amerikaantje met meerdere flights: groepeer per flight
+    if (isAme && maxFlight > 1) {
+      for (var fn = 1; fn <= maxFlight; fn++) {
+        var flightRows = rows.filter(function(r) { return r.flight === fn; });
+        if (flightRows.length === 0) continue;
+        sortRows(flightRows);
+        html += '<div style="font-size:11px;font-weight:700;color:#86efac;text-transform:uppercase;letter-spacing:.08em;margin:.4rem 0 -.2rem .25rem">Flight ' + fn + ' <span style="color:var(--txm);font-weight:400">(' + flightRows.length + ')</span></div>';
+        flightRows.forEach(function(r, i) { html += renderRow(r, i + 1); });
       }
-      html += '</div>';
-      html += '</div>';
-    });
+    } else {
+      // Standaard: één doorlopende ranking
+      rows.forEach(function(r, i) { html += renderRow(r, i + 1); });
+    }
     html += '</div>';
   }
 
