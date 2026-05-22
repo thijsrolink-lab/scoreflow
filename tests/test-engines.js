@@ -369,6 +369,91 @@ test('Ronde 1: 5,4,6. Ronde 2: 4,5,4 → beste: 4,4,4', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// AMERIKAANTJE (4-2-0 per hole)
+// ═══════════════════════════════════════════════════════════════
+section('Amerikaantje');
+
+const ameBaan = {
+  par: [4,4,4,3,5,4,4,4,4,4,4,4,3,5,4,4,4,4],
+  si: [11,5,7,17,1,15,13,9,3,8,6,2,18,4,10,14,16,12],
+  slope: 131, cr: 72.1, holes: 18, parTotaal: 72
+};
+
+test('3 spelers, A wint alle holes → 4 pt per hole × 18 = 72 pt', () => {
+  const sps = [
+    { id: 'A', naam: 'A', hcp: 0, scores: ameBaan.par.map(p => p - 1) }, // birdie elke hole
+    { id: 'B', naam: 'B', hcp: 0, scores: ameBaan.par.map(p => p) },     // par elke hole
+    { id: 'C', naam: 'C', hcp: 0, scores: ameBaan.par.map(p => p + 1) }, // bogey elke hole
+  ];
+  const r = sandbox.berekenAmerikaantje(sps, ameBaan, false);
+  const a = r.eindstand.find(e => e.id === 'A');
+  const b = r.eindstand.find(e => e.id === 'B');
+  const c = r.eindstand.find(e => e.id === 'C');
+  if (a.punten !== 72) return 'A: 72 verwacht, kreeg ' + a.punten;
+  if (b.punten !== 36) return 'B: 36 verwacht (2pt×18), kreeg ' + b.punten;
+  if (c.punten !== 0) return 'C: 0 verwacht, kreeg ' + c.punten;
+  return true;
+});
+
+test('3 gelijke scores → 2-2-2 punten per hole', () => {
+  const sps = [
+    { id: 'A', naam: 'A', hcp: 0, scores: ameBaan.par.map(p => p) },
+    { id: 'B', naam: 'B', hcp: 0, scores: ameBaan.par.map(p => p) },
+    { id: 'C', naam: 'C', hcp: 0, scores: ameBaan.par.map(p => p) },
+  ];
+  const r = sandbox.berekenAmerikaantje(sps, ameBaan, false);
+  // Per hole: 4+2+0=6 punten, gedeeld door 3 = 2 pt elk × 18 holes = 36
+  return r.eindstand.every(e => e.punten === 36) || 'Niet alle 36: ' + JSON.stringify(r.eindstand.map(e=>e.punten));
+});
+
+test('2 gelijke besten + 1 derde → 3-3-0 op die hole', () => {
+  // Spelers A en B maken een birdie op hole 1, C maakt par
+  const sps = [
+    { id: 'A', naam: 'A', hcp: 0, scores: [ameBaan.par[0] - 1].concat(Array(17).fill('')) },
+    { id: 'B', naam: 'B', hcp: 0, scores: [ameBaan.par[0] - 1].concat(Array(17).fill('')) },
+    { id: 'C', naam: 'C', hcp: 0, scores: [ameBaan.par[0]].concat(Array(17).fill('')) },
+  ];
+  const r = sandbox.berekenAmerikaantje(sps, ameBaan, false);
+  const a = r.eindstand.find(e => e.id === 'A');
+  const b = r.eindstand.find(e => e.id === 'B');
+  const c = r.eindstand.find(e => e.id === 'C');
+  // (4+2)/2 = 3 pt voor A en B, 0 voor C
+  if (a.punten !== 3) return 'A: 3 verwacht, kreeg ' + a.punten;
+  if (b.punten !== 3) return 'B: 3 verwacht, kreeg ' + b.punten;
+  if (c.punten !== 0) return 'C: 0 verwacht, kreeg ' + c.punten;
+  return true;
+});
+
+test('1 winnaar + 2 gelijke laatsten → 4-1-1 op die hole', () => {
+  const sps = [
+    { id: 'A', naam: 'A', hcp: 0, scores: [ameBaan.par[0] - 1].concat(Array(17).fill('')) },
+    { id: 'B', naam: 'B', hcp: 0, scores: [ameBaan.par[0]].concat(Array(17).fill('')) },
+    { id: 'C', naam: 'C', hcp: 0, scores: [ameBaan.par[0]].concat(Array(17).fill('')) },
+  ];
+  const r = sandbox.berekenAmerikaantje(sps, ameBaan, false);
+  const a = r.eindstand.find(e => e.id === 'A');
+  const b = r.eindstand.find(e => e.id === 'B');
+  const c = r.eindstand.find(e => e.id === 'C');
+  // A: 4 pt; B en C delen 2+0=2 pt → 1 elk
+  if (a.punten !== 4) return 'A: 4 verwacht, kreeg ' + a.punten;
+  if (b.punten !== 1) return 'B: 1 verwacht, kreeg ' + b.punten;
+  if (c.punten !== 1) return 'C: 1 verwacht, kreeg ' + c.punten;
+  return true;
+});
+
+test('Hole zonder alle scores wordt geskipt', () => {
+  // Slechts 2 van 3 spelers hebben score op hole 1
+  const sps = [
+    { id: 'A', naam: 'A', hcp: 0, scores: [4].concat(Array(17).fill('')) },
+    { id: 'B', naam: 'B', hcp: 0, scores: [5].concat(Array(17).fill('')) },
+    { id: 'C', naam: 'C', hcp: 0, scores: Array(18).fill('') },
+  ];
+  const r = sandbox.berekenAmerikaantje(sps, ameBaan, false);
+  // Geen hole heeft alle 3 scores → iedereen 0 punten
+  return r.eindstand.every(e => e.punten === 0) || 'Niet alle 0: ' + JSON.stringify(r.eindstand.map(e=>e.punten));
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SAMENVATTING
 // ═══════════════════════════════════════════════════════════════
 console.log(`\n${'═'.repeat(60)}`);

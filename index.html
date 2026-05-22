@@ -5915,6 +5915,96 @@ function berekenSkins(sps, baan, pot, metHcp) {
   return { perHole: perHole, eindstand: eindstand, openCarry: carry, openPot: carry * pot };
 }
 
+// ── Amerikaantje (3-mans 4-2-0 variant) ────────────────────
+// Per hole worden 6 punten verdeeld tussen 2-4 spelers o.b.v. netto score:
+//   - Beste netto: 4 pt, tweede: 2 pt, derde+: 0 pt
+//   - Bij gelijke score wordt het totaal van die posities gemiddeld:
+//     * 2 spelers gelijke beste: 3-3-0 (resp. 4+2/2 = 3)
+//     * 2 spelers gelijke laatste: 4-1-1 (resp. 2+0/2 = 1)
+//     * Alle 3 gelijk: 2-2-2
+// metHcp=true verrekent speelhandicap per hole o.b.v. stroke-index.
+function berekenAmerikaantje(sps, baan, metHcp) {
+  metHcp = metHcp !== false;
+  var verrijkt = sps.map(function(sp) {
+    var shv = metHcp ? berekenSpeelhandicap(sp.hcp, baan.slope, baan.cr, baan.parTotaal, 1.0, baan.holes) : 0;
+    return Object.assign({}, sp, { shv: shv, ex: exSlg(shv, baan.si) });
+  });
+
+  var puntenPerSpeler = {};
+  verrijkt.forEach(function(sp) { puntenPerSpeler[sp.id] = 0; });
+  var perHole = [];
+
+  for (var i = 0; i < baan.holes; i++) {
+    // Bereken netto scores per speler voor deze hole
+    var rondeScores = verrijkt.map(function(sp) {
+      var s = sp.scores && sp.scores[i];
+      var ingevoerd = s !== '' && s != null;
+      return {
+        id: sp.id,
+        naam: sp.naam,
+        netto: ingevoerd ? (metHcp ? Number(s) - sp.ex[i] : Number(s)) : null,
+        ingevoerd: ingevoerd
+      };
+    });
+
+    var ingevoerd = rondeScores.filter(function(r) { return r.ingevoerd; });
+    // Hole-uitslag berekenen kan alleen als ALLE spelers hebben ingevoerd
+    if (ingevoerd.length !== verrijkt.length) {
+      perHole.push({ hole: i+1, verdeling: null, reden: 'Wacht op alle scores' });
+      continue;
+    }
+
+    // Sorteer op netto (laagste = beste)
+    var sorted = ingevoerd.slice().sort(function(a, b) { return a.netto - b.netto; });
+
+    // 3-mans variant verdeling (4-2-0). Bij meer/minder spelers analoog:
+    // 2 spelers → 4-0 (4 pt te verdelen), 4 spelers → 4-2-0-0
+    // We doen het generiek: positie-punten = [4, 2, 0, 0, ...] tot N
+    var posPunten = [4, 2, 0];
+    while (posPunten.length < sorted.length) posPunten.push(0);
+
+    // Groepeer per netto-score (ties)
+    var groepen = [];
+    var huidig = null;
+    sorted.forEach(function(r) {
+      if (!huidig || huidig.netto !== r.netto) {
+        huidig = { netto: r.netto, spelers: [r] };
+        groepen.push(huidig);
+      } else {
+        huidig.spelers.push(r);
+      }
+    });
+
+    // Verdeel punten: elke groep krijgt gemiddelde van de posities die ze beslaan
+    var pos = 0;
+    var verdeling = []; // {id, naam, punten}
+    groepen.forEach(function(grp) {
+      var n = grp.spelers.length;
+      // Som van punten voor posities [pos..pos+n-1], gedeeld door n
+      var som = 0;
+      for (var k = 0; k < n; k++) som += posPunten[pos + k];
+      var pntPerSpeler = som / n;
+      grp.spelers.forEach(function(sp) {
+        verdeling.push({ id: sp.id, naam: sp.naam, punten: pntPerSpeler, netto: sp.netto });
+        puntenPerSpeler[sp.id] += pntPerSpeler;
+      });
+      pos += n;
+    });
+
+    perHole.push({ hole: i+1, verdeling: verdeling });
+  }
+
+  // Eindstand: meeste punten wint
+  var eindstand = verrijkt.map(function(sp) {
+    return {
+      id: sp.id, naam: sp.naam, hcp: sp.hcp, shv: sp.shv,
+      punten: Math.round((puntenPerSpeler[sp.id] || 0) * 10) / 10
+    };
+  }).sort(function(a, b) { return b.punten - a.punten; });
+
+  return { perHole: perHole, eindstand: eindstand };
+}
+
 // ── Eclectic ───────────────────────────────────────────────
 function berekenEclectic(rondes, perc, minR) {
   perc = perc || 0.75; minR = minR || 2;
@@ -13039,7 +13129,7 @@ function gwStap0() {
     '<div class="field"><label>Baan</label><input id="gw-baan" type="text" placeholder="De Hooge Rotterdamsche" value="' + escHtml(w.baan) + '"/></div>' +
     '</div>' +
     '<div class="field"><label>Spelervorm</label><div class="tg" id="gw-vorm-tg">' +
-    ['Stableford','Strokeplay','Bogey competition','Matchplay','Skins','Texas Scramble'].map(function(v) {
+    ['Stableford','Strokeplay','Bogey competition','Matchplay','Skins','Amerikaantje','Texas Scramble'].map(function(v) {
       return '<button class="tgb' + (w.vorm === v ? ' on' : '') + '" data-gwvorm="' + v + '" onclick="gwKiesVorm(this)">' + v + '</button>';
     }).join('') + '</div></div>' +
     '<div class="g2">' +
@@ -13422,13 +13512,42 @@ function gwOpenDetail(id) {
     return { uid: deeln.uid, naam: deeln.naam, hcp: deeln.hcp, sh: sh, isGast: deeln.isGast,
       isOrg: deeln.isOrganisator, netto: sp.netto, sfPts: sf.punten,
       nettoVsPar: sp.nettoVsPar, gespeeld: sp.gespeeld, has: sp.gespeeld > 0,
-      flight: deeln.flight || 1 };
+      flight: deeln.flight || 1,
+      amePts: 0  // Amerikaantje punten — gevuld hieronder per flight als vorm = Amerikaantje
+    };
   });
 
-  // Sort helper
+  // Amerikaantje: bereken per flight de punten-verdeling, vul amePts
+  // Amerikaantje is altijd een wedstrijd binnen je flight (per hole 4-2-0 verdeling)
+  if (g.vorm === 'Amerikaantje') {
+    var maxF = lbRows.reduce(function(m, r) { return Math.max(m, r.flight); }, 1);
+    for (var fn = 1; fn <= maxF; fn++) {
+      var flightLeden = lbRows.filter(function(r) { return r.flight === fn; });
+      if (flightLeden.length < 2) continue;  // Amerikaantje heeft min 2 spelers per flight
+      // Gebruik HCP-verrekening default (Amerikaantje wordt vaak met HCP gespeeld)
+      var ameSps = flightLeden.map(function(r) {
+        return {
+          id: r.uid, naam: r.naam, hcp: r.hcp,
+          scores: (g.scores && g.scores[r.uid]) || Array(g.holes).fill('')
+        };
+      });
+      var ameResult = berekenAmerikaantje(ameSps, baan, true);
+      ameResult.eindstand.forEach(function(es) {
+        var row = lbRows.find(function(r) { return r.uid === es.id; });
+        if (row) row.amePts = es.punten;
+      });
+    }
+  }
+
+  // Sort helper — voor Amerikaantje: meeste punten wint
   function sortRows(rows) {
-    if (g.vorm === 'Stableford') rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.sfPts-a.sfPts;});
-    else rows.sort(function(a,b){return !a.has?1:!b.has?-1:a.netto-b.netto;});
+    if (g.vorm === 'Amerikaantje') {
+      rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.amePts-a.amePts;});
+    } else if (g.vorm === 'Stableford') {
+      rows.sort(function(a,b){return !a.has?1:!b.has?-1:b.sfPts-a.sfPts;});
+    } else {
+      rows.sort(function(a,b){return !a.has?1:!b.has?-1:a.netto-b.netto;});
+    }
     return rows;
   }
 
@@ -13436,8 +13555,19 @@ function gwOpenDetail(id) {
   function renderRow(r, pos, showFlight) {
     var pcls = pos===1?'lb-1':pos===2?'lb-2':pos===3?'lb-3':'lb-n';
     var isJij = r.uid === u.id;
-    var scoreStr = r.has ? (g.vorm==='Stableford' ? r.sfPts+' ptn' : formatVsPar(r.nettoVsPar)) : '—';
-    var scoreCls = r.has && g.vorm !== 'Stableford' ? (r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '') : '';
+    var scoreStr;
+    var scoreCls = '';
+    if (!r.has) {
+      scoreStr = '—';
+    } else if (g.vorm === 'Amerikaantje') {
+      scoreStr = r.amePts.toFixed(1) + ' pt';
+      scoreCls = r.amePts >= 3 ? 'under' : r.amePts <= 1 ? 'over' : '';
+    } else if (g.vorm === 'Stableford') {
+      scoreStr = r.sfPts + ' ptn';
+    } else {
+      scoreStr = formatVsPar(r.nettoVsPar);
+      scoreCls = r.nettoVsPar < 0 ? 'under' : r.nettoVsPar > 0 ? 'over' : '';
+    }
     var flightTag = showFlight ?
       ' <span style="font-size:10px;background:var(--gl);color:var(--g);border-radius:3px;padding:1px 5px;font-weight:600">F' + r.flight + '</span>' : '';
     return '<div class="gw-lb-row' + (isJij?' jij':'') + '">' +
@@ -13459,13 +13589,19 @@ function gwOpenDetail(id) {
   if (maxFlight > 1 && !_gwLbView[g.id]) _gwLbView[g.id] = 'flight'; // default bij meerdere flights
   var view = _gwLbView[g.id] || 'totaal';
 
+  // Bij Amerikaantje: ALTIJD per-flight, geen totaal-view (punten zijn niet vergelijkbaar tussen flights)
+  var isAme = g.vorm === 'Amerikaantje';
+  if (isAme) view = 'flight';
+
   var headerHtml = '<div class="card-hd" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
     '<span>Leaderboard</span>';
-  if (maxFlight > 1) {
+  if (maxFlight > 1 && !isAme) {
     headerHtml += '<div class="tg" style="margin-left:auto">' +
       '<button class="tgb' + (view === 'flight' ? ' on' : '') + '" onclick="gwToggleLbView(\'' + g.id + '\',\'flight\')">Per flight</button>' +
       '<button class="tgb' + (view === 'totaal' ? ' on' : '') + '" onclick="gwToggleLbView(\'' + g.id + '\',\'totaal\')">Totaal</button>' +
       '</div>';
+  } else if (isAme) {
+    headerHtml += '<span style="margin-left:auto;font-size:11px;color:var(--txm);font-weight:400">4-2-0 punten</span>';
   }
   headerHtml += '</div>';
 
