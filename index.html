@@ -13140,7 +13140,7 @@ function gwStap0() {
     '<div class="field"><label>Handicap-verrekening</label><div class="tg" id="gw-hcp-tg">' +
       '<button class="tgb' + (w.hcpVerrekening !== false ? ' on' : '') + '" data-gwhcp="ja" onclick="gwKiesHcp(this)">Met HCP (netto)</button>' +
       '<button class="tgb' + (w.hcpVerrekening === false ? ' on' : '') + '" data-gwhcp="nee" onclick="gwKiesHcp(this)">Zonder HCP (bruto)</button>' +
-    '</div><div class="field-hint">Met HCP: extra slagen per hole obv stroke-index. Zonder HCP: pure bruto scores (handig op vreemde baan zoals De Goyer/De Pan).</div></div>' +
+    '</div><div class="field-hint">Met HCP: extra slagen per hole obv stroke-index. Zonder HCP: pure bruto scores.</div></div>' +
     '<div class="g2">' +
     '<div class="field"><label>Holes</label><select id="gw-holes" onchange="gwToggleNegen()"><option value="18"' + (w.holes===18?' selected':'') + '>18 holes</option><option value="9"' + (w.holes===9?' selected':'') + '>9 holes</option></select></div>' +
     '<div class="field"><label>Startgeld per persoon (€)</label><input id="gw-geld" type="number" min="0" step="0.5" value="' + w.startgeld + '" placeholder="0"/></div>' +
