@@ -1292,8 +1292,11 @@ function renderGwLeaderboard() {
   // Render leaderboard
   var hasScores = rows.some(function(r) { return r.has; });
   var totaalSpelers = rows.length;
-  var totHoles = totaalSpelers * g.holes;
+  // Gemiddeld aantal gespeelde holes (afgerond) — leesbaarder dan totale score-cellen
   var ingevuldHoles = rows.reduce(function(a, r) { return a + r.gespeeld; }, 0);
+  var avgHoles = totaalSpelers > 0 ? Math.round(ingevuldHoles / totaalSpelers) : 0;
+  // Pct nog op basis van score-cellen voor accurate progress
+  var totHoles = totaalSpelers * g.holes;
   var pct = totHoles > 0 ? Math.round((ingevuldHoles / totHoles) * 100) : 0;
   var klaar = rows.filter(function(r) { return r.gespeeld === g.holes; }).length;
 
@@ -1303,7 +1306,7 @@ function renderGwLeaderboard() {
   var ebEl = document.querySelector('.lb-eyebrow');
   if (ebEl) {
     if (isLive) {
-      ebEl.textContent = 'LIVE — ' + ingevuldHoles + ' / ' + totHoles + ' holes ingevuld';
+      ebEl.textContent = 'LIVE — ' + avgHoles + ' / ' + g.holes + ' holes';
       ebEl.style.color = '#fca5a5';
     } else if (alleKlaar) {
       ebEl.textContent = 'AFGEROND';
