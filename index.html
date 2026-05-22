@@ -5948,9 +5948,10 @@ function berekenAmerikaantje(sps, baan, metHcp) {
     });
 
     var ingevoerd = rondeScores.filter(function(r) { return r.ingevoerd; });
-    // Hole-uitslag berekenen kan alleen als ALLE spelers hebben ingevoerd
-    if (ingevoerd.length !== verrijkt.length) {
-      perHole.push({ hole: i+1, verdeling: null, reden: 'Wacht op alle scores' });
+    // Minimaal 2 spelers moeten ingevoerd hebben voor punt-verdeling
+    // (1 speler kan niet "tegen zichzelf" punten halen)
+    if (ingevoerd.length < 2) {
+      perHole.push({ hole: i+1, verdeling: null, reden: ingevoerd.length === 0 ? 'Geen scores' : 'Wacht op meer scores' });
       continue;
     }
 
@@ -13934,11 +13935,33 @@ function gwBouwLeaderboardTab(g, baan, u) {
     var sf = berekenStableford(sc, baan, sh);
     return { d: d, sh: sh, gespeeld: sp_res.gespeeld,
       bruto: sp_res.bruto, netto: sp_res.netto, nettoVsPar: sp_res.nettoVsPar,
-      sfPts: sf.punten, has: sp_res.gespeeld > 0 };
+      sfPts: sf.punten, has: sp_res.gespeeld > 0,
+      flight: d.flight || 1,
+      amePts: 0 };
   });
 
-  // Sorteer (stableford = hoog naar laag, anders laag-netto eerst)
-  if (g.vorm === 'Stableford') {
+  // Amerikaantje: vul amePts per speler door per-flight berekening
+  if (g.vorm === 'Amerikaantje') {
+    var maxF = rows.reduce(function(m, r) { return Math.max(m, r.flight); }, 1);
+    for (var fn = 1; fn <= maxF; fn++) {
+      var flightLeden = rows.filter(function(r) { return r.flight === fn; });
+      if (flightLeden.length < 2) continue;
+      var ameSps = flightLeden.map(function(r) {
+        return { id: r.d.uid, naam: r.d.naam, hcp: r.d.hcp,
+          scores: (g.scores && g.scores[r.d.uid]) || Array(g.holes).fill('') };
+      });
+      var ameResult = berekenAmerikaantje(ameSps, baan, true);
+      ameResult.eindstand.forEach(function(es) {
+        var row = rows.find(function(r) { return r.d.uid === es.id; });
+        if (row) row.amePts = es.punten;
+      });
+    }
+  }
+
+  // Sorteer (stableford = hoog naar laag, ame = punten hoog naar laag, anders laag-netto eerst)
+  if (g.vorm === 'Amerikaantje') {
+    rows.sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : b.amePts - a.amePts; });
+  } else if (g.vorm === 'Stableford') {
     rows.sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : b.sfPts - a.sfPts; });
   } else {
     rows.sort(function(a, b) { return !a.has ? 1 : !b.has ? -1 : a.netto - b.netto; });
@@ -13953,7 +13976,16 @@ function gwBouwLeaderboardTab(g, baan, u) {
     var pos = i + 1;
     var posCls = pos === 1 ? 'lb-1' : pos === 2 ? 'lb-2' : pos === 3 ? 'lb-3' : 'lb-n';
     var isJij = r.d.uid === u.id;
-    var scoreStr = r.has ? (g.vorm === 'Stableford' ? r.sfPts + ' pt' : (r.nettoVsPar > 0 ? '+' + r.nettoVsPar : r.nettoVsPar === 0 ? 'E' : '' + r.nettoVsPar)) : '—';
+    var scoreStr;
+    if (!r.has) {
+      scoreStr = '—';
+    } else if (g.vorm === 'Amerikaantje') {
+      scoreStr = r.amePts.toFixed(1) + ' pt';
+    } else if (g.vorm === 'Stableford') {
+      scoreStr = r.sfPts + ' pt';
+    } else {
+      scoreStr = r.nettoVsPar > 0 ? '+' + r.nettoVsPar : r.nettoVsPar === 0 ? 'E' : '' + r.nettoVsPar;
+    }
 
     html += '<div style="display:flex;align-items:center;gap:12px;padding:.85rem 1rem;border-bottom:1px solid #f1f4f8;background:' + (isJij ? 'rgba(22,163,74,0.04)' : '#fff') + '">';
     html += '<div class="lb-pos ' + posCls + '">' + pos + '</div>';
@@ -13969,6 +14001,7 @@ function gwBouwLeaderboardTab(g, baan, u) {
     html += '<div style="text-align:right">';
     html += '<div style="font-size:18px;font-weight:800;color:' + (r.has ? '#16a34a' : '#cbd5e1') + '">' + scoreStr + '</div>';
     if (r.has && g.vorm === 'Stableford') html += '<div style="font-size:10px;color:#8b94a3;margin-top:2px">netto ' + r.netto + '</div>';
+    if (r.has && g.vorm === 'Amerikaantje') html += '<div style="font-size:10px;color:#8b94a3;margin-top:2px">bruto ' + r.bruto + '</div>';
     html += '</div>';
     html += '</div>';
   });
@@ -14066,10 +14099,28 @@ async function gwTapScore(uid, hole, score) {
   // Re-render direct (visuele feedback)
   gwRenderScorekaartView();
 
-  // Auto-door naar volgende hole als ik (de invoerder) zelf klaar ben op deze hole
-  // Voorheen: wachten tot ALLE spelers klaar waren — maar nu elke speler eigen hole-keuze
+  // Auto-door naar volgende hole:
+  // - Standaard vormen: zodra IK heb gescoord → vooruit
+  // - Amerikaantje: wachten tot ALLE flight-leden op deze hole hebben gescoord
+  //   (anders kan de punt-verdeling nog niet berekend worden)
   var huidigeUid = _currentUser && _currentUser.id ? _currentUser.id : '_anon';
+  var moetVooruit = false;
   if (score !== '' && hole < g.holes - 1) {
+    if (g.vorm === 'Amerikaantje') {
+      // Vind de flight van de speler waarvoor we net invoerden
+      var ingevoerdeDeeln = g.deelnemers.find(function(d) { return d.uid === uid; });
+      var mijnFlight = ingevoerdeDeeln ? (ingevoerdeDeeln.flight || 1) : 1;
+      var flightLeden = g.deelnemers.filter(function(d) { return (d.flight || 1) === mijnFlight; });
+      var alleFlightLedenKlaar = flightLeden.every(function(d) {
+        var sc = (g.scores && g.scores[d.uid]) || [];
+        return sc[hole] !== '' && sc[hole] != null;
+      });
+      moetVooruit = alleFlightLedenKlaar;
+    } else {
+      moetVooruit = true;
+    }
+  }
+  if (moetVooruit) {
     setTimeout(function() {
       _gwSetHole(huidigeUid, hole + 1);
       gwRenderScorekaartView();
