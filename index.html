@@ -325,15 +325,38 @@ body.offline { padding-top: 38px; }
 .cal-month{font-family:Inter,sans-serif;font-size:17px;color:var(--g);font-weight:500}
 .cal-body{padding:.75rem 1rem 1rem}
 .cg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-.cdow{text-align:center;font-size:11px;color:var(--txh);padding:4px 0;font-weight:500}
-.cd{min-height:62px;border:1px solid var(--bd);border-radius:6px;padding:3px 5px;background:var(--card)}
-.cd.oth{opacity:.28}.cd.tod{border:2px solid var(--gm)}
-.cdn{font-size:11px;color:var(--txm);margin-bottom:2px}
-.cd.tod .cdn{color:var(--g);font-weight:500}
-.ce{font-size:10px;border-radius:3px;padding:1px 4px;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer}
-.ceg{background:#d0edd8;color:#0a4020}.ceb{background:#d4e8f8;color:#0a2a5e}
-.cea{background:#fce8c0;color:#5a3800}.cer{background:#fce0e0;color:#7a0000}
-.cep{background:#e8e0fc;color:#3a1888}
+.cal-wrap{background:var(--card);border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.cal-head{display:flex;align-items:center;gap:10px;padding:1.1rem 1.5rem;border-bottom:1px solid var(--bd);background:var(--surf)}
+.cal-head-nav{display:flex;gap:6px}
+.cal-month{font-size:17px;color:var(--g);font-weight:700;letter-spacing:-.01em;flex:1;text-align:center}
+.cal-month-sub{font-size:11px;color:var(--txm);font-weight:400;margin-left:6px;letter-spacing:0}
+.cal-body{padding:.75rem 1rem 1.25rem}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cdow{text-align:center;font-size:10px;color:var(--txm);padding:4px 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.cd{min-height:80px;border:1px solid transparent;border-radius:8px;padding:5px 6px;background:var(--surf);transition:border-color .15s,background .15s;cursor:default;position:relative}
+.cd:hover{border-color:var(--bd);background:var(--card)}
+.cd.has-ev{cursor:pointer}
+.cd.has-ev:hover{border-color:var(--gm);background:#f0fdf4}
+.cd.oth{opacity:.3;pointer-events:none}
+.cd.tod{background:#f0fdf4;border-color:var(--gm) !important}
+.cdn{font-size:12px;font-weight:500;color:var(--txm);margin-bottom:4px;line-height:1}
+.cd.tod .cdn{color:var(--g);font-weight:700;background:var(--gm);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;margin-bottom:5px}
+.ce{font-size:10px;border-radius:4px;padding:2px 5px 2px 8px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;position:relative;font-weight:500;border:1px solid transparent;line-height:1.4}
+.ce::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px}
+.ceg{background:#e8f5ee;color:#166534;border-color:#c6e8d5}.ceg::before{background:#16a34a}
+.ceb{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}.ceb::before{background:#3b82f6}
+.cea{background:#fffbeb;color:#92400e;border-color:#fde68a}.cea::before{background:#f59e0b}
+.cer{background:#fef2f2;color:#991b1b;border-color:#fecaca}.cer::before{background:#ef4444}
+.cep{background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe}.cep::before{background:#8b5cf6}
+.ce.navy{background:#f0f4ff;color:#1e3a8a;border-color:#c7d2fe}.ce.navy::before{background:#3730a3}
+.ce.pink{background:#fff0f6;color:#9d174d;border-color:#fbcfe8}.ce.pink::before{background:#ec4899}
+.ce.purple{background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe}.ce.purple::before{background:#7c3aed}
+.ce.amber{background:#fffbeb;color:#92400e;border-color:#fde68a}.ce.amber::before{background:#d97706}
+.ce.blue{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}.ce.blue::before{background:#2563eb}
+.ce-more{font-size:9px;color:var(--txm);padding:1px 5px;text-align:center}
+.cal-legend{display:flex;gap:12px;flex-wrap:wrap;padding:.6rem 1rem;border-top:1px solid var(--bd);background:var(--surf)}
+.cal-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--txm)}
+.cal-leg-dot{width:10px;height:10px;border-radius:2px}
 .flight-card{background:var(--surf);border:1px solid var(--bd);border-radius:var(--r);padding:.75rem;margin-bottom:.5rem}
 .flight-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
 .flight-nr{font-size:11px;font-weight:500;color:var(--gm);text-transform:uppercase;letter-spacing:.05em}
@@ -6827,23 +6850,103 @@ function renderAdminDashboard(){
 // ============================================================
 // KALENDER
 // ============================================================
-function calNav(d){cm+=d;if(cm>11){cm=0;cy++;}if(cm<0){cm=11;cy--;}renderCal();}
+function calNav(d){
+  if(d===0){var nu=new Date();cm=nu.getMonth();cy=nu.getFullYear();}
+  else{cm+=d;if(cm>11){cm=0;cy++;}if(cm<0){cm=11;cy--;}}
+  renderCal();
+}
 function renderCal(){
-  document.getElementById('cal-lbl').textContent=MN[cm]+' '+cy;
-  document.getElementById('cal-dow').innerHTML=['ma','di','wo','do','vr','za','zo'].map(function(d){return '<div class="cdow">'+d+'</div>';}).join('');
-  var first=new Date(cy,cm,1);var fd=first.getDay();fd=fd===0?6:fd-1;
-  var dmax=new Date(cy,cm+1,0).getDate(),pm=new Date(cy,cm,0).getDate(),today=new Date();
-  var html='';
-  for(var i=0;i<fd;i++)html+='<div class="cd oth"><div class="cdn">'+(pm-fd+1+i)+'</div></div>';
-  for(var d=1;d<=dmax;d++){
-    var ds=cy+'-'+String(cm+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    var isTod=today.getFullYear()===cy&&today.getMonth()===cm&&today.getDate()===d;
-    var evs=WEDSTRIJDEN.filter(function(w){return w.datum===ds;});
-    html+='<div class="cd'+(isTod?' tod':'')+'"><div class="cdn">'+d+'</div>'+evs.map(function(e){return '<div class="ce '+e.kleur+'">'+e.naam+'</div>';}).join('')+'</div>';
+  var maandNamen = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
+  var lbl = document.getElementById('cal-lbl');
+  if (lbl) lbl.innerHTML = maandNamen[cm] + ' <span class="cal-month-sub">' + cy + '</span>';
+
+  // Dag-headers
+  document.getElementById('cal-dow').innerHTML = ['Ma','Di','Wo','Do','Vr','Za','Zo'].map(function(d) {
+    return '<div class="cdow">' + d + '</div>';
+  }).join('');
+
+  var first = new Date(cy, cm, 1);
+  var fd = first.getDay(); fd = fd === 0 ? 6 : fd - 1;
+  var dmax = new Date(cy, cm + 1, 0).getDate();
+  var pm = new Date(cy, cm, 0).getDate();
+  var today = new Date();
+  var html = '';
+
+  // Lege cellen begin
+  for (var i = 0; i < fd; i++) {
+    html += '<div class="cd oth"><div class="cdn">' + (pm - fd + 1 + i) + '</div></div>';
   }
-  var tot=fd+dmax,rem=tot%7===0?0:7-tot%7;
-  for(var i=1;i<=rem;i++)html+='<div class="cd oth"><div class="cdn">'+i+'</div></div>';
-  document.getElementById('cal-days').innerHTML=html;
+
+  for (var d = 1; d <= dmax; d++) {
+    var ds = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    var isTod = today.getFullYear() === cy && today.getMonth() === cm && today.getDate() === d;
+    var evs = WEDSTRIJDEN.filter(function(w) { return w.datum === ds; })
+      .sort(function(a, b) { return (a.tijd || '').localeCompare(b.tijd || ''); });
+
+    var cls = 'cd' + (isTod ? ' tod' : '') + (evs.length > 0 ? ' has-ev' : '');
+    var cdnHtml = isTod
+      ? '<div class="cdn">' + d + '</div>'
+      : '<div class="cdn">' + d + '</div>';
+
+    var evHtml = '';
+    var max_zichtbaar = 3;
+    evs.slice(0, max_zichtbaar).forEach(function(e) {
+      var kleurCls = e.kleur || 'ceg';
+      // Toon ook de tijd als 'ie er is
+      var tijdStr = e.tijd ? e.tijd.slice(0,5) + ' ' : '';
+      var fase = wedstrijdFase(e);
+      var levenCls = kleurCls;
+      evHtml += '<div class="ce ' + levenCls + '" onclick="event.stopPropagation();adminNavToW(\'wddetail\',' +
+        JSON.stringify(e.id) + ')" title="' + escHtml(e.naam) + (e.tijd ? ' · ' + e.tijd : '') + '">' +
+        tijdStr + escHtml(e.naam) +
+        '</div>';
+    });
+    if (evs.length > max_zichtbaar) {
+      evHtml += '<div class="ce-more">+' + (evs.length - max_zichtbaar) + ' meer</div>';
+    }
+
+    var onclick = evs.length > 0 ? '' : '';
+    html += '<div class="' + cls + '">' + cdnHtml + evHtml + '</div>';
+  }
+
+  // Lege cellen eind
+  var tot = fd + dmax;
+  var rem = tot % 7 === 0 ? 0 : 7 - tot % 7;
+  for (var i = 1; i <= rem; i++) {
+    html += '<div class="cd oth"><div class="cdn">' + i + '</div></div>';
+  }
+
+  document.getElementById('cal-days').innerHTML = html;
+
+  // Tel per kleur voor legenda
+  var kleuren = {};
+  WEDSTRIJDEN.filter(function(w) {
+    return w.datum && w.datum.startsWith(cy + '-' + String(cm + 1).padStart(2, '0'));
+  }).forEach(function(w) {
+    var k = w.kleur || 'ceg';
+    kleuren[k] = (kleuren[k] || 0) + 1;
+  });
+
+  var legendaMap = {
+    ceg: { label: 'Algemeen', color: '#16a34a' },
+    blue: { label: 'Heren', color: '#2563eb' },
+    pink: { label: 'Dames', color: '#ec4899' },
+    amber: { label: 'Senioren', color: '#d97706' },
+    navy: { label: 'Avond', color: '#3730a3' },
+    purple: { label: 'Business', color: '#7c3aed' },
+  };
+
+  var legendaHtml = Object.entries(kleuren).map(function(kv) {
+    var info = legendaMap[kv[0]] || { label: kv[0], color: '#888' };
+    return '<div class="cal-leg-item">' +
+      '<div class="cal-leg-dot" style="background:' + info.color + '"></div>' +
+      escHtml(info.label) + ' <span style="opacity:.6">(' + kv[1] + ')</span>' +
+      '</div>';
+  }).join('');
+
+  // Voeg legenda toe onder kalender
+  var legEl = document.getElementById('cal-legenda');
+  if (legEl) legEl.innerHTML = legendaHtml || '<span style="font-size:11px;color:var(--txm)">Geen wedstrijden deze maand</span>';
 }
 
 // ============================================================
@@ -16619,14 +16722,19 @@ try {
       <div id="v-kalender" class="view">
         <div class="cal-wrap">
           <div class="cal-head">
-            <button class="btn btn-s btn-xs" onclick="calNav(-1)">&#8592;</button>
+            <div class="cal-head-nav">
+              <button class="btn btn-s btn-xs" onclick="calNav(-1)" title="Vorige maand">&#8592;</button>
+              <button class="btn btn-s btn-xs" onclick="calNav(0)" title="Naar vandaag" style="font-size:10px">Nu</button>
+              <button class="btn btn-s btn-xs" onclick="calNav(1)" title="Volgende maand">&#8594;</button>
+            </div>
             <span class="cal-month" id="cal-lbl"></span>
-            <button class="btn btn-s btn-xs" onclick="calNav(1)">&#8594;</button>
-          <button class="help-knop" style="margin-left:auto" onclick="openHelp('kalender')">&#63; Help</button></div>
+            <button class="help-knop" onclick="openHelp('kalender')" style="margin-left:auto">&#63; Help</button>
+          </div>
           <div class="cal-body">
             <div class="cg" id="cal-dow"></div>
             <div class="cg" id="cal-days"></div>
           </div>
+          <div class="cal-legend" id="cal-legenda"></div>
         </div>
       </div>
 
