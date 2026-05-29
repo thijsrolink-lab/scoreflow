@@ -11002,31 +11002,39 @@ async function aiAllesImporteren() {
 
   for (var i = 0; i < te_importeren.length; i++) {
     var w = Object.assign({}, DEFAULTS, te_importeren[i]);
-    statusEl.innerHTML = '⏳ Importeren ' + (i+1) + '/' + te_importeren.length + ': ' + w.naam;
+    statusEl.innerHTML = '⏳ ' + (i+1) + '/' + te_importeren.length + ' — ' + escHtml(w.naam);
     try {
-      var res = await supa('wedstrijden', 'POST', {
+      // Gebruik dbSaveWedstrijd — zelfde pad als wizard, werkt gegarandeerd met RLS
+      var saved = await dbSaveWedstrijd({
         naam: w.naam, datum: w.datum, tijd: w.tijd,
         baan: w.baan, cr: w.cr, slope: w.slope,
         holes: w.holes, vorm: w.vorm, rondes: w.rondes,
-        flt: w.flt, status: w.status, max_deelnemers: w.max_deelnemers,
-        hcp_max: w.hcp_max, hcp_min: w.hcp_min, hcp_perc: w.hcp_perc,
-        esc: w.esc, startgeld: w.startgeld, skins_pot: w.skins_pot,
-        inschrijf_open: null, inschrijf_sluit: null,
-        omschrijving: w.omschrijving, kleur: 'ceg',
-        afgelast_reden: null, drive_min: null, drive_max: null,
-        blind_holes: w.blind_holes, welke_negen: w.welke_negen,
-        publiek_leaderboard: w.publiek_leaderboard,
-        ts_formule: w.ts_formule, interval_min: w.interval_min,
+        flt: w.flt, status: w.status, max: w.max_deelnemers,
+        hcpmax: w.hcp_max, hcpmin: w.hcp_min, hcpperc: w.hcp_perc,
+        esc: w.esc, startgeld: w.startgeld, skinsPot: w.skins_pot,
+        inschrijfOpen: null, inschrijfSluit: null,
+        omschrijving: w.omschrijving, kleur: w.kleur || 'ceg',
+        afgelast_reden: null, driveMin: null, driveMax: null,
+        blindHoles: w.blind_holes, welkeNegen: w.welke_negen,
+        publiekLeaderboard: w.publiek_leaderboard,
+        tsFormule: w.ts_formule, intervalMin: w.interval_min,
       });
-      if (res && res[0]) {
-        WEDSTRIJDEN.push(Object.assign({ id: res[0].id, ing: 0 }, dbWedstrijdNaarApp(res[0])));
+      if (saved && saved.id) {
+        WEDSTRIJDEN.push(Object.assign({ ing: 0 }, saved));
         gelukt++;
-      } else throw new Error('Geen response');
+      } else {
+        throw new Error('Geen ID teruggekregen');
+      }
     } catch(e) {
-      console.warn('Import mislukt:', w.naam, e.message);
+      console.error('Import fout:', w.naam, e.message);
+      statusEl.innerHTML = '❌ Fout bij "' + escHtml(w.naam) + '": ' + e.message;
       mislukt++;
+      if (mislukt >= 3) {
+        statusEl.innerHTML += '<br><small>Gestopt na 3 fouten — check F12 console.</small>';
+        break;
+      }
     }
-    await new Promise(function(r) { setTimeout(r, 120); });
+    await new Promise(function(r) { setTimeout(r, 200); });
   }
 
   statusEl.innerHTML = '✅ ' + gelukt + ' wedstrijden geïmporteerd' + (mislukt > 0 ? ' · ❌ ' + mislukt + ' mislukt' : '') + ' — <a href="#" onclick="adminNav(\'kalender\');return false;">Bekijk kalender →</a>';
