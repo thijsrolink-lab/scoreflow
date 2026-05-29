@@ -6449,8 +6449,10 @@ function toonScherm(naam){
 // ADMIN NAVIGATIE
 // ============================================================
 var ADMIN_NAV_ITEMS=[
-  {id:'dashboard',label:'Dashboard',sec:'Overzicht',rollen:['Superadmin','Wedstrijdleider','Secretaris'],icon:'<rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>'},
+  {sec:'Overzicht',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
+  {id:'dashboard',label:'Dashboard',rollen:['Superadmin','Wedstrijdleider','Secretaris'],icon:'<rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>'},
   {id:'kalender',label:'Kalender',rollen:['Superadmin','Wedstrijdleider','Secretaris'],icon:'<rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 1v4M11 1v4M2 7h12"/>'},
+  {id:'aiassistent',label:'AI Assistent',rollen:['Superadmin','Wedstrijdleider'],icon:'<circle cx="8" cy="8" r="6"/><path d="M5 8h6M8 5l3 3-3 3"/>'},
   {sec:'Wedstrijden',rollen:['Superadmin','Wedstrijdleider']},
   {id:'competities',label:'Competities',rollen:['Superadmin','Wedstrijdleider'],icon:'<path d="M8 2l1.5 4.5H15l-4.5 3 1.5 4.5L8 11.5 4.5 14 6 9.5 1.5 6.5H7.5z"/>'},
   {id:'mijntaken',label:'Mijn taken',rollen:['Superadmin','Wedstrijdleider'],badge:'taken',icon:'<path d="M3 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5z"/><path d="M6 8l1.5 1.5L10 7"/>'},
@@ -6469,7 +6471,7 @@ var ADMIN_NAV_ITEMS=[
   {id:'instellingen',label:'Clubinstellingen',rollen:['Superadmin'],icon:'<circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M11.4 4.6l-1.4 1.4M4.6 11.4l-1.4 1.4"/>'},
 ];
 
-var ADMIN_TITLES={dashboard:'Dashboard',kalender:'Wedstrijdkalender',wedstrijden:'Alle wedstrijden',wddetail:'Wedstrijd',mijntaken:'Mijn taken',sponsoren:'Sponsoren',nieuw:'Nieuwe wedstrijd',competities:'Competities',spelers:'Ledenbestand',inschrijvingen:'Inschrijvingen',flights:'Flight-indeling',scores:'Scores & leaderboard',admins:'Admins & rollen',notificaties:'Notificaties',rapportages:'Rapportages',instellingen:'Clubinstellingen'};
+var ADMIN_TITLES={dashboard:'Dashboard',kalender:'Wedstrijdkalender',wedstrijden:'Alle wedstrijden',wddetail:'Wedstrijd',mijntaken:'Mijn taken',sponsoren:'Sponsoren',nieuw:'Nieuwe wedstrijd',competities:'Competities',spelers:'Ledenbestand',inschrijvingen:'Inschrijvingen',flights:'Flight-indeling',scores:'Scores & leaderboard',admins:'Admins & rollen',notificaties:'Notificaties',rapportages:'Rapportages',instellingen:'Clubinstellingen',aiassistent:'AI Assistent'};
 
 var ADMIN_BC={
   nieuw:{parent:'Wedstrijden',nav:'wedstrijden'},
@@ -6622,7 +6624,7 @@ function adminNav(id){
   // Verberg + Wedstrijd knop als geen toegang
   var btnNieuw=document.getElementById('btn-nieuw-w');
   if(btnNieuw)btnNieuw.style.display=heeftToegang('nieuw')?'':'none';
-  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,notificaties:renderNotificaties,rapportages:renderRapportages,wddetail:renderWdDetail,mijntaken:renderMijnTaken,sponsoren:renderSponsoren};
+  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,notificaties:renderNotificaties,rapportages:renderRapportages,wddetail:renderWdDetail,mijntaken:renderMijnTaken,sponsoren:renderSponsoren,aiassistent:renderAiAssistent};
   if(renders[id])renders[id]();
   if(id==='nieuw'){goStep(0);if(!_editId)resetForm();}
   _adminView=id;
@@ -10752,6 +10754,245 @@ function renderRapportages(){
     var pct=Math.round((ic/w.max)*100);
     return '<tr><td style="font-weight:500">'+w.naam+'</td><td>'+w.datum+'</td><td><span class="badge bx">'+w.vorm+'</span></td><td>'+ic+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="pb" style="width:60px"><div class="pf" style="width:'+pct+'%"></div></div>'+pct+'%</div></td><td><span class="badge '+(w.status==='gepubliceerd'?'bg':'bx')+'">'+w.status+'</span></td></tr>';
   }).join('');
+}
+
+// ============================================================
+// AI ASSISTENT
+// ============================================================
+
+var _aiGegenereerdeWedstrijden = [];
+
+function renderAiAssistent() {
+  // Stel standaard datums in (vandaag → 31 dec volgend jaar)
+  var nu = new Date();
+  var vanDefault = nu.toISOString().split('T')[0];
+  var totDefault = (nu.getFullYear() + 1) + '-12-31';
+  var vanEl = document.getElementById('ai-van');
+  var totEl = document.getElementById('ai-tot');
+  if (vanEl && !vanEl.value) vanEl.value = vanDefault;
+  if (totEl && !totEl.value) totEl.value = totDefault;
+
+  // Standaard datum voor snelle wedstrijd
+  var snelDatum = document.getElementById('snel-datum');
+  if (snelDatum && !snelDatum.value) snelDatum.value = vanDefault;
+}
+
+function aiVoorbeeldInvullen() {
+  var inp = document.getElementById('ai-input');
+  if (inp) inp.value = 'Herendag elke maandag om 09:00 (Stableford), max 72 deelnemers. Damesdag elke dinsdag om 09:30 (Stableford), max 48. Seniorendag elke donderdag om 09:30 (Stableford), max 40. Geen wedstrijden in juli en augustus. Eerste maandag van de maand is altijd een kwalificatiewedstrijd (Strokeplay). Elke derde dinsdag Damesdag Fun met een speciale teamvorm. Businessclub maandelijks op de derde dinsdag om 15:00 (9 holes).';
+  var vanEl = document.getElementById('ai-van');
+  var totEl = document.getElementById('ai-tot');
+  var nu = new Date();
+  if (vanEl) vanEl.value = nu.getFullYear() + '-01-01';
+  if (totEl) totEl.value = nu.getFullYear() + '-12-31';
+}
+
+async function aiGenereerKalender() {
+  var input = (document.getElementById('ai-input').value || '').trim();
+  var van = document.getElementById('ai-van').value;
+  var tot = document.getElementById('ai-tot').value;
+
+  if (!input) { toast('Beschrijf eerst je seizoen.', 'err'); return; }
+  if (!van || !tot) { toast('Vul een periode in.', 'err'); return; }
+
+  var btn = document.getElementById('ai-gen-btn');
+  var statusEl = document.getElementById('ai-status');
+  var preview = document.getElementById('ai-preview');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Bezig...';
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '🤖 AI is aan het werk — even geduld...';
+  preview.style.display = 'none';
+
+  var prompt = 'Genereer een golf wedstrijdkalender op basis van deze beschrijving:\n\n' +
+    '"' + input + '"\n\n' +
+    'Periode: van ' + van + ' tot en met ' + tot + '.\n\n' +
+    'Geef ALLEEN een JSON-array terug, geen uitleg, geen markdown. Elk object bevat:\n' +
+    '- naam (string)\n' +
+    '- datum (string YYYY-MM-DD)\n' +
+    '- tijd (string HH:MM)\n' +
+    '- vorm (een van: Stableford, Strokeplay, Modified Stableford, Bogey competition, Team Stableford, Texas Scramble, Matchplay, Skins, Eclectic, Amerikaantje)\n' +
+    '- holes (getal: 9 of 18)\n' +
+    '- max_deelnemers (getal)\n\n' +
+    'Regels:\n' +
+    '- Geen wedstrijden op Nederlandse feestdagen (Pasen, Hemelvaart, Pinksteren, Koningsdag 27 april, Bevrijdingsdag 5 mei, Kerst, Nieuwjaar)\n' +
+    '- Geef wedstrijden opeenvolgende nummers in de naam als het een serie is (bijv. Herendag 1, Herendag 2)\n' +
+    '- Kwalificatiewedstrijden eindigen op "Q" in de naam\n' +
+    '- Retourneer ALLEEN geldige JSON array, niets anders';
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) throw new Error('API fout: ' + response.status);
+    var data = await response.json();
+    var tekst = (data.content && data.content[0] && data.content[0].text) || '';
+
+    // Verwijder markdown backticks indien aanwezig
+    tekst = tekst.replace(/```json|```/g, '').trim();
+
+    var wedstrijden = JSON.parse(tekst);
+    if (!Array.isArray(wedstrijden)) throw new Error('Geen geldige lijst ontvangen');
+
+    _aiGegenereerdeWedstrijden = wedstrijden;
+    aiToonPreview(wedstrijden);
+    statusEl.innerHTML = '✅ ' + wedstrijden.length + ' wedstrijden gegenereerd — controleer hieronder.';
+
+  } catch(e) {
+    statusEl.innerHTML = '❌ Fout: ' + e.message + '. Probeer opnieuw of pas de beschrijving aan.';
+    console.error('AI kalender fout:', e);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🤖 Genereer kalender';
+}
+
+function aiToonPreview(wedstrijden) {
+  var preview = document.getElementById('ai-preview');
+  var body = document.getElementById('ai-preview-body');
+  var count = document.getElementById('ai-preview-count');
+  var titel = document.getElementById('ai-preview-titel');
+
+  var vormen = ['Stableford','Strokeplay','Modified Stableford','Bogey competition','Team Stableford','Texas Scramble','Matchplay','Skins','Eclectic','Amerikaantje'];
+  var vormOpties = vormen.map(function(v) { return '<option value="' + v + '">' + v + '</option>'; }).join('');
+
+  body.innerHTML = wedstrijden.map(function(w, i) {
+    return '<tr>' +
+      '<td><input type="checkbox" class="ai-check" data-idx="' + i + '" checked /></td>' +
+      '<td><input type="date" class="ai-datum" data-idx="' + i + '" value="' + (w.datum||'') + '" style="width:120px;padding:2px 4px;font-size:12px;border:1px solid var(--bd);border-radius:4px" /></td>' +
+      '<td><input type="time" class="ai-tijd" data-idx="' + i + '" value="' + (w.tijd||'09:00') + '" style="width:80px;padding:2px 4px;font-size:12px;border:1px solid var(--bd);border-radius:4px" /></td>' +
+      '<td><input type="text" class="ai-naam" data-idx="' + i + '" value="' + escHtml(w.naam||'') + '" style="width:220px;padding:2px 4px;font-size:12px;border:1px solid var(--bd);border-radius:4px" /></td>' +
+      '<td><select class="ai-vorm" data-idx="' + i + '" style="padding:2px 4px;font-size:12px;border:1px solid var(--bd);border-radius:4px">' + vormen.map(function(v) { return '<option value="' + v + '"' + (w.vorm === v ? ' selected' : '') + '>' + v + '</option>'; }).join('') + '</select></td>' +
+      '<td><select class="ai-holes" data-idx="' + i + '" style="padding:2px 4px;font-size:12px;border:1px solid var(--bd);border-radius:4px"><option value="18"' + (w.holes === 18 || w.holes === '18' ? ' selected' : '') + '>18</option><option value="9"' + (w.holes === 9 || w.holes === '9' ? ' selected' : '') + '>9</option></select></td>' +
+      '<td><input type="number" class="ai-max" data-idx="' + i + '" value="' + (w.max_deelnemers||72) + '" style="width:60px;padding:2px 4px;font-size:12px;border:1px solid var(--bd);border-radius:4px" /></td>' +
+      '</tr>';
+  }).join('');
+
+  titel.textContent = 'Gegenereerde kalender (' + wedstrijden.length + ' wedstrijden)';
+  count.textContent = wedstrijden.length + ' wedstrijden — vink uit wat je niet wilt importeren';
+  preview.style.display = '';
+}
+
+async function aiAllesImporteren() {
+  // Lees actuele waarden uit de preview-tabel
+  var te_importeren = [];
+  document.querySelectorAll('.ai-check').forEach(function(cb) {
+    if (!cb.checked) return;
+    var i = parseInt(cb.dataset.idx);
+    te_importeren.push({
+      naam: document.querySelector('.ai-naam[data-idx="' + i + '"]').value,
+      datum: document.querySelector('.ai-datum[data-idx="' + i + '"]').value,
+      tijd: document.querySelector('.ai-tijd[data-idx="' + i + '"]').value,
+      vorm: document.querySelector('.ai-vorm[data-idx="' + i + '"]').value,
+      holes: parseInt(document.querySelector('.ai-holes[data-idx="' + i + '"]').value),
+      max_deelnemers: parseInt(document.querySelector('.ai-max[data-idx="' + i + '"]').value) || 72,
+    });
+  });
+
+  if (te_importeren.length === 0) { toast('Geen wedstrijden geselecteerd.', 'err'); return; }
+  if (!confirm('Wil je ' + te_importeren.length + ' wedstrijden importeren?')) return;
+
+  var btn1 = document.getElementById('ai-import-btn');
+  var btn2 = document.getElementById('ai-import-btn2');
+  if (btn1) btn1.disabled = true;
+  if (btn2) btn2.disabled = true;
+
+  var statusEl = document.getElementById('ai-status');
+  statusEl.style.display = 'block';
+
+  var gelukt = 0, mislukt = 0;
+  var DEFAULTS = {
+    rondes: 1, flt: 4, status: 'gepubliceerd',
+    hcp_perc: 100, hcp_min: 0, hcp_max: 54,
+    esc: true, startgeld: 0, skins_pot: 0,
+    blind_holes: 0, welke_negen: 'uit', interval_min: 10,
+    publiek_leaderboard: true, ts_formule: 'app',
+    slope: 131, cr: 72.1, baan: 'De Hooge Rotterdamsche',
+    omschrijving: ''
+  };
+
+  for (var i = 0; i < te_importeren.length; i++) {
+    var w = Object.assign({}, DEFAULTS, te_importeren[i]);
+    statusEl.innerHTML = '⏳ Importeren ' + (i+1) + '/' + te_importeren.length + ': ' + w.naam;
+    try {
+      var res = await supa('wedstrijden', 'POST', {
+        naam: w.naam, datum: w.datum, tijd: w.tijd,
+        baan: w.baan, cr: w.cr, slope: w.slope,
+        holes: w.holes, vorm: w.vorm, rondes: w.rondes,
+        flt: w.flt, status: w.status, max_deelnemers: w.max_deelnemers,
+        hcp_max: w.hcp_max, hcp_min: w.hcp_min, hcp_perc: w.hcp_perc,
+        esc: w.esc, startgeld: w.startgeld, skins_pot: w.skins_pot,
+        inschrijf_open: null, inschrijf_sluit: null,
+        omschrijving: w.omschrijving, kleur: 'ceg',
+        afgelast_reden: null, drive_min: null, drive_max: null,
+        blind_holes: w.blind_holes, welke_negen: w.welke_negen,
+        publiek_leaderboard: w.publiek_leaderboard,
+        ts_formule: w.ts_formule, interval_min: w.interval_min,
+      });
+      if (res && res[0]) {
+        WEDSTRIJDEN.push(Object.assign({ id: res[0].id, ing: 0 }, dbWedstrijdNaarApp(res[0])));
+        gelukt++;
+      } else throw new Error('Geen response');
+    } catch(e) {
+      console.warn('Import mislukt:', w.naam, e.message);
+      mislukt++;
+    }
+    await new Promise(function(r) { setTimeout(r, 120); });
+  }
+
+  statusEl.innerHTML = '✅ ' + gelukt + ' wedstrijden geïmporteerd' + (mislukt > 0 ? ' · ❌ ' + mislukt + ' mislukt' : '') + ' — <a href="#" onclick="adminNav(\'kalender\');return false;">Bekijk kalender →</a>';
+  if (btn1) btn1.disabled = false;
+  if (btn2) btn2.disabled = false;
+  toast(gelukt + ' wedstrijden geïmporteerd!');
+}
+
+// Snelle wedstrijd aanmaken (zonder wizard)
+async function snelWedstrijdAanmaken() {
+  var naam = (document.getElementById('snel-naam').value || '').trim();
+  var datum = document.getElementById('snel-datum').value;
+  var tijd = document.getElementById('snel-tijd').value;
+  var vorm = document.getElementById('snel-vorm').value;
+  var holes = parseInt(document.getElementById('snel-holes').value);
+  var max = parseInt(document.getElementById('snel-max').value) || 72;
+  var statusEl = document.getElementById('snel-status');
+
+  if (!naam) { toast('Vul een naam in.', 'err'); return; }
+  if (!datum) { toast('Kies een datum.', 'err'); return; }
+
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '⏳ Aanmaken...';
+
+  try {
+    var res = await supa('wedstrijden', 'POST', {
+      naam: naam, datum: datum, tijd: tijd,
+      baan: 'De Hooge Rotterdamsche', cr: 72.1, slope: 131,
+      holes: holes, vorm: vorm, rondes: 1, flt: 4,
+      status: 'gepubliceerd', max_deelnemers: max,
+      hcp_max: 54, hcp_min: 0, hcp_perc: 100,
+      esc: true, startgeld: 0, skins_pot: 0,
+      inschrijf_open: null, inschrijf_sluit: null,
+      omschrijving: '', kleur: 'ceg', afgelast_reden: null,
+      drive_min: null, drive_max: null, blind_holes: 0,
+      welke_negen: 'uit', publiek_leaderboard: true,
+      ts_formule: 'app', interval_min: 10,
+    });
+    if (!res || !res[0]) throw new Error('Geen response');
+    WEDSTRIJDEN.push(Object.assign({ ing: 0 }, dbWedstrijdNaarApp(res[0])));
+    statusEl.innerHTML = '✅ <a href="#" onclick="adminNav(\'kalender\');return false;">' + naam + ' aangemaakt — bekijk in kalender →</a>';
+    document.getElementById('snel-naam').value = '';
+    toast(naam + ' aangemaakt!');
+  } catch(e) {
+    statusEl.innerHTML = '❌ Mislukt: ' + e.message;
+    toast('Aanmaken mislukt.', 'err');
+  }
 }
 
 function exportCSV(){
@@ -16821,6 +17062,95 @@ try {
         <div class="card">
           <div class="card-hd">Statistieken<button class="btn btn-s btn-xs" style="margin-left:auto" onclick="exportCSV()">Export CSV</button></div>
           <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Naam</th><th>Datum</th><th>Vorm</th><th>Ingeschreven</th><th>Bezetting</th><th>Status</th></tr></thead><tbody id="r-body"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- AI ASSISTENT -->
+      <div id="v-aiassistent" class="view">
+        <div class="card" style="margin-bottom:1rem">
+          <div class="card-hd">🤖 Seizoensplanner</div>
+          <p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0">Beschrijf je seizoen in gewone taal. De AI maakt een complete wedstrijdkalender voor je.</p>
+          <div class="field">
+            <label>Periode</label>
+            <div style="display:flex;gap:8px">
+              <input type="date" id="ai-van" style="flex:1" />
+              <input type="date" id="ai-tot" style="flex:1" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Beschrijf je seizoen</label>
+            <textarea id="ai-input" rows="5" placeholder="Bijv: Herendag elke maandag om 09:00 (Stableford). Damesdag elke dinsdag om 09:30. Seniorendag elke donderdag om 09:30. Geen wedstrijden in juli. Eerste maandag van de maand is altijd kwalificatie. Max 72 deelnemers per wedstrijd." style="width:100%;box-sizing:border-box;padding:.6rem;border:1px solid var(--bd);border-radius:6px;font-size:13px;resize:vertical;font-family:inherit"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:.5rem">
+            <button class="btn btn-p" onclick="aiGenereerKalender()" id="ai-gen-btn">🤖 Genereer kalender</button>
+            <button class="btn btn-s" onclick="aiVoorbeeldInvullen()">Voorbeeld invullen</button>
+          </div>
+          <div id="ai-status" style="margin-top:.75rem;font-size:13px;color:var(--txm);display:none"></div>
+        </div>
+
+        <!-- Preview -->
+        <div id="ai-preview" style="display:none">
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-hd">
+              <span id="ai-preview-titel">Gegenereerde kalender</span>
+              <div class="card-hd-r">
+                <button class="btn btn-s btn-sm" onclick="aiAllesImporteren()" id="ai-import-btn">✓ Alles importeren</button>
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--txm);margin:0 0 .75rem 0">Controleer de wedstrijden hieronder. Je kunt vorm en datum aanpassen voor het importeren.</p>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th style="width:28px"></th>
+                    <th>Datum</th>
+                    <th>Tijd</th>
+                    <th>Naam</th>
+                    <th>Vorm</th>
+                    <th>Holes</th>
+                    <th>Max</th>
+                  </tr>
+                </thead>
+                <tbody id="ai-preview-body"></tbody>
+              </table>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--bd)">
+              <span id="ai-preview-count" style="font-size:12px;color:var(--txm)"></span>
+              <button class="btn btn-p" onclick="aiAllesImporteren()" id="ai-import-btn2">✓ Alles importeren</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Losse wedstrijd -->
+        <div class="card" style="margin-bottom:1rem">
+          <div class="card-hd">⚡ Snelle wedstrijd</div>
+          <p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0">Eén wedstrijd snel aanmaken zonder de volledige wizard.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="field" style="margin:0"><label>Naam</label><input type="text" id="snel-naam" placeholder="Bijv. Vrijdagmiddag stableford" /></div>
+            <div class="field" style="margin:0"><label>Vorm</label>
+              <select id="snel-vorm">
+                <option value="Stableford">Stableford</option>
+                <option value="Strokeplay">Strokeplay</option>
+                <option value="Modified Stableford">Modified Stableford</option>
+                <option value="Bogey competition">Bogey competition</option>
+                <option value="Texas Scramble">Texas Scramble</option>
+                <option value="Skins">Skins</option>
+                <option value="Matchplay">Matchplay</option>
+                <option value="Amerikaantje">Amerikaantje</option>
+                <option value="Eclectic">Eclectic</option>
+              </select>
+            </div>
+            <div class="field" style="margin:0"><label>Datum</label><input type="date" id="snel-datum" /></div>
+            <div class="field" style="margin:0"><label>Tijd</label><input type="time" id="snel-tijd" value="09:00" /></div>
+            <div class="field" style="margin:0"><label>Holes</label>
+              <select id="snel-holes"><option value="18">18 holes</option><option value="9">9 holes</option></select>
+            </div>
+            <div class="field" style="margin:0"><label>Max deelnemers</label><input type="number" id="snel-max" value="72" min="1" max="200" /></div>
+          </div>
+          <div style="margin-top:.75rem">
+            <button class="btn btn-p" onclick="snelWedstrijdAanmaken()">+ Direct aanmaken</button>
+          </div>
+          <div id="snel-status" style="margin-top:.5rem;font-size:13px;display:none"></div>
         </div>
       </div>
 
