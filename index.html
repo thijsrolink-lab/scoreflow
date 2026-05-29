@@ -11037,10 +11037,25 @@ async function aiAllesImporteren() {
     await new Promise(function(r) { setTimeout(r, 200); });
   }
 
-  statusEl.innerHTML = '✅ ' + gelukt + ' wedstrijden geïmporteerd' + (mislukt > 0 ? ' · ❌ ' + mislukt + ' mislukt' : '') + ' — <a href="#" onclick="adminNav(\'kalender\');return false;">Bekijk kalender →</a>';
+  statusEl.innerHTML = '✅ ' + gelukt + ' wedstrijden geïmporteerd' +
+    (mislukt > 0 ? ' · ❌ ' + mislukt + ' mislukt' : '') +
+    ' — <a href="#" onclick="adminNav(\'kalender\');return false;">Bekijk kalender →</a>';
   if (btn1) btn1.disabled = false;
   if (btn2) btn2.disabled = false;
   toast(gelukt + ' wedstrijden geïmporteerd!');
+
+  // Spring kalender naar de eerste maand van de geïmporteerde wedstrijden
+  if (gelukt > 0 && te_importeren.length > 0) {
+    var eersteMetDatum = te_importeren.find(function(w) { return w.datum; });
+    if (eersteMetDatum) {
+      var d = new Date(eersteMetDatum.datum);
+      if (!isNaN(d)) {
+        cy = d.getFullYear();
+        cm = d.getMonth();
+      }
+    }
+    adminNav('kalender');
+  }
 }
 
 // Snelle wedstrijd aanmaken (zonder wizard)
