@@ -11046,6 +11046,8 @@ async function aiAllesImporteren() {
 }
 
 // Bulk verwijderen — preview
+var _delIds = []; // Globale lijst — robuuster dan dataset
+
 function aiBulkVerwijderPreview() {
   var van=document.getElementById('del-van').value;
   var tot=document.getElementById('del-tot').value;
@@ -11056,20 +11058,26 @@ function aiBulkVerwijderPreview() {
     if(st&&w.status!==st)return false;
     return true;
   }).sort(function(a,b){return a.datum.localeCompare(b.datum);});
+
+  _delIds = gevonden.map(function(w){return w.id;});
+
   var preview=document.getElementById('del-preview');
   var lijst=document.getElementById('del-lijst');
   var btn=document.getElementById('del-btn');
+  var delSt=document.getElementById('del-status');
+  if(delSt)delSt.style.display='none';
+  btn.disabled=false;
+
   if(!gevonden.length){
     lijst.innerHTML='<em>Geen wedstrijden gevonden.</em>';
     btn.style.display='none';
   } else {
     lijst.innerHTML=gevonden.map(function(w){
       return '<div style="padding:2px 0;border-bottom:1px solid #fecaca;display:flex;justify-content:space-between">'+
-        '<span>'+w.datum+' \u2014 '+escHtml(w.naam)+'</span>'+
+        '<span style="font-size:12px">'+w.datum+' \u2014 '+escHtml(w.naam)+'</span>'+
         '<span style="color:#991b1b;font-size:11px">'+w.status+'</span></div>';
     }).join('');
     btn.textContent='\ud83d\uddd1\ufe0f Verwijder '+gevonden.length+' wedstrijden';
-    btn.dataset.ids=JSON.stringify(gevonden.map(function(w){return w.id;}));
     btn.style.display='';
   }
   preview.style.display='';
@@ -11101,23 +11109,23 @@ async function snelWedstrijdAanmaken() {
   }
 }
 async function aiBulkVerwijderen() {
+  if(!_delIds.length){toast('Geen wedstrijden geselecteerd.','err');return;}
+  if(!confirm('Weet je zeker dat je '+_delIds.length+' wedstrijden wilt verwijderen?'))return;
   var btn=document.getElementById('del-btn');
-  var ids=JSON.parse(btn.dataset.ids||'[]');
-  if(!ids.length)return;
-  if(!confirm('Weet je zeker dat je '+ids.length+' wedstrijden wilt verwijderen?'))return;
   var statusEl=document.getElementById('del-status');
   statusEl.style.display='block'; btn.disabled=true;
-  var gelukt=0;
-  for(var i=0;i<ids.length;i++){
-    statusEl.innerHTML='\u23f3 '+(i+1)+'/'+ids.length+' verwijderen...';
-    try{await supa('wedstrijden','DELETE',null,{id:'eq.'+ids[i]});gelukt++;}
-    catch(e){console.warn('Verwijder:',ids[i],e.message);}
+  var gelukt=0,mislukt=0;
+  for(var i=0;i<_delIds.length;i++){
+    statusEl.innerHTML='\u23f3 '+(i+1)+'/'+_delIds.length+' verwijderen...';
+    try{await supa('wedstrijden','DELETE',null,{id:'eq.'+_delIds[i]});gelukt++;}
+    catch(e){console.warn('Verwijder:',_delIds[i],e.message);mislukt++;}
     await new Promise(function(r){setTimeout(r,100);});
   }
-  statusEl.innerHTML='\u2705 '+gelukt+' wedstrijden verwijderd.';
+  statusEl.innerHTML='\u2705 '+gelukt+' verwijderd'+(mislukt>0?' \u00b7 \u274c '+mislukt+' mislukt':'');
   toast(gelukt+' verwijderd.');
+  _delIds=[];
   btn.disabled=false;
-  document.getElementById('del-preview').style.display='none';
+  btn.style.display='none';
   await laadAlleData();
   renderCal();
 }
