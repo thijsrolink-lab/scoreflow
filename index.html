@@ -11075,6 +11075,31 @@ function aiBulkVerwijderPreview() {
   preview.style.display='';
 }
 
+
+// Snelle wedstrijd aanmaken
+async function snelWedstrijdAanmaken() {
+  var naam=(document.getElementById('snel-naam').value||'').trim();
+  var datum=document.getElementById('snel-datum').value;
+  var tijd=document.getElementById('snel-tijd').value;
+  var vorm=document.getElementById('snel-vorm').value;
+  var holes=parseInt(document.getElementById('snel-holes').value);
+  var max=parseInt(document.getElementById('snel-max').value)||72;
+  var statusEl=document.getElementById('snel-status');
+  if(!naam){toast('Vul een naam in.','err');return;}
+  if(!datum){toast('Kies een datum.','err');return;}
+  statusEl.style.display='block';statusEl.innerHTML='\u23f3 Aanmaken...';
+  try{
+    var saved=await dbSaveWedstrijd({naam:naam,datum:datum,tijd:tijd,baan:'De Hooge Rotterdamsche',cr:72.1,slope:131,holes:holes,vorm:vorm,rondes:1,flt:4,status:'gepubliceerd',max:max,hcpmax:54,hcpmin:0,hcpperc:100,esc:true,startgeld:0,skinsPot:0,inschrijfOpen:null,inschrijfSluit:null,omschrijving:'',kleur:aiAutoKleur(naam),afgelast_reden:null,driveMin:null,driveMax:null,blindHoles:0,welkeNegen:'uit',publiekLeaderboard:true,tsFormule:'app',intervalMin:10});
+    if(!saved||!saved.id)throw new Error('Geen response');
+    WEDSTRIJDEN.push(Object.assign({ing:0},saved));
+    statusEl.innerHTML='\u2705 <a href=\"#\" onclick=\"adminNav(\x27kalender\x27);return false;\">' + escHtml(naam) + ' aangemaakt \u2192</a>';
+    document.getElementById('snel-naam').value='';
+    toast(naam+' aangemaakt!');
+  }catch(e){
+    statusEl.innerHTML='\u274c '+e.message;
+    toast('Aanmaken mislukt.','err');
+  }
+}
 async function aiBulkVerwijderen() {
   var btn=document.getElementById('del-btn');
   var ids=JSON.parse(btn.dataset.ids||'[]');
