@@ -10908,41 +10908,19 @@ async function aiGenereerKalender() {
   statusEl.innerHTML = '🤖 AI is aan het werk — even geduld...';
   preview.style.display = 'none';
 
-  var prompt = 'Genereer een golf wedstrijdkalender op basis van deze beschrijving:\n\n' +
-    '"' + input + '"\n\n' +
-    'Periode: van ' + van + ' tot en met ' + tot + '.\n\n' +
-    'Geef ALLEEN een JSON-array terug, geen uitleg, geen markdown. Elk object bevat:\n' +
-    '- naam (string)\n' +
-    '- datum (string YYYY-MM-DD)\n' +
-    '- tijd (string HH:MM)\n' +
-    '- vorm (een van: Stableford, Strokeplay, Modified Stableford, Bogey competition, Team Stableford, Texas Scramble, Matchplay, Skins, Eclectic, Amerikaantje)\n' +
-    '- holes (getal: 9 of 18)\n' +
-    '- max_deelnemers (getal)\n\n' +
-    'Regels:\n' +
-    '- Geen wedstrijden op Nederlandse feestdagen (Pasen, Hemelvaart, Pinksteren, Koningsdag 27 april, Bevrijdingsdag 5 mei, Kerst, Nieuwjaar)\n' +
-    '- Geef wedstrijden opeenvolgende nummers in de naam als het een serie is (bijv. Herendag 1, Herendag 2)\n' +
-    '- Kwalificatiewedstrijden eindigen op "Q" in de naam\n' +
-    '- Retourneer ALLEEN geldige JSON array, niets anders';
+  var prompt = ''; // Prompt wordt server-side opgebouwd in Netlify Function
 
   try {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
+    var response = await fetch('/.netlify/functions/ai-kalender', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+      body: JSON.stringify({ input: input, van: van, tot: tot })
     });
 
-    if (!response.ok) throw new Error('API fout: ' + response.status);
     var data = await response.json();
-    var tekst = (data.content && data.content[0] && data.content[0].text) || '';
+    if (!response.ok) throw new Error(data.error || 'API fout: ' + response.status);
 
-    // Verwijder markdown backticks indien aanwezig
-    tekst = tekst.replace(/```json|```/g, '').trim();
-
-    var wedstrijden = JSON.parse(tekst);
+    var wedstrijden = data.wedstrijden;
     if (!Array.isArray(wedstrijden)) throw new Error('Geen geldige lijst ontvangen');
 
     _aiGegenereerdeWedstrijden = wedstrijden;
