@@ -11037,11 +11037,148 @@ async function aiAllesImporteren() {
     statusEl.innerHTML='\u2705 '+gelukt+' geïmporteerd'+(overgeslagen>0?' \u00b7 '+overgeslagen+' overgeslagen':'')+(mislukt>0?' \u00b7 \u274c '+mislukt+' mislukt':'');
     toast(gelukt+' wedstrijden geïmporteerd!');
     await laadAlleData();
+
+    // Detecteer competitie-groepen in de geïmporteerde wedstrijden
+    var geimporteerdeNamen = te_importeren.map(function(w){return w.naam;});
+    var geimporteerdeWs = WEDSTRIJDEN.filter(function(w){return geimporteerdeNamen.indexOf(w.naam)>=0;});
+    var compGroepen = aiDetecteerCompetities(geimporteerdeWs);
+    if(compGroepen.length>0){
+      statusEl.innerHTML += '<br><br>' + aiCompetitieVoorstel(compGroepen);
+    }
+
     var eerst=te_importeren.find(function(x){return x.datum;});
     if(eerst){var d=new Date(eerst.datum);if(!isNaN(d)){cy=d.getFullYear();cm=d.getMonth();}}
     adminNav('kalender');
   } else {
     toast('Niets geïmporteerd.','err');
+  }
+}
+
+// ── Competitie-detectie na import ───────────────────────────
+
+// Detecteer groepen wedstrijden die samen een competitie vormen
+function aiDetecteerCompetities(wedstrijden) {
+  var groepen = [];
+
+  // Groepeer op vorm — Eclectic en Order of Merit zijn altijd competities
+  var compVormen = ['Eclectic', 'Order of Merit'];
+  compVormen.forEach(function(vorm) {
+    var ws = wedstrijden.filter(function(w) { return w.vorm === vorm; });
+    if (ws.length >= 2) {
+      // Groepeer verder op naam-prefix (eerste 2 woorden)
+      var prefixGroepen = {};
+      ws.forEach(function(w) {
+        var prefix = w.naam.split(/\s+/).slice(0, 3).join(' ').replace(/\s*\d+$/, '').trim();
+        if (!prefixGroepen[prefix]) prefixGroepen[prefix] = [];
+        prefixGroepen[prefix].push(w);
+      });
+      Object.entries(prefixGroepen).forEach(function(kv) {
+        if (kv[1].length >= 2) {
+          groepen.push({
+            naam: kv[0],
+            type: vorm.toLowerCase().replace(' ', '_'),
+            vormlabel: vorm,
+            wids: kv[1].map(function(w) { return w.id; }),
+            wedstrijden: kv[1],
+            start: kv[1][0].datum,
+            eind: kv[1][kv[1].length - 1].datum,
+          });
+        }
+      });
+    }
+  });
+
+  // Detecteer ook Strokeplay/Stableford series die "cup", "beker", "kampioenschap", "ladder" in naam hebben
+  var serieNamen = wedstrijden.filter(function(w) {
+    var n = (w.naam || '').toLowerCase();
+    return (n.includes('cup') || n.includes('beker') || n.includes('kampioenschap') ||
+            n.includes('ladder') || n.includes('seizoen')) &&
+           (w.vorm === 'Stableford' || w.vorm === 'Strokeplay');
+  });
+  if (serieNamen.length >= 2) {
+    var prefixGroepen2 = {};
+    serieNamen.forEach(function(w) {
+      var prefix = w.naam.replace(/\s*(ronde|wedstrijd|deel|round)?\s*\d+\s*(van\s*\d+)?$/i, '').trim();
+      if (!prefixGroepen2[prefix]) prefixGroepen2[prefix] = [];
+      prefixGroepen2[prefix].push(w);
+    });
+    Object.entries(prefixGroepen2).forEach(function(kv) {
+      if (kv[1].length >= 2) {
+        groepen.push({
+          naam: kv[0],
+          type: 'order_of_merit',
+          vormlabel: 'Seizoenscompetitie',
+          wids: kv[1].map(function(w) { return w.id; }),
+          wedstrijden: kv[1],
+          start: kv[1][0].datum,
+          eind: kv[1][kv[1].length - 1].datum,
+        });
+      }
+    });
+  }
+
+  return groepen;
+}
+
+// Toon voorstel + "Aanmaken" knoppen
+function aiCompetitieVoorstel(groepen) {
+  var html = '<div style="background:#f0fdf4;border:1px solid #c6e8d5;border-radius:8px;padding:.75rem 1rem">' +
+    '<div style="font-size:13px;font-weight:600;color:#166534;margin-bottom:.5rem">🏆 Competities gedetecteerd</div>' +
+    '<p style="font-size:12px;color:#166534;margin:0 0 .75rem 0">De AI herkende ' + groepen.length + ' reeks' + (groepen.length > 1 ? 'en' : '') + ' die gebundeld kunnen worden als competitie:</p>';
+
+  groepen.forEach(function(g, i) {
+    html += '<div style="background:#fff;border:1px solid #c6e8d5;border-radius:6px;padding:.5rem .75rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+      '<div>' +
+        '<div style="font-size:13px;font-weight:500;color:#0c1b2a">' + escHtml(g.naam) + '</div>' +
+        '<div style="font-size:11px;color:var(--txm)">' + g.vormlabel + ' · ' + g.wedstrijden.length + ' rondes · ' + g.start + ' t/m ' + g.eind + '</div>' +
+      '</div>' +
+      '<button class="btn btn-p btn-sm" onclick="aiMaakCompetitieAan(' + i + ')">+ Bundelen</button>' +
+      '</div>';
+  });
+
+  html += '</div>';
+  window._aiCompGroepen = groepen;
+  return html;
+}
+
+// Competitie aanmaken vanuit AI-voorstel
+async function aiMaakCompetitieAan(idx) {
+  var groepen = window._aiCompGroepen || [];
+  var g = groepen[idx];
+  if (!g) return;
+
+  var btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Aanmaken...';
+
+  try {
+    var comp = {
+      naam: g.naam,
+      type: g.type,
+      start: g.start,
+      eind: g.eind,
+      wids: g.wids,
+      baan: 'De Hooge Rotterdamsche',
+      cr: 72.1, slope: 131,
+      holes: 18, hcpperc: 100,
+      minRondes: 2, eclHcpPerc: 75,
+      status: 'actief',
+      omschrijving: 'Automatisch aangemaakt door AI Assistent'
+    };
+    var saved = await dbSaveCompetitie(comp);
+    if (saved && saved.id) {
+      if (!window.COMPETITIES) window.COMPETITIES = [];
+      COMPETITIES.push(saved);
+      btn.textContent = '✅ Aangemaakt!';
+      btn.style.background = '#16a34a';
+      toast(g.naam + ' competitie aangemaakt!');
+    } else {
+      throw new Error('Geen response');
+    }
+  } catch(e) {
+    btn.textContent = '❌ Mislukt';
+    btn.disabled = false;
+    toast('Aanmaken mislukt: ' + e.message, 'err');
   }
 }
 
