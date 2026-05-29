@@ -6506,7 +6506,7 @@ var ADMIN_BC={
 var ADMIN_CTX={
   dashboard:'<button class="btn btn-s btn-sm" onclick="openNotifModal()">Bericht sturen</button><button class="btn btn-p btn-sm" onclick="adminNav(\'nieuw\')">+ Wedstrijd</button>',
   kalender:'<button class="btn btn-p btn-sm" onclick="adminNav(\'nieuw\')">+ Wedstrijd</button>',
-  wedstrijden:'<button class="btn btn-p btn-sm" onclick="adminNav(\'nieuw\')">+ Wedstrijd</button>',
+  wedstrijden:'<button class="btn btn-s btn-sm" onclick="wdStartSelectie()">☑ Selecteren</button><button class="btn btn-p btn-sm" onclick="adminNav(\'nieuw\')">+ Wedstrijd</button>',
   spelers:'<button class="btn btn-p btn-sm" onclick="openNieuwSpeler()">+ Speler toevoegen</button>',
   inschrijvingen:'<button class="btn btn-s btn-sm" onclick="adminNav(\'spelers\')">Ledenbestand</button><button class="btn btn-p btn-sm" onclick="openAdminInschrijfModal()">+ Inschrijven</button>',
   flights:'<button class="btn btn-s btn-sm" onclick="adminNav(\'inschrijvingen\')">Inschrijvingen</button>',
@@ -7082,6 +7082,20 @@ function renderWedstrijden(){
     { label: 'Concept', value: 'concept', count: concept }
   ], 'admin');
 
+  // Selectiemodus actief?
+  var selectieModus = !!_wdSelectieModus;
+
+  // Selectiebalk — toont bundel-knop als 2+ geselecteerd
+  var selectieBalk = '';
+  if (selectieModus) {
+    var nGesel = (_wdSelectie || []).length;
+    selectieBalk = '<div style="background:#f0fdf4;border:1px solid #c6e8d5;border-radius:8px;padding:.6rem 1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+      '<span style="font-size:13px;color:#166534;font-weight:500">' + nGesel + ' wedstrijd' + (nGesel !== 1 ? 'en' : '') + ' geselecteerd</span>' +
+      (nGesel >= 2 ? '<button class="btn btn-p btn-sm" onclick="wdBundelTotCompetitie()">🏆 Bundel tot competitie</button>' : '') +
+      '<button class="btn btn-s btn-sm" onclick="wdStopSelectie()">Annuleren</button>' +
+      '</div>';
+  }
+
   // Render één wedstrijd-rij
   function renderRij(w) {
     var d = new Date(w.datum);
@@ -7092,6 +7106,22 @@ function renderWedstrijden(){
     var dagNm = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()];
     var datumStr = dagNm + ' ' + d.getDate() + ' ' + MN[d.getMonth()];
     var acts = '';
+    var isGesel = (_wdSelectie || []).indexOf(w.id) >= 0;
+
+    // Selectiemodus: toon checkbox ipv acties
+    if (selectieModus) {
+      return '<div class="wd-rij" onclick="wdToggleSelectie(\'' + w.id + '\')" style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:2px solid ' + (isGesel ? '#16a34a' : '#e6eaf0') + ';border-radius:8px;margin-bottom:.5rem;cursor:pointer;background:' + (isGesel ? '#f0fdf4' : '#fff') + ';transition:all .15s">' +
+        '<input type="checkbox" ' + (isGesel ? 'checked' : '') + ' onclick="event.stopPropagation();wdToggleSelectie(\'' + w.id + '\')" style="width:16px;height:16px;accent-color:var(--g);flex-shrink:0">' +
+        '<div style="min-width:72px">' +
+          '<div style="font-size:11px;color:#8b94a3;text-transform:uppercase;letter-spacing:.05em">' + escHtml(dagNm.substring(0,3)) + '</div>' +
+          '<div style="font-size:18px;font-weight:700;color:#0c1b2a;line-height:1">' + d.getDate() + ' ' + MN[d.getMonth()].substring(0,3).toLowerCase() + '</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(w.naam) + '</div>' +
+          '<div style="font-size:12px;color:#8b94a3">' + w.vorm + ' · ' + w.holes + ' holes</div>' +
+        '</div>' +
+        '</div>';
+    }
 
     if (kanNieuw && (fase === 'concept' || fase === 'gepubliceerd' || fase === 'live')) {
       acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();editW(\'' + w.id + '\')">Bewerken</button>';
@@ -7118,8 +7148,77 @@ function renderWedstrijden(){
   }
 
   var groepen = bouwWedstrijdGroepen(lijst, renderRij);
-  document.getElementById('w-list').innerHTML = chips + groepen;
-}function adminNavToW(view,wId){
+  document.getElementById('w-list').innerHTML = selectieBalk + chips + groepen;
+}var _wdSelectieModus = false;
+var _wdSelectie = [];
+
+function wdStartSelectie() {
+  _wdSelectieModus = true;
+  _wdSelectie = [];
+  renderWedstrijden();
+}
+
+function wdStopSelectie() {
+  _wdSelectieModus = false;
+  _wdSelectie = [];
+  renderWedstrijden();
+}
+
+function wdToggleSelectie(id) {
+  var idx = _wdSelectie.indexOf(id);
+  if (idx >= 0) _wdSelectie.splice(idx, 1);
+  else _wdSelectie.push(id);
+  renderWedstrijden();
+}
+
+async function wdBundelTotCompetitie() {
+  if (_wdSelectie.length < 2) { toast('Selecteer minimaal 2 wedstrijden.', 'err'); return; }
+
+  var geselecteerd = WEDSTRIJDEN.filter(function(w) { return _wdSelectie.indexOf(w.id) >= 0; })
+    .sort(function(a, b) { return (a.datum || '').localeCompare(b.datum || ''); });
+
+  // Stel naam voor op basis van gemeenschappelijk deel
+  var eersteNaam = geselecteerd[0].naam || '';
+  var voorgesteldNaam = eersteNaam.replace(/\s*(ronde|wedstrijd|deel|round|r\.?)?\s*\d+\s*(van\s*\d+)?$/i, '').trim() || eersteNaam;
+
+  var naam = prompt('Naam voor de competitie:', voorgesteldNaam);
+  if (!naam) return;
+
+  // Detecteer type
+  var vormen = geselecteerd.map(function(w) { return w.vorm; });
+  var type = 'order_of_merit';
+  if (vormen.every(function(v) { return v === 'Eclectic'; })) type = 'eclectic';
+
+  try {
+    var comp = {
+      naam: naam,
+      type: type,
+      start: geselecteerd[0].datum,
+      eind: geselecteerd[geselecteerd.length - 1].datum,
+      wids: _wdSelectie.slice(),
+      baan: geselecteerd[0].baan || 'De Hooge Rotterdamsche',
+      cr: 72.1, slope: 131,
+      holes: geselecteerd[0].holes || 18,
+      hcpperc: 100, minRondes: 2, eclHcpPerc: 75,
+      status: 'actief',
+      omschrijving: geselecteerd.length + ' wedstrijden gebundeld'
+    };
+    var saved = await dbSaveCompetitie(comp);
+    if (saved && saved.id) {
+      if (!window.COMPETITIES) COMPETITIES = [];
+      COMPETITIES.push(saved);
+      toast('Competitie "' + naam + '" aangemaakt met ' + geselecteerd.length + ' rondes!');
+      wdStopSelectie();
+      adminNav('competities');
+    } else {
+      throw new Error('Geen response');
+    }
+  } catch(e) {
+    toast('Aanmaken mislukt: ' + e.message, 'err');
+  }
+}
+
+function adminNavToW(view,wId){
   adminNav(view);
   setTimeout(function(){
     var map={inschrijvingen:'ing-fw',flights:'fl-w',scores:'sc-w'};
