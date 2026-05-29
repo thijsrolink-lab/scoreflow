@@ -11042,19 +11042,25 @@ async function aiAllesImporteren() {
     ' — <a href="#" onclick="adminNav(\'kalender\');return false;">Bekijk kalender →</a>';
   if (btn1) btn1.disabled = false;
   if (btn2) btn2.disabled = false;
-  toast(gelukt + ' wedstrijden geïmporteerd!');
 
-  // Spring kalender naar de eerste maand van de geïmporteerde wedstrijden
-  if (gelukt > 0 && te_importeren.length > 0) {
+  if (gelukt > 0) {
+    statusEl.innerHTML = '✅ ' + gelukt + ' geïmporteerd — kalender wordt geladen...';
+    toast(gelukt + ' wedstrijden geïmporteerd!');
+
+    // Herlaad alle data zodat kalender zeker up-to-date is
+    await laadAlleData();
+
+    // Spring naar eerste maand van geïmporteerde wedstrijden
     var eersteMetDatum = te_importeren.find(function(w) { return w.datum; });
     if (eersteMetDatum) {
       var d = new Date(eersteMetDatum.datum);
-      if (!isNaN(d)) {
-        cy = d.getFullYear();
-        cm = d.getMonth();
-      }
+      if (!isNaN(d)) { cy = d.getFullYear(); cm = d.getMonth(); }
     }
     adminNav('kalender');
+    statusEl.innerHTML = '✅ ' + gelukt + ' wedstrijden geïmporteerd' +
+      (mislukt > 0 ? ' · ❌ ' + mislukt + ' mislukt' : '');
+  } else {
+    toast('Importeren mislukt — zie foutmelding hierboven.', 'err');
   }
 }
 
