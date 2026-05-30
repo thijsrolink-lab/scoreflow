@@ -17296,7 +17296,6 @@ try {
                 <div class="field"><label>Min. EGA handicap</label><input id="fhmin" type="number" step="0.1" value="0"/></div>
                 <div class="field"><label>Handicap %</label><select id="fhp"><option value="100">100%</option><option value="90">90%</option><option value="75">75% Pro-Am</option><option value="50">50%</option><option value="0">0% — geen verrekening (bruto-only)</option></select></div>
               </div>
-              <div class="field"><label>Uitslag tonen</label><div class="tg"><button class="tgb on" onclick="tMulti(this)">Netto</button><button class="tgb on" onclick="tMulti(this)">Bruto</button></div></div>
             </div>
             <div class="blk" id="ts-formule-blk" style="display:none"><div class="blk-t">Texas Scramble team-handicap berekening</div>
               <div class="field"><label>Hoe wordt de teamhandicap bepaald?</label><select id="fts-formule">
@@ -17311,19 +17310,12 @@ try {
             <div class="blk"><div class="blk-t">Scoringsregels</div>
               <div class="g2">
                 <div class="field"><label>Max. score per hole (ESC)</label><select id="fesc"><option value="geen">Geen maximum</option><option value="double">Double bogey</option><option value="triple">Triple bogey</option><option value="nettodouble">Netto dubbel bogey</option></select></div>
-                <div class="field"><label>Tiebreak</label><select id="ftie"><option>Countback (laatste holes)</option><option>Countback (laatste 9)</option><option>Sudden death play-off</option><option>Loting</option></select></div>
-              </div>
-              <div class="g2">
-                <div class="field"><label>Nearest to pin</label><div class="tg"><button class="tgb on" onclick="tSingle(this,'ntp')">Nee</button><button class="tgb" onclick="tSingle(this,'ntp')">Ja</button></div></div>
-                <div class="field"><label>Longest drive</label><div class="tg"><button class="tgb on" onclick="tSingle(this,'ld')">Nee</button><button class="tgb" onclick="tSingle(this,'ld')">Ja</button></div></div>
               </div>
             </div>
-            <div class="blk"><div class="blk-t">Startmethode</div>
-              <div class="field"><div class="tg"><button class="tgb on" onclick="tSingle(this,'sm')">Shotgun start</button><button class="tgb" onclick="tSingle(this,'sm')">Sequentieel</button><button class="tgb" onclick="tSingle(this,'sm')">Split tee (1&amp;10)</button></div></div>
-              <div class="g2"><div class="field"><label>Interval flights (min)</label><input type="number" value="10" min="5" max="20" id="fint"/></div></div>
+              <div class="field"><label>Interval tussen flights (min)</label><input type="number" value="10" min="5" max="20" id="fint"/><div class="field-hint">Tijd tussen elke flight bij sequentiële start</div></div>
 
               <!-- Blind holes: optioneel, alle vormen -->
-              <div class="field" style="margin-top:1rem">
+              <div class="field" style="margin-top:.5rem">
                 <label>Verberg laatste X holes op leaderboard (live)</label>
                 <select id="fblind">
                   <option value="0">Uit — alle scores zichtbaar</option>
