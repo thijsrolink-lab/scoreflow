@@ -6941,13 +6941,13 @@ function renderCal(){
         'Ga naar ' + MN[dd.getMonth()] + ' ' + dd.getFullYear() + ' →</button>';
     }
   }
+  var kleuren = {};
   WEDSTRIJDEN.filter(function(w) {
     return w.datum && w.datum.startsWith(cy + '-' + String(cm + 1).padStart(2, '0'));
   }).forEach(function(w) {
     var k = w.kleur || 'ceg';
     kleuren[k] = (kleuren[k] || 0) + 1;
   });
-
   var legendaMap = {
     ceg: { label: 'Algemeen', color: '#16a34a' },
     blue: { label: 'Heren', color: '#2563eb' },
