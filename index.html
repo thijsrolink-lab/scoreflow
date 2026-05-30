@@ -11153,6 +11153,131 @@ async function aiAllesImporteren() {
   }
 }
 
+// ── AI Chat Assistent ──────────────────────────────────────
+var _aiChatHistory = [];
+
+function aiChatReset() {
+  _aiChatHistory = [];
+  var msgs = document.getElementById('ai-chat-msgs');
+  if (msgs) msgs.innerHTML = '<div style="text-align:center;color:var(--txm);font-size:12px;padding:1rem 0">Stel een vraag hieronder...</div>';
+  var inp = document.getElementById('ai-chat-input');
+  if (inp) inp.value = '';
+}
+
+function aiChatSnelVraag(vraag) {
+  var inp = document.getElementById('ai-chat-input');
+  if (inp) inp.value = vraag;
+  aiChatVerstuur();
+}
+
+function aiChatVoegBerichtToe(rol, tekst, laden) {
+  var msgs = document.getElementById('ai-chat-msgs');
+  if (!msgs) return;
+
+  // Verwijder placeholder tekst
+  var placeholder = msgs.querySelector('[data-placeholder]');
+  if (placeholder) placeholder.remove();
+  if (msgs.children.length === 1 && msgs.children[0].textContent.includes('Stel een vraag')) {
+    msgs.innerHTML = '';
+  }
+
+  var id = 'msg-' + Date.now();
+  var isUser = rol === 'user';
+  var div = document.createElement('div');
+  div.id = id;
+  div.style.cssText = 'margin-bottom:.6rem;display:flex;justify-content:' + (isUser ? 'flex-end' : 'flex-start');
+
+  var bubble = document.createElement('div');
+  bubble.style.cssText = 'max-width:85%;padding:.5rem .8rem;border-radius:' +
+    (isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px') +
+    ';font-size:13px;line-height:1.5;' +
+    (isUser
+      ? 'background:var(--g);color:#fff'
+      : 'background:var(--card);border:1px solid var(--bd);color:var(--tx)');
+
+  if (laden) {
+    bubble.innerHTML = '<span style="color:var(--txm)">⏳ Even denken...</span>';
+  } else {
+    // Eenvoudige markdown: **bold** en nieuwe regels
+    bubble.innerHTML = escHtml(tekst)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  }
+
+  div.appendChild(bubble);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+async function aiChatVerstuur() {
+  var inp = document.getElementById('ai-chat-input');
+  var btn = document.getElementById('ai-chat-btn');
+  var vraag = (inp.value || '').trim();
+  if (!vraag) return;
+
+  inp.value = '';
+  btn.disabled = true;
+
+  // Voeg gebruikersbericht toe
+  aiChatVoegBerichtToe('user', vraag);
+
+  // Laad-indicator
+  var laadId = aiChatVoegBerichtToe('assistant', '', true);
+
+  // Voeg toe aan history
+  _aiChatHistory.push({ role: 'user', content: vraag });
+
+  // Context uit de app meesturen
+  var contextInfo = {
+    clubnaam: 'De Hooge Rotterdamsche',
+    aantalWedstrijden: WEDSTRIJDEN ? WEDSTRIJDEN.length : 0,
+    aantalSpelers: USERS ? USERS.filter(function(u) { return u.rol === 'Speler'; }).length : 0,
+  };
+
+  try {
+    var response = await fetch('/.netlify/functions/ai-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: _aiChatHistory.slice(-10), // Max 10 berichten context
+        context: contextInfo
+      })
+    });
+
+    var data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Fout: ' + response.status);
+
+    var antwoord = data.antwoord || '';
+    _aiChatHistory.push({ role: 'assistant', content: antwoord });
+
+    // Vervang laad-indicator door echt antwoord
+    var laadEl = document.getElementById(laadId);
+    if (laadEl) {
+      var bubble = laadEl.querySelector('div');
+      if (bubble) {
+        bubble.innerHTML = escHtml(antwoord)
+          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br>');
+      }
+    }
+
+  } catch(e) {
+    var laadEl2 = document.getElementById(laadId);
+    if (laadEl2) {
+      var bubble2 = laadEl2.querySelector('div');
+      if (bubble2) bubble2.innerHTML = '<span style="color:#dc2626">❌ ' + escHtml(e.message) + '</span>';
+    }
+  }
+
+  btn.disabled = false;
+  inp.focus();
+
+  // Scroll naar beneden
+  var msgs = document.getElementById('ai-chat-msgs');
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+}
+
 // ── Competitie-detectie na import ───────────────────────────
 
 // Detecteer groepen wedstrijden die samen een competitie vormen
@@ -17442,7 +17567,36 @@ try {
       <!-- AI ASSISTENT -->
       <div id="v-aiassistent" class="view">
 
-        <!-- Seizoensplanner -->
+        <!-- Chat Assistent -->
+        <div class="card" style="margin-bottom:1rem">
+          <div class="card-hd">💬 AI Assistent
+            <div class="card-hd-r">
+              <button class="btn btn-s btn-sm" onclick="aiChatReset()" title="Nieuwe conversatie">↺ Reset</button>
+            </div>
+          </div>
+          <p style="font-size:13px;color:var(--txm);margin:0 0 .75rem 0">Stel vragen over wedstrijdregels, handicaps, seizoensplanning, of clubbeheer.</p>
+
+          <!-- Snelle vragen -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem">
+            <button class="btn btn-s btn-xs" onclick="aiChatSnelVraag('Wat is het verschil tussen Stableford en Strokeplay?')">Stableford vs Strokeplay</button>
+            <button class="btn btn-s btn-xs" onclick="aiChatSnelVraag('Hoe bereken ik de speelhandicap?')">Speelhandicap</button>
+            <button class="btn btn-s btn-xs" onclick="aiChatSnelVraag('Hoe werkt Texas Scramble?')">Texas Scramble</button>
+            <button class="btn btn-s btn-xs" onclick="aiChatSnelVraag('Wat zijn de regels voor Matchplay?')">Matchplay regels</button>
+            <button class="btn btn-s btn-xs" onclick="aiChatSnelVraag('Hoe deel ik spelers in flights in?')">Flight-indeling</button>
+          </div>
+
+          <!-- Chat berichten -->
+          <div id="ai-chat-msgs" style="min-height:80px;max-height:400px;overflow-y:auto;border:1px solid var(--bd);border-radius:8px;padding:.75rem;margin-bottom:.5rem;background:var(--surf)">
+            <div style="text-align:center;color:var(--txm);font-size:12px;padding:1rem 0">Stel een vraag hieronder...</div>
+          </div>
+
+          <!-- Input -->
+          <div style="display:flex;gap:8px">
+            <input type="text" id="ai-chat-input" placeholder="Stel een vraag..." style="flex:1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiChatVerstuur()}" />
+            <button class="btn btn-p" onclick="aiChatVerstuur()" id="ai-chat-btn">Stuur</button>
+          </div>
+        </div>
         <div class="card" style="margin-bottom:1rem">
           <div class="card-hd">🤖 Seizoensplanner
             <div class="card-hd-r">
