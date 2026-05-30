@@ -5511,8 +5511,10 @@ function dbGebruikerNaarApp(g) {
     pw: g.pw || '' };
 }
 function dbWedstrijdNaarApp(w) {
+  // Normaliseer datum: soms komt 2026-06-01T00:00:00 uit DB, we willen alleen 2026-06-01
+  var datum = w.datum ? String(w.datum).substring(0, 10) : '';
   return {
-    id: w.id, naam: w.naam, datum: w.datum, tijd: w.tijd || '',
+    id: w.id, naam: w.naam, datum: datum, tijd: w.tijd || '',
     leiderId: w.leider_id || null,
     baan: w.baan, cr: w.cr, slope: w.slope,
     holes: w.holes, vorm: w.vorm, rondes: w.rondes,
@@ -6918,8 +6920,27 @@ function renderCal(){
 
   document.getElementById('cal-days').innerHTML = html;
 
-  // Tel per kleur voor legenda
-  var kleuren = {};
+  // Legenda + hint als maand leeg is
+  var huidigePrefix = cy + '-' + String(cm + 1).padStart(2, '0');
+  var heeftWedstrijden = WEDSTRIJDEN.some(function(w) {
+    return w.datum && w.datum.startsWith(huidigePrefix);
+  });
+
+  // Als leeg: zoek dichtstbijzijnde maand met wedstrijden
+  var hintHtml = '';
+  if (!heeftWedstrijden && WEDSTRIJDEN.length > 0) {
+    // Sorteer wedstrijden op datum en vind de dichtstbijzijnde
+    var gesorteerd = WEDSTRIJDEN.filter(function(w) { return w.datum; })
+      .sort(function(a, b) { return a.datum.localeCompare(b.datum); });
+    var toekomst = gesorteerd.filter(function(w) { return w.datum >= huidigePrefix; });
+    var verleden = gesorteerd.filter(function(w) { return w.datum < huidigePrefix; });
+    var dichtstbij = toekomst.length > 0 ? toekomst[0] : (verleden.length > 0 ? verleden[verleden.length - 1] : null);
+    if (dichtstbij) {
+      var dd = new Date(dichtstbij.datum);
+      hintHtml = '<button class="btn btn-s btn-sm" onclick="cy=' + dd.getFullYear() + ';cm=' + dd.getMonth() + ';renderCal()" style="margin-left:8px">' +
+        'Ga naar ' + MN[dd.getMonth()] + ' ' + dd.getFullYear() + ' →</button>';
+    }
+  }
   WEDSTRIJDEN.filter(function(w) {
     return w.datum && w.datum.startsWith(cy + '-' + String(cm + 1).padStart(2, '0'));
   }).forEach(function(w) {
@@ -6946,7 +6967,15 @@ function renderCal(){
 
   // Voeg legenda toe onder kalender
   var legEl = document.getElementById('cal-legenda');
-  if (legEl) legEl.innerHTML = legendaHtml || '<span style="font-size:11px;color:var(--txm)">Geen wedstrijden deze maand</span>';
+  if (legEl) {
+    if (!heeftWedstrijden && WEDSTRIJDEN.length > 0) {
+      legEl.innerHTML = '<span style="font-size:11px;color:var(--txm)">Geen wedstrijden deze maand</span>' + hintHtml;
+    } else if (!heeftWedstrijden) {
+      legEl.innerHTML = '<span style="font-size:11px;color:var(--txm)">Geen wedstrijden</span>';
+    } else {
+      legEl.innerHTML = legendaHtml;
+    }
+  }
 }
 
 // ============================================================
