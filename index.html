@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>De Hooge Rotterdamsche — Wedstrijden</title>
+<title>ScoreFlow — Golf Tournament Software</title>
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#16a34a"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="ScoreFlow"/>
+<link rel="apple-touch-icon" href="/assets/icon-192.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -16977,10 +16985,131 @@ try {
   console.log('🟢 Hoofdscript geladen, globals gezet');
 } catch(e) {
   console.error('🔴 Globals setup fout:', e.message);
+}// ============================================================
+// PWA — Service Worker + Offline Score Queue
+// ============================================================
+
+var _offlineQueue = []; // Scores die offline opgeslagen zijn
+
+// Registreer service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      console.log('SW geregistreerd:', reg.scope);
+    }).catch(function(err) {
+      console.warn('SW registratie mislukt:', err);
+    });
+
+    // Luister naar sync-verzoek van SW
+    navigator.serviceWorker.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'SW_SYNC_SCORES') {
+        offlineQueueSync();
+      }
+    });
+  });
 }
+
+// Online/offline melding
+var _isOnline = navigator.onLine;
+
+function updateOnlineStatus() {
+  _isOnline = navigator.onLine;
+  var banner = document.getElementById('offline-banner');
+  if (banner) {
+    banner.style.display = _isOnline ? 'none' : 'flex';
+  }
+  if (_isOnline && _offlineQueue.length > 0) {
+    offlineQueueSync();
+  }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// Sla score op in offline-queue (localStorage)
+function offlineScoreOpslaan(wId, sid, scores) {
+  try {
+    var queue = JSON.parse(localStorage.getItem('sf_offline_scores') || '[]');
+    // Vervang bestaande entry voor zelfde wedstrijd+speler
+    var idx = queue.findIndex(function(q) { return q.wId === wId && q.sid === sid; });
+    var entry = { wId: wId, sid: sid, scores: scores, ts: Date.now() };
+    if (idx >= 0) queue[idx] = entry;
+    else queue.push(entry);
+    localStorage.setItem('sf_offline_scores', JSON.stringify(queue));
+    console.log('Score offline opgeslagen:', wId, sid);
+    return true;
+  } catch(e) {
+    console.warn('Offline opslaan mislukt:', e);
+    return false;
+  }
+}
+
+// Sync offline scores naar Supabase zodra online
+async function offlineQueueSync() {
+  try {
+    var queue = JSON.parse(localStorage.getItem('sf_offline_scores') || '[]');
+    if (!queue.length) return;
+
+    var gesynced = 0;
+    var nieuwQueue = [];
+
+    for (var i = 0; i < queue.length; i++) {
+      var item = queue[i];
+      try {
+        // Probeer score naar DB te sturen
+        var bestaand = await supa('scores', 'GET', null, {
+          wid: 'eq.' + item.wId,
+          sid: 'eq.' + item.sid,
+          select: 'id'
+        });
+
+        if (bestaand && bestaand.length > 0) {
+          await supa('scores', 'PATCH', { scores: item.scores }, {
+            wid: 'eq.' + item.wId,
+            sid: 'eq.' + item.sid
+          });
+        } else {
+          await supa('scores', 'POST', {
+            wid: item.wId,
+            sid: item.sid,
+            scores: item.scores
+          });
+        }
+        gesynced++;
+      } catch(e) {
+        // Nog steeds offline of andere fout — bewaar in queue
+        nieuwQueue.push(item);
+      }
+    }
+
+    localStorage.setItem('sf_offline_scores', JSON.stringify(nieuwQueue));
+
+    if (gesynced > 0) {
+      toast(gesynced + ' offline score' + (gesynced > 1 ? 's' : '') + ' gesynchroniseerd ✓');
+      console.log('Offline sync:', gesynced, 'scores gesynchroniseerd');
+    }
+  } catch(e) {
+    console.warn('Offline sync mislukt:', e);
+  }
+}
+
+// Laad offline scores voor een wedstrijd+speler (bij terugkeer offline)
+function offlineScoreLaden(wId, sid) {
+  try {
+    var queue = JSON.parse(localStorage.getItem('sf_offline_scores') || '[]');
+    var entry = queue.find(function(q) { return q.wId === wId && q.sid === sid; });
+    return entry ? entry.scores : null;
+  } catch(e) { return null; }
+}
+
 </script>
 </head>
 <body>
+
+<!-- Offline banner -->
+<div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#f59e0b;color:#fff;padding:8px 16px;font-size:13px;font-weight:500;align-items:center;justify-content:center;gap:8px">
+  <span>📵 Offline — scores worden lokaal bewaard en gesynchroniseerd als je weer online bent</span>
+</div>
 
 <!-- ══════════════════════════════════════
      LOGIN SCHERM
