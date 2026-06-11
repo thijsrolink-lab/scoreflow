@@ -324,8 +324,8 @@ body.offline { padding-top: 38px; }
 .bc-parent{font-size:13px;color:var(--txm);cursor:pointer;font-weight:500}
 .bc-parent:hover{color:var(--g);text-decoration:underline}
 .bc-sep{color:var(--txh);font-size:13px;margin:0 2px}
-.admin-content{flex:1;overflow:hidden;width:100%;box-sizing:border-box;display:flex;flex-direction:column}
-.view{display:none}.view.on{display:block;overflow-y:auto;flex:1;min-height:0;padding:2rem 2.5rem;padding-bottom:3rem}
+.admin-content{flex:1;padding:2rem 2.5rem;overflow-y:auto;box-sizing:border-box;overflow-anchor:none}
+.view{display:none}.view.on{display:block}
 .bar-chart{display:flex;align-items:flex-end;gap:4px;height:80px}
 .bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .bar{width:100%;background:var(--gl2);border-radius:3px 3px 0 0;min-height:2px}
@@ -1276,9 +1276,12 @@ body.offline { padding-top: 38px; }
 }
 
 
-/* Dashboard: geen extra padding nodig, zit al op .view.on */
+/* Verberg topbar op dashboard (dubbel met welkom-blok) */
 .admin-main.view-dashboard .topbar {
   display: none;
+}
+.admin-main.view-dashboard .admin-content {
+  padding-top: 2.5rem;
 }
 
 
@@ -6782,9 +6785,13 @@ function adminNav(id){
   if(renders[id])renders[id]();
   if(id==='nieuw'){goStep(0);if(!_editId)resetForm();}
   _adminView=id;
-  // Elke view is nu zijn eigen scroll-container — scroll actieve view naar boven
-  var activeView=document.getElementById('v-'+id);
-  if(activeView)activeView.scrollTop=0;
+  // Reset scroll na browser layout — rAF wacht op paint cyclus
+  var _ac=document.querySelector('.admin-content');
+  if(_ac)_ac.scrollTop=0;
+  requestAnimationFrame(function(){
+    var ac=document.querySelector('.admin-content');
+    if(ac)ac.scrollTop=0;
+  });
 }
 
 function bcClick(){if(_adminBcNav)adminNav(_adminBcNav);}
@@ -6819,7 +6826,7 @@ function renderAdminDashboard(){
       '</div>' +
     '</div>';
   var welEl = document.getElementById('dash-welcome');
-  if (welEl) welEl.innerHTML = welkomHtml;
+  if (welEl) { welEl.innerHTML = welkomHtml; welEl.style.marginBottom='1.25rem'; }
 
   // ── Hero: eerstvolgende wedstrijd ───────────────────────
   var alle = (WEDSTRIJDEN || []).filter(function(w) {
@@ -6856,7 +6863,7 @@ function renderAdminDashboard(){
       '</div>';
   }
   var heroEl = document.getElementById('dash-hero');
-  if (heroEl) heroEl.innerHTML = heroHtml;
+  if (heroEl) { heroEl.innerHTML = heroHtml; heroEl.style.marginBottom='1.25rem'; }
 
   // ── Wedstrijd cards (3 stuks) ───────────────────────────
   var cardsLijst = alle.slice(0, 8);
@@ -6930,7 +6937,7 @@ function renderAdminDashboard(){
   cardsHtml += '</div>';
 
   var cardsEl = document.getElementById('dash-cards-section');
-  if (cardsEl) cardsEl.innerHTML = cardsHtml;
+  if (cardsEl) { cardsEl.innerHTML = cardsHtml; cardsEl.style.marginBottom='1.25rem'; }
 }
 
 // ============================================================
@@ -11048,8 +11055,8 @@ function renderRapportages(){
   var bez=totMax?Math.round((totIng/totMax)*100):0;
   var vc={};WEDSTRIJDEN.forEach(function(w){vc[w.vorm]=(vc[w.vorm]||0)+1;});
   var pop=Object.entries(vc).sort(function(a,b){return b[1]-a[1];})[0];
-  document.getElementById('r-stats').innerHTML=
-    mc('Wedstrijden',WEDSTRIJDEN.length,'dit seizoen')+mc('Ingeschreven',totIng,'over alles')+mc('Gem. bezetting',bez+'%','','')+mc('Populairste vorm',pop?pop[0]:'—','','font-size:14px');
+  var rStats = document.getElementById('r-stats');
+  if(rStats){ rStats.innerHTML=mc('Wedstrijden',WEDSTRIJDEN.length,'dit seizoen')+mc('Ingeschreven',totIng,'over alles')+mc('Gem. bezetting',bez+'%','','')+mc('Populairste vorm',pop?pop[0]:'—','','font-size:14px'); rStats.style.marginBottom='1rem'; }
   var mx=Math.max.apply(null,WEDSTRIJDEN.map(function(w){return w.max;}));mx=mx||1;
   document.getElementById('r-chart1').innerHTML=WEDSTRIJDEN.slice(0,7).map(function(w){
     var ic=INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';}).length;
@@ -11515,14 +11522,17 @@ async function laadAuditLog() {
         }).join('') + '</tbody></table></div>';
     }
     // Scroll naar boven na async load
-    var ac = document.querySelector('.admin-content');
-    if (ac) ac.scrollTop = 0;
+    requestAnimationFrame(function(){
+      var ac=document.querySelector('.admin-content');
+      if(ac)ac.scrollTop=0;
+    });
   } catch(e) {
     var el2 = document.getElementById('audit-content');
     if (el2) el2.innerHTML = '<div style="padding:1rem;color:var(--txm);font-size:13px">Audit log niet beschikbaar. ' +
       'Zorg dat de <code>audit_log</code> tabel bestaat in Supabase en RLS correct is ingesteld.</div>';
     var ac2 = document.querySelector('.admin-content');
     if (ac2) ac2.scrollTop = 0;
+    requestAnimationFrame(function(){var ac=document.querySelector('.admin-content');if(ac)ac.scrollTop=0;});
   }
 }
 
@@ -17292,6 +17302,8 @@ try {
   console.error('🔴 Globals setup fout:', e.message);
 }// ============================================================
 // PWA — Service Worker + Offline Score Queue
+// Disable browser scroll restoration (voorkomt dat browser scroll-positie onthoudt)
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 // ============================================================
 
 var _offlineQueue = []; // Scores die offline opgeslagen zijn
@@ -17449,9 +17461,9 @@ window.addEventListener('offline', updateOnlineStatus);
     <div class="admin-content">
       <!-- DASHBOARD -->
       <div id="v-dashboard" class="view on">
-        <div id="dash-welcome" style="margin-bottom:1.25rem"></div>
-        <div id="dash-hero" style="margin-bottom:1.25rem"></div>
-        <div id="dash-cards-section" style="margin-bottom:1.25rem"></div>
+        <div id="dash-welcome"></div>
+        <div id="dash-hero"></div>
+        <div id="dash-cards-section"></div>
       </div><!-- /v-dashboard -->
 
       <!-- KALENDER -->
@@ -17890,7 +17902,7 @@ window.addEventListener('offline', updateOnlineStatus);
 
       <!-- RAPPORTAGES -->
       <div id="v-rapportages" class="view">
-        <div class="g4" style="margin-bottom:1rem" id="r-stats"></div>
+        <div class="g4" id="r-stats"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
           <div class="card" style="margin-bottom:0"><div class="card-hd">Deelnames per wedstrijd<div class="card-hd-r"><button class="help-knop" onclick="openHelp('rapportages')">&#63; Help</button></div></div><div class="bar-chart" id="r-chart1"></div></div>
           <div class="card" style="margin-bottom:0"><div class="card-hd">Handicapverdeling</div><div class="bar-chart" id="r-chart2"></div></div>
