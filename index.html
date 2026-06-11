@@ -7215,6 +7215,7 @@ function renderCal(){
 // ─── Wedstrijden-lijst: helpers voor groepering en filtering ─────────
 var _wdFilter = { admin: 'alle', speler: 'alle' };  // huidige filter-keuze
 var _wdZoek = { admin: '', speler: '' };            // zoekveld waarde
+var _wdCommissieFilter = undefined;                 // undefined = auto (commissielid), null/'' = alle
 
 // Classificatie: vandaag / aankomend / afgerond
 function wdGroep(w) {
@@ -7322,11 +7323,27 @@ function renderWedstrijden(){
   var filter = _wdFilter.admin || 'alle';
   var kanNieuw = heeftToegang('nieuw');
 
+  // Bepaal actieve commissie-filter
+  // Standaard: als user commissielid is, filter op zijn commissie(s) — tenzij override actief
+  if (!_wdCommissieFilter) {
+    var mijnCommissies = (COMMISSIES || []).filter(function(c){
+      return (c.leden||[]).some(function(lid){ return String(lid) === String(_currentUser && _currentUser.id); });
+    });
+    if (mijnCommissies.length > 0 && _wdCommissieFilter === undefined) {
+      _wdCommissieFilter = mijnCommissies[0].id; // standaard eerste commissie
+    }
+  }
+  var actieveCommissie = _wdCommissieFilter || null;
+
   // Filter + sorteer
   var lijst = filterWedstrijden(WEDSTRIJDEN, filter, q);
+  // Commissie-filter toepassen
+  if (actieveCommissie && actieveCommissie !== 'alle') {
+    lijst = lijst.filter(function(w){ return w.commissieId === actieveCommissie; });
+  }
   lijst = sorteerWedstrijdenOpDatum(lijst, true);
 
-  // Tellen voor chips
+  // Tellen voor status chips
   var totaal = WEDSTRIJDEN.length;
   var aankomend = WEDSTRIJDEN.filter(function(w) { var g = wdGroep(w); return g === 'aankomend' || g === 'vandaag'; }).length;
   var live = WEDSTRIJDEN.filter(function(w) { return wedstrijdFase(w) === 'live'; }).length;
@@ -7341,10 +7358,25 @@ function renderWedstrijden(){
     { label: 'Concept', value: 'concept', count: concept }
   ], 'admin');
 
+  // Commissie-filter chips (alleen als er commissies zijn)
+  var commissieChips = '';
+  if (COMMISSIES && COMMISSIES.length > 0) {
+    commissieChips = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;align-items:center">';
+    commissieChips += '<span style="font-size:11px;color:var(--txm);font-weight:500">Commissie:</span>';
+    // "Alle" optie
+    var alleActief = !actieveCommissie || actieveCommissie === 'alle';
+    commissieChips += '<button onclick="_wdCommissieFilter=\'alle\';renderWedstrijden()" style="font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid '+(alleActief?'var(--g)':'var(--bd)')+';background:'+(alleActief?'var(--g)':'#fff')+';color:'+(alleActief?'#fff':'var(--txm)')+';cursor:pointer;font-weight:'+(alleActief?'600':'400')+'">Alle</button>';
+    COMMISSIES.forEach(function(c) {
+      var actief = actieveCommissie === c.id;
+      commissieChips += '<button onclick="_wdCommissieFilter=\''+c.id+'\';renderWedstrijden()" style="font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid '+(actief?c.kleur:'var(--bd)')+';background:'+(actief?c.kleur:'#fff')+';color:'+(actief?'#fff':'var(--txm)')+';cursor:pointer;font-weight:'+(actief?'600':'400')+'">'+escHtml(c.naam)+'</button>';
+    });
+    commissieChips += '</div>';
+  }
+
   // Selectiemodus actief?
   var selectieModus = !!_wdSelectieModus;
 
-  // Selectiebalk — toont bundel-knop als 2+ geselecteerd
+  // Selectiebalk
   var selectieBalk = '';
   if (selectieModus) {
     var nGesel = (_wdSelectie || []).length;
@@ -7367,7 +7399,10 @@ function renderWedstrijden(){
     var acts = '';
     var isGesel = (_wdSelectie || []).indexOf(w.id) >= 0;
 
-    // Selectiemodus: toon checkbox ipv acties
+    // Ben ik wedstrijdleider van deze wedstrijd?
+    var isMijnWedstrijd = _currentUser && w.leiderId && String(w.leiderId) === String(_currentUser.id);
+
+    // Selectiemodus
     if (selectieModus) {
       return '<div class="wd-rij" onclick="wdToggleSelectie(\'' + w.id + '\')" style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:2px solid ' + (isGesel ? '#16a34a' : '#e6eaf0') + ';border-radius:8px;margin-bottom:.5rem;cursor:pointer;background:' + (isGesel ? '#f0fdf4' : '#fff') + ';transition:all .15s">' +
         '<input type="checkbox" ' + (isGesel ? 'checked' : '') + ' onclick="event.stopPropagation();wdToggleSelectie(\'' + w.id + '\')" style="width:16px;height:16px;accent-color:var(--g);flex-shrink:0">' +
@@ -7392,13 +7427,17 @@ function renderWedstrijden(){
       acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();afrondWedstrijd(\'' + w.id + '\')" style="background:#0c1b2a;color:#fff;border-color:#0c1b2a">Afronden</button>';
     }
 
-    return '<div class="wd-rij" onclick="openWdDetail(\'' + w.id + '\')" style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:1px solid #e6eaf0;border-radius:8px;margin-bottom:.5rem;cursor:pointer;background:#fff;transition:all .15s">' +
+    // Achtergrond: highlight als jij de leider bent
+    var rowBg = isMijnWedstrijd ? '#f0fdf4' : '#fff';
+    var rowBorder = isMijnWedstrijd ? '1px solid #bbf7d0' : '1px solid #e6eaf0';
+
+    return '<div class="wd-rij" onclick="openWdDetail(\'' + w.id + '\')" style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:' + rowBorder + ';border-radius:8px;margin-bottom:.5rem;cursor:pointer;background:' + rowBg + ';transition:all .15s">' +
       '<div style="min-width:72px">' +
         '<div style="font-size:11px;color:#8b94a3;text-transform:uppercase;letter-spacing:.05em">' + escHtml(dagNm.substring(0,3)) + '</div>' +
         '<div style="font-size:18px;font-weight:700;color:#0c1b2a;line-height:1">' + d.getDate() + ' ' + MN[d.getMonth()].substring(0,3).toLowerCase() + '</div>' +
       '</div>' +
       '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:15px;font-weight:600;color:#0c1b2a;margin-bottom:2px">' + escHtml(w.naam) + '</div>' +
+        '<div style="font-size:15px;font-weight:600;color:#0c1b2a;margin-bottom:2px">' + escHtml(w.naam) + (isMijnWedstrijd ? ' <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;background:#16a34a;color:#fff;vertical-align:middle">Jouw wedstrijd</span>' : '') + '</div>' +
         '<div style="font-size:12px;color:#8b94a3">' + escHtml(w.vorm) + ' · ' + w.holes + ' holes · ' + ic + (w.max ? '/' + w.max : '') + ' deelnemers</div>' +
       '</div>' +
       '<span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding:4px 10px;border-radius:999px;background:' + faseBg + ';color:' + faseColor + '">' + fase + '</span>' +
@@ -7409,8 +7448,9 @@ function renderWedstrijden(){
   }
 
   var groepen = bouwWedstrijdGroepen(lijst, renderRij);
-  document.getElementById('w-list').innerHTML = selectieBalk + chips + groepen;
-}var _wdSelectieModus = false;
+  document.getElementById('w-list').innerHTML = selectieBalk + chips + commissieChips + groepen;
+}
+var _wdSelectieModus = false;
 var _wdSelectie = [];
 
 function wdStartSelectie() {
