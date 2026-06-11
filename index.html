@@ -5541,7 +5541,8 @@ function dbWedstrijdNaarApp(w) {
     welkeNegen: w.welke_negen || 'uit',
     publiekLeaderboard: !!w.publiek_leaderboard,
     tsFormule: w.ts_formule || 'app',
-    intervalMin: w.interval_min || 10,};
+    intervalMin: w.interval_min || 10,
+    commissieId: w.commissie_id || null,};
 }
 function dbIngNaarApp(i) {
   return {
@@ -5796,7 +5797,8 @@ async function dbSaveWedstrijd(w) {
     welke_negen: w.welkeNegen || 'uit',
     publiek_leaderboard: !!w.publiekLeaderboard,
     ts_formule: w.tsFormule || 'app',
-    interval_min: w.intervalMin || 10,};
+    interval_min: w.intervalMin || 10,
+    commissie_id: w.commissieId || null,};
   if (w.id && String(w.id).includes('-')) {
     // PATCH: stuur Prefer return=representation zodat we de bijgewerkte row terugkrijgen
     var url = new URL(SUPA_URL + '/rest/v1/wedstrijden');
@@ -6337,6 +6339,24 @@ var NOTIFICATIES=[
   {id:2,datum:'2025-05-10',onderwerp:'Damesdag juni — inschrijving geopend',ontvangers:120,gelezen:false},
   {id:3,datum:'2025-04-20',onderwerp:'Seizoensprogramma 2025 beschikbaar',ontvangers:245,gelezen:true},
 ];
+
+// ── Commissies (lokale opslag) ────────────────────────────────
+function laadCommissies(){
+  try{
+    var opg=JSON.parse(localStorage.getItem('sf_commissies')||'null');
+    if(Array.isArray(opg))return opg;
+  }catch(e){}
+  return [
+    {id:'comm-1',naam:'Damescommissie',  kleur:'#e879a0',leden:[]},
+    {id:'comm-2',naam:'Herencommissie',  kleur:'#3b82f6',leden:[]},
+    {id:'comm-3',naam:'Seniorencommissie',kleur:'#f59e0b',leden:[]},
+  ];
+}
+function slaCommissiesOp(){
+  try{localStorage.setItem('sf_commissies',JSON.stringify(COMMISSIES));}catch(e){}
+}
+var COMMISSIES=laadCommissies();
+
 
 var _editId=null;
 var _currentUser=null;
@@ -7293,6 +7313,7 @@ function renderWedstrijden(){
         '<div style="font-size:12px;color:#8b94a3">' + escHtml(w.vorm) + ' · ' + w.holes + ' holes · ' + ic + (w.max ? '/' + w.max : '') + ' deelnemers</div>' +
       '</div>' +
       '<span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding:4px 10px;border-radius:999px;background:' + faseBg + ';color:' + faseColor + '">' + fase + '</span>' +
+      (w.commissieId ? (function(){var c=COMMISSIES.find(function(x){return x.id===w.commissieId;});return c?'<span style="font-size:11px;padding:3px 8px;border-radius:999px;background:'+c.kleur+'22;color:'+c.kleur+';font-weight:500;border:1px solid '+c.kleur+'44">'+escHtml(c.naam)+'</span>':'';})() : '') +
       (acts ? '<div style="display:flex;gap:4px" onclick="event.stopPropagation()">' + acts + '</div>' : '') +
     '</div>';
   }
@@ -7462,6 +7483,8 @@ function editW(id){
     var fesc = document.getElementById('fesc'); if(fesc) fesc.value = w.esc || 'geen';
     // Omschrijving als die bestaat
     var fom = document.getElementById('fomschr'); if(fom) fom.value = w.omschrijving || '';
+    // Commissie
+    vulCommissieDropdown(w.commissieId || '');
     // Inschrijf datums
     var fop = document.getElementById('fop'); if(fop && w.inschrijfOpen) fop.value = w.inschrijfOpen;
     var fsluit = document.getElementById('fsluit'); if(fsluit && w.inschrijfSluit) fsluit.value = w.inschrijfSluit;
@@ -7521,8 +7544,23 @@ function updateVormInfo(){
 function goStep(n){
   for(var i=0;i<6;i++){var el=document.getElementById('s'+i);if(el)el.style.display=i===n?'block':'none';}
   document.querySelectorAll('.stp').forEach(function(s,i){s.className='stp'+(i<n?' done':i===n?' active':'');});
-  if(n===4) renderSponsorWizardStep();  // sponsoren laden bij betreden stap
-  if(n===5) buildOv();                   // overzicht (was stap 4)
+  if(n===0) vulCommissieDropdown();       // commissies bijwerken bij stap 1
+  if(n===4) renderSponsorWizardStep();    // sponsoren laden bij betreden stap
+  if(n===5) buildOv();                    // overzicht (was stap 4)
+}
+
+function vulCommissieDropdown(geselecteerd){
+  var sel=document.getElementById('fcommissie');
+  if(!sel)return;
+  var huidig=geselecteerd!==undefined?geselecteerd:sel.value;
+  sel.innerHTML='<option value="">— Geen commissie —</option>';
+  COMMISSIES.forEach(function(c){
+    var opt=document.createElement('option');
+    opt.value=c.id;
+    opt.textContent=c.naam;
+    if(c.id===huidig)opt.selected=true;
+    sel.appendChild(opt);
+  });
 }
 
 function resetForm(){
@@ -7632,6 +7670,7 @@ function bouwWedstrijdUitFormulier(status) {
     welkeNegen: (document.getElementById('fnegen') || {}).value || 'uit',
     intervalMin: parseInt((document.getElementById('fint') || {}).value) || 10,
     tsFormule: (document.getElementById('fts-formule') || {}).value || 'app',
+    commissieId: (document.getElementById('fcommissie') || {}).value || null,
   };
 }
 
@@ -11687,10 +11726,170 @@ async function laadAuditLog() {
 function renderCommissies() {
   var el = document.getElementById('v-commissies');
   if (!el) return;
-  el.innerHTML = stubView('Commissies',
-    'Beheer dames-, heren- en seniorencommissie. Wijs leden toe en stel commissie-specifieke instellingen in.',
-    '👥', 'Deze functie is in ontwikkeling voor een toekomstige versie.');
+
+  var html = '<div class="card" style="margin-bottom:1rem">';
+  html += '<div class="card-hd">Commissies<div class="card-hd-r"><button class="btn btn-p btn-sm" onclick="openCommissieModal()">+ Nieuwe commissie</button></div></div>';
+  html += '<p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0">Commissies groeperen wedstrijden organisatorisch. Wijs leden toe als contactpersoon per commissie.</p>';
+
+  if (COMMISSIES.length === 0) {
+    html += '<div style="text-align:center;padding:2rem;color:var(--txm);font-size:13px">Nog geen commissies aangemaakt.<br><br><button class="btn btn-p" onclick="openCommissieModal()">+ Eerste commissie aanmaken</button></div>';
+  } else {
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem">';
+    COMMISSIES.forEach(function(c) {
+      var leden = (c.leden||[]).map(function(lid) {
+        return USERS.find(function(u){return u.id==lid;});
+      }).filter(Boolean);
+      var wedstrijden = WEDSTRIJDEN.filter(function(w){return w.commissieId===c.id;});
+      html += '<div style="border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden">';
+      // Header met kleur
+      html += '<div style="background:'+c.kleur+';padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between">';
+      html += '<span style="font-weight:600;color:#fff;font-size:14px">'+escHtml(c.naam)+'</span>';
+      html += '<div style="display:flex;gap:6px">';
+      html += '<button class="btn btn-xs" style="background:rgba(255,255,255,0.25);border:none;color:#fff" onclick="openCommissieModal(\''+c.id+'\')">Bewerk</button>';
+      html += '<button class="btn btn-xs" style="background:rgba(255,255,255,0.15);border:none;color:#fff" onclick="verwijderCommissie(\''+c.id+'\')">&#215;</button>';
+      html += '</div></div>';
+      // Body
+      html += '<div style="padding:.75rem 1rem">';
+      // Leden
+      html += '<div style="font-size:11px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">Leden</div>';
+      if (leden.length === 0) {
+        html += '<div style="font-size:12px;color:var(--txh);margin-bottom:.5rem">Geen leden toegewezen</div>';
+      } else {
+        html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.5rem">';
+        leden.forEach(function(u) {
+          html += '<span style="background:var(--surf);border:1px solid var(--bd);border-radius:20px;padding:2px 8px;font-size:12px;display:flex;align-items:center;gap:4px">';
+          html += '<span style="width:18px;height:18px;border-radius:50%;background:'+c.kleur+';color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center;font-weight:700">'+u.voor[0]+u.ach[0]+'</span>';
+          html += escHtml(u.voor+' '+u.ach);
+          html += '<span style="cursor:pointer;color:var(--txm);margin-left:2px" onclick="verwijderLidUitCommissie(\''+c.id+'\','+u.id+')">×</span>';
+          html += '</span>';
+        });
+        html += '</div>';
+      }
+      html += '<button class="btn btn-s btn-xs" style="font-size:11px" onclick="openLedenModal(\''+c.id+'\')">+ Lid toevoegen</button>';
+      // Wedstrijden
+      html += '<div style="font-size:11px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0 .4rem 0">Wedstrijden ('+wedstrijden.length+')</div>';
+      if (wedstrijden.length === 0) {
+        html += '<div style="font-size:12px;color:var(--txh)">Geen wedstrijden gekoppeld</div>';
+      } else {
+        html += '<div style="display:flex;flex-direction:column;gap:3px">';
+        wedstrijden.slice(0,3).forEach(function(w) {
+          html += '<div style="font-size:12px;display:flex;align-items:center;gap:6px">';
+          html += '<span style="width:6px;height:6px;border-radius:50%;background:'+c.kleur+';flex-shrink:0"></span>';
+          html += escHtml(w.naam)+' <span style="color:var(--txm)">'+w.datum+'</span>';
+          html += '</div>';
+        });
+        if (wedstrijden.length > 3) html += '<div style="font-size:11px;color:var(--txm)">+' + (wedstrijden.length-3) + ' meer</div>';
+        html += '</div>';
+      }
+      html += '</div></div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
 }
+
+function openCommissieModal(id) {
+  var c = id ? COMMISSIES.find(function(x){return x.id===id;}) : null;
+  var html = '<div class="modal-bg open" id="modal-commissie" onclick="if(event.target===this)closeModal(\'modal-commissie\')">';
+  html += '<div class="modal-box" style="max-width:440px">';
+  html += '<div class="modal-hd">'+(c?'Commissie bewerken':'Nieuwe commissie')+'<button class="modal-x" onclick="closeModal(\'modal-commissie\')">&#215;</button></div>';
+  html += '<div class="modal-body">';
+  html += '<div class="field"><label>Naam commissie</label><input id="cm-naam" type="text" placeholder="bv. Damescommissie" value="'+escHtml(c?c.naam:'')+'"/></div>';
+  html += '<div class="field"><label>Kleur</label>';
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">';
+  var kleuren = ['#e879a0','#3b82f6','#f59e0b','#10b981','#8b5cf6','#ef4444','#06b6d4','#84cc16','#f97316','#6b7280'];
+  kleuren.forEach(function(k) {
+    var sel = (c&&c.kleur===k)||(!c&&k===kleuren[0]);
+    html += '<div onclick="this.parentNode.querySelectorAll(\'.kleur-opt\').forEach(function(x){x.style.outline=\'none\'});this.style.outline=\'3px solid #333\'" class="kleur-opt" data-kleur="'+k+'" style="width:28px;height:28px;border-radius:50%;background:'+k+';cursor:pointer;'+(sel?'outline:3px solid #333;outline-offset:2px':'')+'"></div>';
+  });
+  html += '</div></div>';
+  html += '</div>';
+  html += '<div class="modal-ft">';
+  if (c) html += '<button class="btn btn-d" onclick="verwijderCommissie(\''+c.id+'\');closeModal(\'modal-commissie\')">Verwijderen</button>';
+  html += '<button class="btn btn-p" onclick="slaCommissieOp('+(c?'\''+c.id+'\'':'null')+')">Opslaan</button>';
+  html += '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function slaCommissieOp(id) {
+  var naam = document.getElementById('cm-naam').value.trim();
+  if (!naam) { toast('Vul een naam in.','err'); return; }
+  var gekozenKleur = '#3b82f6';
+  var gekozenEl = document.querySelector('#modal-commissie .kleur-opt[style*="outline: 3px"]') ||
+                  document.querySelector('#modal-commissie .kleur-opt[style*="outline:3px"]');
+  if (gekozenEl) gekozenKleur = gekozenEl.dataset.kleur;
+  if (id) {
+    var c = COMMISSIES.find(function(x){return x.id===id;});
+    if (c) { c.naam=naam; c.kleur=gekozenKleur; }
+  } else {
+    COMMISSIES.push({id:'comm-'+Date.now(),naam:naam,kleur:gekozenKleur,leden:[]});
+  }
+  slaCommissiesOp();
+  closeModal('modal-commissie');
+  renderCommissies();
+  toast(id?'Commissie bijgewerkt.':'Commissie aangemaakt.');
+}
+
+function verwijderCommissie(id) {
+  var c = COMMISSIES.find(function(x){return x.id===id;});
+  if (!c) return;
+  if (!confirm('Commissie "'+c.naam+'" verwijderen? Wedstrijden worden losgekoppeld.')) return;
+  WEDSTRIJDEN.forEach(function(w){if(w.commissieId===id)w.commissieId=null;});
+  COMMISSIES = COMMISSIES.filter(function(x){return x.id!==id;});
+  slaCommissiesOp();
+  renderCommissies();
+  toast('Commissie verwijderd.');
+}
+
+function openLedenModal(commissieId) {
+  var c = COMMISSIES.find(function(x){return x.id===commissieId;});
+  if (!c) return;
+  var beschikbaar = USERS.filter(function(u){
+    return u.rol !== 'Speler' && (c.leden||[]).indexOf(u.id) < 0;
+  });
+  var html = '<div class="modal-bg open" id="modal-comm-leden" onclick="if(event.target===this)closeModal(\'modal-comm-leden\')">';
+  html += '<div class="modal-box" style="max-width:400px">';
+  html += '<div class="modal-hd">Lid toevoegen — '+escHtml(c.naam)+'<button class="modal-x" onclick="closeModal(\'modal-comm-leden\')">&#215;</button></div>';
+  html += '<div class="modal-body">';
+  if (beschikbaar.length === 0) {
+    html += '<p style="font-size:13px;color:var(--txm)">Alle gebruikers zijn al lid van deze commissie.</p>';
+  } else {
+    html += '<p style="font-size:13px;color:var(--txm);margin:0 0 .75rem 0">Selecteer een gebruiker om toe te voegen:</p>';
+    html += '<div style="display:flex;flex-direction:column;gap:4px">';
+    beschikbaar.forEach(function(u) {
+      html += '<div class="wd-rij" style="cursor:pointer" onclick="voegLidToeAanCommissie(\''+commissieId+'\','+u.id+')">';
+      html += '<div class="av" style="width:30px;height:30px;font-size:11px">'+u.voor[0]+u.ach[0]+'</div>';
+      html += '<div style="flex:1"><div style="font-weight:500;font-size:13px">'+escHtml(u.voor+' '+u.ach)+'</div>';
+      html += '<div style="font-size:11px;color:var(--txm)">'+u.rol+'</div></div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  html += '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function voegLidToeAanCommissie(commissieId, userId) {
+  var c = COMMISSIES.find(function(x){return x.id===commissieId;});
+  if (!c) return;
+  if (!c.leden) c.leden = [];
+  if (c.leden.indexOf(userId) < 0) c.leden.push(userId);
+  slaCommissiesOp();
+  closeModal('modal-comm-leden');
+  renderCommissies();
+  var u = USERS.find(function(x){return x.id===userId;});
+  toast((u?u.voor+' '+u.ach:'Lid')+' toegevoegd aan '+c.naam+'.');
+}
+
+function verwijderLidUitCommissie(commissieId, userId) {
+  var c = COMMISSIES.find(function(x){return x.id===commissieId;});
+  if (!c) return;
+  c.leden = (c.leden||[]).filter(function(l){return l!=userId;});
+  slaCommissiesOp();
+  renderCommissies();
+}
+
 
 // ── Baaninformatie ────────────────────────────────────────────
 function renderInstellingen() {
@@ -17717,6 +17916,9 @@ window.addEventListener('offline', updateOnlineStatus);
             </div>
             <div class="g2">
               <div class="field"><label>Starttijd eerste flight</label><input id="ft" type="time" value="08:00"/></div>
+              <div class="field"><label>Commissie</label><select id="fcommissie"><option value="">— Geen commissie —</option></select></div>
+            </div>
+            <div class="g2">
               <div class="field"><label>Golfbaan</label><input id="fb" type="text" placeholder="De Hooge Rotterdamsche"/></div>
             </div>
             <div class="g3">
