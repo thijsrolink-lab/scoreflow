@@ -5649,13 +5649,107 @@ async function dbSaveScore(wId, sid, ronde, holeIdx, score) {
       console.warn('dbSaveScore fout:', msg);
       throw new Error(msg);
     }
+
+    // Score online opgeslagen — verwijder uit offline queue als aanwezig
+    offlineScoreVerwijderUitQueue(wId, sid, holeIdx);
+
   } catch(e) {
+    // Offline of netwerk fout → sla op in localStorage queue
+    if (!navigator.onLine || e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+      var opgeslagen = offlineScoreOpslaanPerHole(wId, sid, ronde, holeIdx, score);
+      if (opgeslagen) {
+        console.log('Score offline opgeslagen: hole', holeIdx + 1, score);
+        return; // Geen error gooien — score is veilig lokaal
+      }
+    }
     console.warn('dbSaveScore exception:', e.message);
-    throw e;  // re-throw zodat caller .catch() echt fired (markScoreFailed werkt)
+    throw e;
   }
 }
 
-// Verwijder score uit DB (bij wissen door admin/speler)
+// Sla één hole-score offline op (per hole, niet hele kaart)
+function offlineScoreOpslaanPerHole(wId, sid, ronde, holeIdx, score) {
+  try {
+    var key = 'sf_offline_holes';
+    var queue = JSON.parse(localStorage.getItem(key) || '[]');
+    // Vervang bestaande entry voor zelfde combinatie
+    var idx = queue.findIndex(function(q) {
+      return q.wId === wId && q.sid === sid && q.ronde === ronde && q.hole === holeIdx;
+    });
+    var entry = { wId: wId, sid: sid, ronde: ronde, hole: holeIdx, score: score, ts: Date.now() };
+    if (idx >= 0) queue[idx] = entry;
+    else queue.push(entry);
+    localStorage.setItem(key, JSON.stringify(queue));
+    return true;
+  } catch(e) { return false; }
+}
+
+// Verwijder hole uit offline queue na succesvolle sync
+function offlineScoreVerwijderUitQueue(wId, sid, holeIdx) {
+  try {
+    var key = 'sf_offline_holes';
+    var queue = JSON.parse(localStorage.getItem(key) || '[]');
+    queue = queue.filter(function(q) {
+      return !(q.wId === wId && q.sid === sid && q.hole === holeIdx);
+    });
+    localStorage.setItem(key, JSON.stringify(queue));
+  } catch(e) {}
+}
+
+// Hoeveel offline scores staan er klaar?
+function offlineAantalOpenstaand() {
+  try {
+    var q1 = JSON.parse(localStorage.getItem('sf_offline_holes') || '[]');
+    return q1.length;
+  } catch(e) { return 0; }
+}
+
+// Sync alle offline hole-scores naar Supabase
+async function offlineQueueSync() {
+  try {
+    var key = 'sf_offline_holes';
+    var queue = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!queue.length) return;
+
+    var gesynced = 0;
+    var nieuwQueue = [];
+
+    for (var i = 0; i < queue.length; i++) {
+      var item = queue[i];
+      try {
+        var res = await fetch(SUPA_URL + '/rest/v1/scores?on_conflict=wid,sid,ronde,hole', {
+          method: 'POST',
+          headers: {
+            'apikey': SUPA_KEY,
+            'Authorization': 'Bearer ' + ((SUPA_SESSION && SUPA_SESSION.access_token) || SUPA_KEY),
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates',
+          },
+          body: JSON.stringify({
+            wid: item.wId, sid: item.sid, ronde: item.ronde,
+            hole: item.hole + 1, score: item.score || null,
+            bijgewerkt: new Date().toISOString()
+          }),
+        });
+        if (res.ok) gesynced++;
+        else nieuwQueue.push(item);
+      } catch(e) {
+        nieuwQueue.push(item); // Nog offline
+      }
+    }
+
+    localStorage.setItem(key, JSON.stringify(nieuwQueue));
+
+    if (gesynced > 0) {
+      toast('\u2705 ' + gesynced + ' offline score' + (gesynced > 1 ? 's' : '') + ' gesynchroniseerd');
+      console.log('Offline sync:', gesynced, 'holes gesynchroniseerd,', nieuwQueue.length, 'resterend');
+    }
+  } catch(e) {
+    console.warn('Offline sync mislukt:', e);
+  }
+}
+
+
 async function dbDeleteScore(wId, sid, ronde, holeIdx) {
   try {
     var url = SUPA_URL + '/rest/v1/scores?wid=eq.' + wId +
@@ -10806,7 +10900,6 @@ function markScoreSaved(inp) {
   inp.dataset.saveStatus = 'saved';
   inp.style.outline = '2px solid #16a34a';
   inp.style.outlineOffset = '-2px';
-  // Fade groene rand na 1 seconde
   setTimeout(function() {
     if (inp.dataset.saveStatus === 'saved') {
       inp.style.outline = '';
@@ -10814,15 +10907,28 @@ function markScoreSaved(inp) {
     }
   }, 1000);
 }
+
+function markScoreOffline(inp) {
+  if (!inp) return;
+  inp.dataset.saveStatus = 'offline';
+  inp.style.outline = '2px solid #f59e0b';
+  inp.style.outlineOffset = '-2px';
+  inp.title = 'Offline opgeslagen — wordt gesynchroniseerd bij verbinding';
+}
+
 function markScoreFailed(inp, msg) {
   if (!inp) return;
+  // Check of het een offline-fout is — dan oranje ipv rood
+  if (!navigator.onLine) {
+    markScoreOffline(inp);
+    return;
+  }
   inp.dataset.saveStatus = 'failed';
   inp.style.outline = '2px solid #dc2626';
   inp.style.outlineOffset = '-2px';
   if (typeof toast === 'function') {
-    toast('Score niet opgeslagen — controleer verbinding. ' + (msg || ''), 'err');
+    toast('Score niet opgeslagen — controleer verbinding.', 'err');
   }
-  // Verwijder rand na 5 sec — gebruiker is gewaarschuwd
   setTimeout(function() {
     if (inp.dataset.saveStatus === 'failed') {
       inp.style.outline = '2px dashed #dc2626';
@@ -17009,98 +17115,20 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Online/offline melding
+// Online/offline status
 var _isOnline = navigator.onLine;
 
 function updateOnlineStatus() {
   _isOnline = navigator.onLine;
   var banner = document.getElementById('offline-banner');
-  if (banner) {
-    banner.style.display = _isOnline ? 'none' : 'flex';
-  }
-  if (_isOnline && _offlineQueue.length > 0) {
-    offlineQueueSync();
+  if (banner) banner.style.display = _isOnline ? 'none' : 'flex';
+  if (_isOnline && offlineAantalOpenstaand() > 0) {
+    setTimeout(offlineQueueSync, 1000); // Kleine vertraging voor verbinding
   }
 }
 
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
-
-// Sla score op in offline-queue (localStorage)
-function offlineScoreOpslaan(wId, sid, scores) {
-  try {
-    var queue = JSON.parse(localStorage.getItem('sf_offline_scores') || '[]');
-    // Vervang bestaande entry voor zelfde wedstrijd+speler
-    var idx = queue.findIndex(function(q) { return q.wId === wId && q.sid === sid; });
-    var entry = { wId: wId, sid: sid, scores: scores, ts: Date.now() };
-    if (idx >= 0) queue[idx] = entry;
-    else queue.push(entry);
-    localStorage.setItem('sf_offline_scores', JSON.stringify(queue));
-    console.log('Score offline opgeslagen:', wId, sid);
-    return true;
-  } catch(e) {
-    console.warn('Offline opslaan mislukt:', e);
-    return false;
-  }
-}
-
-// Sync offline scores naar Supabase zodra online
-async function offlineQueueSync() {
-  try {
-    var queue = JSON.parse(localStorage.getItem('sf_offline_scores') || '[]');
-    if (!queue.length) return;
-
-    var gesynced = 0;
-    var nieuwQueue = [];
-
-    for (var i = 0; i < queue.length; i++) {
-      var item = queue[i];
-      try {
-        // Probeer score naar DB te sturen
-        var bestaand = await supa('scores', 'GET', null, {
-          wid: 'eq.' + item.wId,
-          sid: 'eq.' + item.sid,
-          select: 'id'
-        });
-
-        if (bestaand && bestaand.length > 0) {
-          await supa('scores', 'PATCH', { scores: item.scores }, {
-            wid: 'eq.' + item.wId,
-            sid: 'eq.' + item.sid
-          });
-        } else {
-          await supa('scores', 'POST', {
-            wid: item.wId,
-            sid: item.sid,
-            scores: item.scores
-          });
-        }
-        gesynced++;
-      } catch(e) {
-        // Nog steeds offline of andere fout — bewaar in queue
-        nieuwQueue.push(item);
-      }
-    }
-
-    localStorage.setItem('sf_offline_scores', JSON.stringify(nieuwQueue));
-
-    if (gesynced > 0) {
-      toast(gesynced + ' offline score' + (gesynced > 1 ? 's' : '') + ' gesynchroniseerd ✓');
-      console.log('Offline sync:', gesynced, 'scores gesynchroniseerd');
-    }
-  } catch(e) {
-    console.warn('Offline sync mislukt:', e);
-  }
-}
-
-// Laad offline scores voor een wedstrijd+speler (bij terugkeer offline)
-function offlineScoreLaden(wId, sid) {
-  try {
-    var queue = JSON.parse(localStorage.getItem('sf_offline_scores') || '[]');
-    var entry = queue.find(function(q) { return q.wId === wId && q.sid === sid; });
-    return entry ? entry.scores : null;
-  } catch(e) { return null; }
-}
 
 </script>
 </head>
