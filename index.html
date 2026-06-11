@@ -2935,7 +2935,7 @@ function getMijnTaken() {
   var mijnId = _currentUser.id;
 
   var relevanteWedstrijden = (WEDSTRIJDEN || []).filter(function(w) {
-    if (rol === 'Superadmin') {
+    if (rol === 'Admin') {
       // Superadmin: alle wedstrijden waar zij/hij leider is OF waar geen leider is
       return w.leiderId === mijnId || !w.leiderId;
     }
@@ -3724,7 +3724,7 @@ function openWdBeheer(wId) {
   var leiderSel = document.getElementById('mwb-leider');
   if (leiderSel) {
     var leiderOpts = '<option value="">— Geen / nog niet gekozen —</option>';
-    USERS.filter(function(u){return u.rol === 'Superadmin' || u.rol === 'Wedstrijdleider' || u.rol === 'Secretaris';})
+    USERS.filter(function(u){return u.rol === 'Admin' || u.rol === 'Wedstrijdleider' || u.rol === 'Wedstrijdplanner';})
       .sort(function(a,b){return (a.voor+' '+a.ach).localeCompare(b.voor+' '+b.ach);})
       .forEach(function(u){
         leiderOpts += '<option value="' + u.id + '">' + escHtml(u.voor + ' ' + u.ach) + ' (' + u.rol + ')</option>';
@@ -6284,9 +6284,9 @@ var _nu=new Date(); var cy=_nu.getFullYear(), cm=_nu.getMonth();
 
 // Gebruikers (admins + spelers)
 var USERS=[
-  {id:1,voor:'Erik',ach:'Janssen',email:'erik@gcc.nl',pw:'admin123',rol:'Superadmin',lid:'ADMIN-001',ltype:'Admin',hcp:null,gs:'M',jaar:1972,tel:'06-10000001',deelnames:0},
+  {id:1,voor:'Erik',ach:'Janssen',email:'erik@gcc.nl',pw:'admin123',rol:'Admin',lid:'ADMIN-001',ltype:'Admin',hcp:null,gs:'M',jaar:1972,tel:'06-10000001',deelnames:0},
   {id:2,voor:'Sandra',ach:'Boer',email:'sandra@gcc.nl',pw:'wedstrijd1',rol:'Wedstrijdleider',lid:'ADMIN-002',ltype:'Admin',hcp:null,gs:'V',jaar:1980,tel:'06-10000002',deelnames:0},
-  {id:3,voor:'Marc',ach:'Visser',email:'marc@gcc.nl',pw:'secretar1',rol:'Secretaris',lid:'ADMIN-003',ltype:'Admin',hcp:null,gs:'M',jaar:1975,tel:'06-10000003',deelnames:0},
+  {id:3,voor:'Marc',ach:'Visser',email:'marc@gcc.nl',pw:'wedplan1',rol:'Wedstrijdplanner',lid:'ADMIN-003',ltype:'Admin',hcp:null,gs:'M',jaar:1975,tel:'06-10000003',deelnames:0},
   {id:4,voor:'Jan',ach:'de Vries',email:'jan@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0001',ltype:'Volledig lid',hcp:12.4,gs:'M',jaar:1968,tel:'06-11111111',deelnames:8},
   {id:5,voor:'Maria',ach:'Bakker',email:'maria@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0002',ltype:'Volledig lid',hcp:18.2,gs:'V',jaar:1975,tel:'06-22222222',deelnames:12},
   {id:6,voor:'Pieter',ach:'Smit',email:'pieter@example.nl',pw:'speler123',rol:'Speler',lid:'2025-0003',ltype:'Volledig lid',hcp:6.1,gs:'M',jaar:1982,tel:'06-33333333',deelnames:5},
@@ -6347,9 +6347,9 @@ var _adminBcNav=null;
 // AUTH
 // ============================================================
 var ROL_RECHTEN_DEFAULT={
-  Superadmin:['dashboard','kalender','wedstrijden','wddetail','mijntaken','sponsoren','nieuw','competities','ranking','spelers','inschrijvingen','flights','scores','admins','commissies','notificaties','rapportages','auditlog','instellingen','aiassistent','wd-templates','baaninformatie'],
+  Admin:['dashboard','kalender','wedstrijden','wddetail','mijntaken','sponsoren','nieuw','competities','ranking','spelers','inschrijvingen','flights','scores','admins','commissies','notificaties','rapportages','auditlog','instellingen','aiassistent','wd-templates','baaninformatie'],
   Wedstrijdleider:['dashboard','kalender','wedstrijden','wddetail','mijntaken','nieuw','competities','ranking','inschrijvingen','flights','scores','notificaties','rapportages','aiassistent','wd-templates'],
-  Secretaris:['dashboard','kalender','wedstrijden','wddetail','spelers','inschrijvingen','notificaties'],
+  Wedstrijdplanner:['dashboard','kalender','wedstrijden','wddetail','mijntaken','nieuw','competities','ranking','aiassistent','wd-templates'],
   Speler:[],
 };
 
@@ -6357,17 +6357,17 @@ var ROL_RECHTEN_DEFAULT={
 function laadRolRechten(){
   try{
     var opgeslagen=JSON.parse(localStorage.getItem('sf_rol_rechten')||'null');
-    if(opgeslagen&&opgeslagen.Wedstrijdleider&&opgeslagen.Secretaris){
-      // Superadmin altijd volledig (niet aanpasbaar)
-      opgeslagen.Superadmin=ROL_RECHTEN_DEFAULT.Superadmin.slice();
+    if(opgeslagen&&opgeslagen.Wedstrijdleider&&opgeslagen.Wedstrijdplanner){
+      // Admin altijd volledig (niet aanpasbaar)
+      opgeslagen.Admin=ROL_RECHTEN_DEFAULT.Admin.slice();
       opgeslagen.Speler=[];
       return opgeslagen;
     }
   }catch(e){}
   return {
-    Superadmin:ROL_RECHTEN_DEFAULT.Superadmin.slice(),
+    Admin:ROL_RECHTEN_DEFAULT.Admin.slice(),
     Wedstrijdleider:ROL_RECHTEN_DEFAULT.Wedstrijdleider.slice(),
-    Secretaris:ROL_RECHTEN_DEFAULT.Secretaris.slice(),
+    Wedstrijdplanner:ROL_RECHTEN_DEFAULT.Wedstrijdplanner.slice(),
     Speler:[],
   };
 }
@@ -6638,43 +6638,43 @@ function toonScherm(naam){
 // ============================================================
 var ADMIN_NAV_ITEMS=[
   // ── Overzicht ──────────────────────────────────────────────
-  {sec:'Overzicht',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
-  {id:'dashboard',   label:'Dashboard',        rollen:['Superadmin','Wedstrijdleider','Secretaris'], icon:'<rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>'},
-  {id:'mijntaken',   label:'Mijn taken',        rollen:['Superadmin','Wedstrijdleider'],             badge:'taken', icon:'<path d="M3 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5z"/><path d="M6 8l1.5 1.5L10 7"/>'},
+  {sec:'Overzicht',rollen:['Admin','Wedstrijdleider','Wedstrijdplanner']},
+  {id:'dashboard',   label:'Dashboard',        rollen:['Admin','Wedstrijdleider','Wedstrijdplanner'], icon:'<rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>'},
+  {id:'mijntaken',   label:'Mijn taken',        rollen:['Admin','Wedstrijdleider'],             badge:'taken', icon:'<path d="M3 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5z"/><path d="M6 8l1.5 1.5L10 7"/>'},
 
   // ── Wedstrijden ────────────────────────────────────────────
-  {sec:'Wedstrijden',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
-  {id:'kalender',    label:'Kalender',          rollen:['Superadmin','Wedstrijdleider','Secretaris'], icon:'<rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 1v4M11 1v4M2 7h12"/>'},
-  {id:'wedstrijden', label:'Alle wedstrijden',  rollen:['Superadmin','Wedstrijdleider','Secretaris'], icon:'<path d="M2 4h12M2 8h12M2 12h8"/>'},
-  {id:'wd-templates',label:'Templates',         rollen:['Superadmin','Wedstrijdleider'],              icon:'<rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/><circle cx="12" cy="12" r="3.5" style="fill:var(--g)"/><path d="M12 10.5v3M10.5 12h3" style="stroke:#fff"/>'},
-  {id:'aiassistent', label:'AI Assistent',      rollen:['Superadmin','Wedstrijdleider'],              icon:'<circle cx="8" cy="8" r="6"/><path d="M5 8h6M8 5l3 3-3 3"/>'},
+  {sec:'Wedstrijden',rollen:['Admin','Wedstrijdleider','Wedstrijdplanner']},
+  {id:'kalender',    label:'Kalender',          rollen:['Admin','Wedstrijdleider','Wedstrijdplanner'], icon:'<rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 1v4M11 1v4M2 7h12"/>'},
+  {id:'wedstrijden', label:'Alle wedstrijden',  rollen:['Admin','Wedstrijdleider','Wedstrijdplanner'], icon:'<path d="M2 4h12M2 8h12M2 12h8"/>'},
+  {id:'wd-templates',label:'Templates',         rollen:['Admin','Wedstrijdleider','Wedstrijdplanner'],              icon:'<rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/><circle cx="12" cy="12" r="3.5" style="fill:var(--g)"/><path d="M12 10.5v3M10.5 12h3" style="stroke:#fff"/>'},
+  {id:'aiassistent', label:'AI Assistent',      rollen:['Admin','Wedstrijdleider','Wedstrijdplanner'],              icon:'<circle cx="8" cy="8" r="6"/><path d="M5 8h6M8 5l3 3-3 3"/>'},
 
   // ── Competities ────────────────────────────────────────────
-  {sec:'Competities',rollen:['Superadmin','Wedstrijdleider']},
-  {id:'competities', label:'Competities',       rollen:['Superadmin','Wedstrijdleider'],              icon:'<path d="M8 2l1.5 4.5H15l-4.5 3 1.5 4.5L8 11.5 4.5 14 6 9.5 1.5 6.5H7.5z"/>'},
-  {id:'ranking',     label:'Ranking',           rollen:['Superadmin','Wedstrijdleider'],              icon:'<path d="M4 14V9M8 14V5M12 14V8"/><path d="M1 14h14"/>'},
+  {sec:'Competities',rollen:['Admin','Wedstrijdleider','Wedstrijdplanner']},
+  {id:'competities', label:'Competities',       rollen:['Admin','Wedstrijdleider','Wedstrijdplanner'],              icon:'<path d="M8 2l1.5 4.5H15l-4.5 3 1.5 4.5L8 11.5 4.5 14 6 9.5 1.5 6.5H7.5z"/>'},
+  {id:'ranking',     label:'Ranking',           rollen:['Admin','Wedstrijdleider','Wedstrijdplanner'],              icon:'<path d="M4 14V9M8 14V5M12 14V8"/><path d="M1 14h14"/>'},
 
   // ── Spelers ────────────────────────────────────────────────
-  {sec:'Spelers',    rollen:['Superadmin','Wedstrijdleider','Secretaris']},
-  {id:'spelers',     label:'Clubleden',         rollen:['Superadmin','Secretaris'],                   icon:'<circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M12 9c1.5.5 3 1.5 3 4"/>'},
-  {id:'inschrijvingen',label:'Deelnemers',      rollen:['Superadmin','Wedstrijdleider','Secretaris'], icon:'<path d="M3 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M6 8l1.5 1.5L10 6"/>'},
+  {sec:'Spelers',    rollen:['Admin','Wedstrijdleider']},
+  {id:'spelers',     label:'Clubleden',         rollen:['Admin','Wedstrijdleider'],                   icon:'<circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M12 9c1.5.5 3 1.5 3 4"/>'},
+  {id:'inschrijvingen',label:'Deelnemers',      rollen:['Admin','Wedstrijdleider'], icon:'<path d="M3 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M6 8l1.5 1.5L10 6"/>'},
 
   // ── Inzichten ──────────────────────────────────────────────
-  {sec:'Inzichten',  rollen:['Superadmin','Wedstrijdleider']},
-  {id:'rapportages', label:'Rapportages',       rollen:['Superadmin','Wedstrijdleider'],              icon:'<rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 10V8M8 10V6M11 10V4"/>'},
-  {id:'auditlog',    label:'Audit log',         rollen:['Superadmin'],                                icon:'<path d="M2 4h12M2 7h8M2 10h6"/><circle cx="12" cy="11" r="3"/><path d="M14.5 13.5l1.5 1.5"/>'},
+  {sec:'Inzichten',  rollen:['Admin','Wedstrijdleider']},
+  {id:'rapportages', label:'Rapportages',       rollen:['Admin','Wedstrijdleider'],              icon:'<rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 10V8M8 10V6M11 10V4"/>'},
+  {id:'auditlog',    label:'Audit log',         rollen:['Admin'],                                icon:'<path d="M2 4h12M2 7h8M2 10h6"/><circle cx="12" cy="11" r="3"/><path d="M14.5 13.5l1.5 1.5"/>'},
 
   // ── Beheer ─────────────────────────────────────────────────
-  {sec:'Beheer',     rollen:['Superadmin']},
-  {id:'admins',      label:'Gebruikers & rollen',rollen:['Superadmin'],                               icon:'<circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/>'},
-  {id:'commissies',  label:'Commissies',         rollen:['Superadmin'],                               icon:'<circle cx="5" cy="5" r="2.5"/><circle cx="11" cy="5" r="2.5"/><circle cx="8" cy="11" r="2.5"/>'},
-  {id:'notificaties',label:'Notificaties',       rollen:['Superadmin','Wedstrijdleider','Secretaris'],badge:'notif', icon:'<path d="M8 2a5 5 0 0 1 5 5v2l1 2H2l1-2V7a5 5 0 0 1 5-5z"/><path d="M6 13a2 2 0 0 0 4 0"/>'},
+  {sec:'Beheer',     rollen:['Admin']},
+  {id:'admins',      label:'Gebruikers & rollen',rollen:['Admin'],                               icon:'<circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/>'},
+  {id:'commissies',  label:'Commissies',         rollen:['Admin'],                               icon:'<circle cx="5" cy="5" r="2.5"/><circle cx="11" cy="5" r="2.5"/><circle cx="8" cy="11" r="2.5"/>'},
+  {id:'notificaties',label:'Notificaties',       rollen:['Admin','Wedstrijdleider'],badge:'notif', icon:'<path d="M8 2a5 5 0 0 1 5 5v2l1 2H2l1-2V7a5 5 0 0 1 5-5z"/><path d="M6 13a2 2 0 0 0 4 0"/>'},
 
   // ── Instellingen ───────────────────────────────────────────
-  {sec:'Instellingen',rollen:['Superadmin']},
-  {id:'baaninformatie',label:'Baaninformatie',  rollen:['Superadmin'],                               icon:'<path d="M2 13c2-4 4-6 6-6s4 2 6 6"/><circle cx="8" cy="5" r="2"/>'},
-  {id:'sponsoren',   label:'Sponsoren',          rollen:['Superadmin'],                               icon:'<path d="M8 2l1.2 3.5H13l-3 2.2 1.1 3.5L8 9.2l-3.1 2 1.1-3.5-3-2.2h3.8z"/>'},
-  {id:'instellingen',label:'Clubinstellingen',  rollen:['Superadmin'],                               icon:'<circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4"/>'},
+  {sec:'Instellingen',rollen:['Admin']},
+  {id:'baaninformatie',label:'Baaninformatie',  rollen:['Admin'],                               icon:'<path d="M2 13c2-4 4-6 6-6s4 2 6 6"/><circle cx="8" cy="5" r="2"/>'},
+  {id:'sponsoren',   label:'Sponsoren',          rollen:['Admin'],                               icon:'<path d="M8 2l1.2 3.5H13l-3 2.2 1.1 3.5L8 9.2l-3.1 2 1.1-3.5-3-2.2h3.8z"/>'},
+  {id:'instellingen',label:'Clubinstellingen',  rollen:['Admin'],                               icon:'<circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4"/>'},
 ];
 
 var ADMIN_TITLES={
@@ -6749,7 +6749,7 @@ function vulLeiderDropdown(huidigeLeiderId) {
   if (!sel) return;
   // Bewaar huidige optionele waarde
   var leiders = (USERS || []).filter(function(u) {
-    return u.rol === 'Superadmin' || u.rol === 'Wedstrijdleider';
+    return u.rol === 'Admin' || u.rol === 'Wedstrijdleider';
   });
   // Sorteer op naam
   leiders.sort(function(a, b) {
@@ -7529,7 +7529,7 @@ function resetForm(){
   _editId=null;
   // Default leider: huidige user als die admin is
   var defLeiderId = '';
-  if (_currentUser && (_currentUser.rol === 'Superadmin' || _currentUser.rol === 'Wedstrijdleider')) {
+  if (_currentUser && (_currentUser.rol === 'Admin' || _currentUser.rol === 'Wedstrijdleider')) {
     defLeiderId = _currentUser.id;
   }
   vulLeiderDropdown(defLeiderId);
@@ -7734,9 +7734,9 @@ function renderSpelers(){
     var rolBadge = '';
     if (s.rol && s.rol !== 'Speler') {
       var rolBg, rolColor;
-      if (s.rol === 'Superadmin') { rolBg = 'rgba(239,68,68,0.12)'; rolColor = '#dc2626'; }
+      if (s.rol === 'Admin') { rolBg = 'rgba(239,68,68,0.12)'; rolColor = '#dc2626'; }
       else if (s.rol === 'Wedstrijdleider') { rolBg = 'rgba(22,163,74,0.12)'; rolColor = '#16a34a'; }
-      else if (s.rol === 'Secretaris') { rolBg = 'rgba(245,158,11,0.12)'; rolColor = '#a16207'; }
+      else if (s.rol === 'Wedstrijdplanner') { rolBg = 'rgba(59,130,246,0.12)'; rolColor = '#2563eb'; }
       else { rolBg = '#f1f4f8'; rolColor = '#425466'; }
       rolBadge = '<span style="background:' + rolBg + ';color:' + rolColor + ';font-size:9px;padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-left:6px;vertical-align:middle">' + escHtml(s.rol) + '</span>';
     }
@@ -7772,7 +7772,7 @@ function editSpeler(id){
   if (rolEl) rolEl.value = s.rol || 'Speler';
   // Login-block alleen tonen voor superadmin
   var loginBlock = document.querySelector('.ms-login-block');
-  if (loginBlock) loginBlock.style.display = (_currentUser && _currentUser.rol === 'Superadmin') ? '' : 'none';
+  if (loginBlock) loginBlock.style.display = (_currentUser && _currentUser.rol === 'Admin') ? '' : 'none';
   document.getElementById('modal-speler').dataset.edit=id;
 }
 
@@ -7808,7 +7808,7 @@ async function saveSpeler(){
   };
 
   // Alleen superadmin mag rol/wachtwoord aanpassen
-  var isSuper = _currentUser && _currentUser.rol === 'Superadmin';
+  var isSuper = _currentUser && _currentUser.rol === 'Admin';
   if (isSuper) {
     if (rolInput) data.rol = rolInput;
     if (pwInput) data.pw = pwInput;
@@ -7877,7 +7877,7 @@ function renderAdmins(){
 function renderRechtenTabel(){
   var el=document.getElementById('rechten-tabel');
   if(!el)return;
-  var rollen=['Wedstrijdleider','Secretaris'];
+  var rollen=['Wedstrijdleider','Wedstrijdplanner'];
   var rechten=ROL_RECHTEN;
   var html='<div style="overflow-x:auto"><table class="tbl" style="min-width:500px">';
   html+='<thead><tr><th style="width:160px">Module</th>';
@@ -7917,8 +7917,8 @@ function rechtenCheckChange(cb){
 }
 
 function slaRechtenOp(){
-  var nieuweRechten={Superadmin:ROL_RECHTEN_DEFAULT.Superadmin.slice(),Speler:[]};
-  ['Wedstrijdleider','Secretaris'].forEach(function(rol){
+  var nieuweRechten={Admin:ROL_RECHTEN_DEFAULT.Admin.slice(),Speler:[]};
+  ['Wedstrijdleider','Wedstrijdplanner'].forEach(function(rol){
     var lijst=['dashboard','wddetail'];
     ROL_MODULES.forEach(function(groep){
       groep.items.forEach(function(item){
@@ -14086,7 +14086,7 @@ function zichtbareHoles(w) {
   var totaal = w.holes || 18;
   var blind = parseInt(w.blindHoles) || 0;
   if (blind <= 0) return totaal;
-  if (_currentUser && (_currentUser.rol === 'Superadmin' || _currentUser.rol === 'Wedstrijdleider' || _currentUser.rol === 'Secretaris')) return totaal;
+  if (_currentUser && (_currentUser.rol === 'Admin' || _currentUser.rol === 'Wedstrijdleider' || _currentUser.rol === 'Wedstrijdplanner')) return totaal;
   if (w.status === 'afgerond') return totaal;
   return Math.max(0, totaal - blind);
 }
@@ -16226,7 +16226,7 @@ var HELP = {
       { kop: 'Status', tekst: '"Concept" = nog niet zichtbaar voor leden. "Gepubliceerd" = inschrijving mogelijk. Gebruik de wizard om alles in te stellen.' },
       { kop: 'Snel aanmaken', tekst: 'De ⚡ knop opent een vereenvoudigd formulier. Kies vorm, datum en naam — klaar. Ideaal voor terugkerende wedstrijden.' },
       { kop: 'Kopiëren', tekst: 'Dupliceer een bestaande wedstrijd als template. Datum wordt automatisch +7 dagen gezet.' },
-      { kop: 'Rechten', tekst: 'Alleen Superadmin en Wedstrijdleider kunnen wedstrijden aanmaken, bewerken of verwijderen.' },
+      { kop: 'Rechten', tekst: 'Admin en Wedstrijdleider kunnen wedstrijden aanmaken en bewerken. Wedstrijdplanner kan plannen maar niet uitvoeren.' },
     ]
   },
   nieuw: {
@@ -16286,10 +16286,10 @@ var HELP = {
     titel: 'Admins & rollen',
     intro: 'Beheer wie toegang heeft tot de admin omgeving en welke rechten ze hebben.',
     secties: [
-      { kop: 'Superadmin', tekst: 'Volledige toegang. Kan alles beheren inclusief andere admins toevoegen en verwijderen.' },
-      { kop: 'Wedstrijdleider', tekst: 'Kan wedstrijden aanmaken en bewerken, inschrijvingen beheren, flights indelen en scores invoeren.' },
-      { kop: 'Secretaris', tekst: 'Kan leden beheren, inschrijvingen bekijken en berichten sturen. Geen toegang tot wedstrijden aanmaken.' },
-      { kop: 'Tip', tekst: 'Maak minimaal 2 Superadmins aan als backup. Als de enige Superadmin geen toegang meer heeft, is er geen herstel mogelijk.' },
+      { kop: 'Admin', tekst: 'Volledige toegang. Kan alles beheren inclusief andere gebruikers toevoegen en verwijderen.' },
+      { kop: 'Wedstrijdleider', tekst: 'Kan wedstrijden uitvoeren: inschrijvingen beheren, flights indelen en scores invoeren.' },
+      { kop: 'Wedstrijdplanner', tekst: 'Kan de agenda plannen en wedstrijden aanmaken. Geen toegang tot scores of spelersdata.' },
+      { kop: 'Tip', tekst: 'Maak minimaal 2 Admins aan als backup. Als de enige Admin geen toegang meer heeft, is er geen herstel mogelijk.' },
     ]
   },
   notificaties: {
@@ -17532,9 +17532,9 @@ window.addEventListener('offline', updateOnlineStatus);
         <details class="login-demo-details">
           <summary>Demo accounts</summary>
           <div class="demo-accounts">
-            <div class="demo-btn" onclick="loginAs(&apos;erik@gcc.nl&apos;,&apos;admin123&apos;)"><strong>Erik Janssen</strong>Superadmin</div>
+            <div class="demo-btn" onclick="loginAs(&apos;erik@gcc.nl&apos;,&apos;admin123&apos;)"><strong>Erik Janssen</strong>Admin</div>
             <div class="demo-btn" onclick="loginAs(&apos;sandra@gcc.nl&apos;,&apos;wedstrijd1&apos;)"><strong>Sandra Boer</strong>Wedstrijdleider</div>
-            <div class="demo-btn" onclick="loginAs(&apos;marc@gcc.nl&apos;,&apos;secretar1&apos;)"><strong>Marc Visser</strong>Secretaris</div>
+            <div class="demo-btn" onclick="loginAs(&apos;marc@gcc.nl&apos;,&apos;wedplan1&apos;)"><strong>Marc Visser</strong>Wedstrijdplanner</div>
             <div class="demo-btn" onclick="loginAs(&apos;jan@example.nl&apos;,&apos;speler123&apos;)"><strong>Jan de Vries</strong>Speler · HCP 12.4</div>
             <div class="demo-btn" onclick="loginAs(&apos;maria@example.nl&apos;,&apos;speler123&apos;)"><strong>Maria Bakker</strong>Speler · HCP 18.2</div>
             <div class="demo-btn" onclick="loginAs(&apos;tom@example.nl&apos;,&apos;speler123&apos;)"><strong>Tom Jansen</strong>Speler · HCP 3.5</div>
@@ -17837,7 +17837,7 @@ window.addEventListener('offline', updateOnlineStatus);
                   <option value="4">Laatste 4 holes verborgen</option>
                   <option value="5">Laatste 5 holes verborgen</option>
                 </select>
-                <small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">Wedstrijdleider/admin ziet altijd alles. Na afronding zichtbaar voor iedereen.</small>
+                <small style="color:#8b94a3;font-size:11px;display:block;margin-top:4px">Admin/Wedstrijdleider ziet altijd alles. Na afronding zichtbaar voor iedereen.</small>
               </div>
 
               <!-- Drive-quota: alleen Texas Scramble -->
@@ -18035,7 +18035,7 @@ window.addEventListener('offline', updateOnlineStatus);
         </div>
         <div class="card">
           <div class="card-hd">Rolrechten
-            <div class="card-hd-r"><span style="font-size:12px;color:var(--txm);font-weight:400">Superadmin heeft altijd alle rechten</span></div>
+            <div class="card-hd-r"><span style="font-size:12px;color:var(--txm);font-weight:400">Admin heeft altijd alle rechten</span></div>
           </div>
           <p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0">Stel per rol in welke modules zichtbaar en toegankelijk zijn. Wijzigingen worden lokaal opgeslagen en gelden direct na opslaan.</p>
           <div id="rechten-tabel"></div>
@@ -18662,7 +18662,7 @@ window.addEventListener('offline', updateOnlineStatus);
     <div class="field"><label>Rol</label>
       <div class="tg">
         <button class="tgb on" data-rol="Wedstrijdleider" onclick="tSingle(this,'rol')">Wedstrijdleider</button>
-        <button class="tgb" data-rol="Secretaris" onclick="tSingle(this,'rol')">Secretaris</button>
+        <button class="tgb" data-rol="Wedstrijdplanner" onclick="tSingle(this,'rol')">Wedstrijdplanner</button>
         <button class="tgb" data-rol="Superadmin" onclick="tSingle(this,'rol')">Superadmin</button>
       </div>
     </div>
