@@ -6788,7 +6788,9 @@ function adminNav(id){
   if(renders[id])renders[id]();
   if(id==='nieuw'){goStep(0);if(!_editId)resetForm();}
   _adminView=id;
+  // Scroll nogmaals na tick — async renders (auditlog, etc.) kunnen scroll resetten
   if(ac)ac.scrollTop=0;
+  setTimeout(function(){var ac2=document.querySelector('.admin-content');if(ac2)ac2.scrollTop=0;},50);
 }
 
 function bcClick(){if(_adminBcNav)adminNav(_adminBcNav);}
@@ -11507,21 +11509,26 @@ async function laadAuditLog() {
     if (!el) return;
     if (!res || res.length === 0) {
       el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--txm);font-size:13px">Geen audit-entries gevonden.<br><small>Voer eerst de SQL-migratie uit om de audit_log tabel aan te maken.</small></div>';
-      return;
+    } else {
+      el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tijdstip</th><th>Gebruiker</th><th>Actie</th><th>Details</th></tr></thead><tbody>' +
+        res.map(function(row) {
+          var d = new Date(row.created_at);
+          var tijdStr = d.toLocaleDateString('nl-NL') + ' ' + d.toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
+          return '<tr><td style="white-space:nowrap;font-size:12px;color:var(--txm)">'+tijdStr+'</td>' +
+            '<td style="font-size:13px">'+escHtml(row.user_naam||row.user_id||'?')+'</td>' +
+            '<td><span class="badge bx" style="font-size:11px">'+escHtml(row.actie||'')+'</span></td>' +
+            '<td style="font-size:12px;color:var(--txm)">'+escHtml(row.details||'')+'</td></tr>';
+        }).join('') + '</tbody></table></div>';
     }
-    el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tijdstip</th><th>Gebruiker</th><th>Actie</th><th>Details</th></tr></thead><tbody>' +
-      res.map(function(row) {
-        var d = new Date(row.created_at);
-        var tijdStr = d.toLocaleDateString('nl-NL') + ' ' + d.toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
-        return '<tr><td style="white-space:nowrap;font-size:12px;color:var(--txm)">'+tijdStr+'</td>' +
-          '<td style="font-size:13px">'+escHtml(row.user_naam||row.user_id||'?')+'</td>' +
-          '<td><span class="badge bx" style="font-size:11px">'+escHtml(row.actie||'')+'</span></td>' +
-          '<td style="font-size:12px;color:var(--txm)">'+escHtml(row.details||'')+'</td></tr>';
-      }).join('') + '</tbody></table></div>';
+    // Scroll naar boven na async load
+    var ac = document.querySelector('.admin-content');
+    if (ac) ac.scrollTop = 0;
   } catch(e) {
     var el2 = document.getElementById('audit-content');
     if (el2) el2.innerHTML = '<div style="padding:1rem;color:var(--txm);font-size:13px">Audit log niet beschikbaar. ' +
       'Zorg dat de <code>audit_log</code> tabel bestaat in Supabase en RLS correct is ingesteld.</div>';
+    var ac2 = document.querySelector('.admin-content');
+    if (ac2) ac2.scrollTop = 0;
   }
 }
 
