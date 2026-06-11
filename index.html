@@ -7092,7 +7092,10 @@ function renderCal(){
       var k=e.kleur||'ceg';
       var t=e.tijd?e.tijd.slice(0,5)+' ':'';
       var oid='adminNavToW(\'wddetail\','+JSON.stringify(e.id)+')';
-      evH+='<div class="ce '+k+'" onclick="event.stopPropagation();'+oid+'" title="'+escHtml(e.naam)+(e.tijd?' · '+e.tijd:'')+'">' + t + escHtml(e.naam)+'</div>';
+      var comm=e.commissieId?COMMISSIES.find(function(c){return c.id===e.commissieId;}):null;
+      var balk=comm?'<span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:'+comm.kleur+'"></span>':'';
+      var titl=escHtml(e.naam)+(e.tijd?' · '+e.tijd:'')+(comm?' · '+comm.naam:'');
+      evH+='<div class="ce '+k+'" onclick="event.stopPropagation();'+oid+'" title="'+titl+'">'+balk+t+escHtml(e.naam)+'</div>';
     });
     if(evs.length>3)evH+='<div class="ce-more">+'+(evs.length-3)+' meer</div>';
     html+='<div class="'+cls+'"><div class="cdn">'+d+'</div>'+evH+'</div>';
@@ -7117,12 +7120,17 @@ function renderCal(){
     }
   }
 
+  // Legenda: commissies die actief zijn deze maand
+  var pfx2=cy+'-'+String(cm+1).padStart(2,'0');
+  var commDezeMaand={};
+  WEDSTRIJDEN.filter(function(w){return w.datum&&w.datum.startsWith(pfx2)&&w.commissieId;})
+    .forEach(function(w){commDezeMaand[w.commissieId]=(commDezeMaand[w.commissieId]||0)+1;});
+  // Fallback kleurcodes voor wedstrijden zonder commissie
   var kleuren={};
   var kleurNaam={ceg:'Algemeen',blue:'Heren',pink:'Dames',amber:'Senioren',navy:'Avond',purple:'Business',cep:'Overig',cer:'Afgelast'};
   var kleurHex={ceg:'#16a34a',blue:'#2563eb',pink:'#ec4899',amber:'#d97706',navy:'#3730a3',purple:'#7c3aed',cep:'#8b5cf6',cer:'#ef4444'};
-  WEDSTRIJDEN.filter(function(w){return w.datum&&w.datum.startsWith(pfx2);})
-    .forEach(function(w){var k=w.kleur||'ceg';kleuren[k]=(kleuren[k]||0)+1;});
-
+  WEDSTRIJDEN.filter(function(w){return w.datum&&w.datum.startsWith(pfx2)&&!w.commissieId;})
+    .forEach(function(w){var k=w.kleur||'ceg';kleuren[k]=(kleuren[k]||0)+1;})
   var legEl=document.getElementById('cal-legenda');
   if(legEl){
     if(!heeftW&&WEDSTRIJDEN.length>0){
@@ -7130,10 +7138,16 @@ function renderCal(){
     } else if(!heeftW){
       legEl.innerHTML='<span style="font-size:11px;color:var(--txm)">Geen wedstrijden</span>';
     } else {
-      legEl.innerHTML=Object.entries(kleuren).map(function(kv){
-        return'<div class="cal-leg-item"><div class="cal-leg-dot" style="background:'+(kleurHex[kv[0]]||'#888')+'"></div>'+
-          escHtml(kleurNaam[kv[0]]||kv[0])+' <span style="opacity:.6">('+kv[1]+')</span></div>';
-      }).join('');
+      // Commissies eerst, dan overige kleurcodes
+      var legItems = [];
+      Object.entries(commDezeMaand).forEach(function(kv) {
+        var c = COMMISSIES.find(function(x){return x.id===kv[0];});
+        if (c) legItems.push('<div class="cal-leg-item"><div class="cal-leg-dot" style="background:'+c.kleur+'"></div>'+escHtml(c.naam)+' <span style="opacity:.6">('+kv[1]+')</span></div>');
+      });
+      Object.entries(kleuren).forEach(function(kv) {
+        legItems.push('<div class="cal-leg-item"><div class="cal-leg-dot" style="background:'+(kleurHex[kv[0]]||'#888')+'"></div>'+escHtml(kleurNaam[kv[0]]||kv[0])+' <span style="opacity:.6">('+kv[1]+')</span></div>');
+      });
+      legEl.innerHTML = legItems.join('');
     }
   }
 }
