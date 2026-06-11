@@ -838,6 +838,44 @@ test('Geen modal-bg gebruikt inline style.display=flex (breekt closeModal)', () 
 });
 
 // ═══════════════════════════════════════════════════════════════
+// HTML DIV-BALANS PER VIEW
+// ═══════════════════════════════════════════════════════════════
+section('Div-balans per view');
+
+// Elke .view div moet evenveel <div> opens als closes hebben.
+// Een onbalans betekent dat stappen/secties buiten de view vallen
+// en als onzichtbare blokken ruimte innemen (lege ruimte bovenaan).
+(function() {
+  const viewPattern = /<div id="(v-[^"]+)"[^>]*class="view[^"]*"|<div[^>]*class="view[^"]*"[^>]*id="(v-[^"]+)"/g;
+  const viewIds = [];
+  let m;
+  while ((m = viewPattern.exec(html)) !== null) {
+    viewIds.push(m[1] || m[2]);
+  }
+
+  viewIds.forEach(function(vid) {
+    test(`v-${vid.replace('v-','')} div-balans`, function() {
+      // Vind de view div en de volgende view div op hetzelfde niveau
+      const startIdx = html.indexOf(`id="${vid}"`);
+      if (startIdx < 0) return `${vid} niet gevonden in HTML`;
+
+      // Zoek de volgende sibling view (of het einde van admin-content)
+      const afterStart = startIdx + vid.length + 10;
+      const nextViewMatch = /id="v-[^"]+"\s[^>]*class="view|class="view[^"]*"\s[^>]*id="v-/.exec(html.slice(afterStart));
+      const endIdx = nextViewMatch ? afterStart + nextViewMatch.index : html.indexOf('</body>');
+
+      const block = html.slice(startIdx, endIdx);
+      const opens = (block.match(/<div[\s>]/g) || []).length;
+      const closes = (block.match(/<\/div>/g) || []).length;
+      const balance = opens - closes;
+
+      if (balance === 0) return true;
+      return `div-balans is ${balance > 0 ? '+' : ''}${balance} (${opens} opens, ${closes} closes) — mogelijk stap/sectie buiten view`;
+    });
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
 // SAMENVATTING
 // ═══════════════════════════════════════════════════════════════
 console.log(`\n${'═'.repeat(60)}`);
