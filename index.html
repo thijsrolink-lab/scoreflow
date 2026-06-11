@@ -2672,10 +2672,11 @@ function logActie(actie, details, objectId, objectNaam) {
   supa('audit_log', 'POST', {
     user_id:     _currentUser.id || null,
     user_naam:   (_currentUser.voor + ' ' + _currentUser.ach).trim(),
+    user_email:  _currentUser.email || null,
     actie:       actie,
     details:     details || null,
-    object_id:   objectId ? String(objectId) : null,
-    object_naam: objectNaam || null
+    object_naam: objectNaam || null,
+    record_id:   objectId ? String(objectId) : null
   }).catch(function(e) {
     console.warn('Audit log mislukt:', e.message);
   });
@@ -2685,7 +2686,7 @@ function logActie(actie, details, objectId, objectNaam) {
 async function cleanupAuditLog() {
   try {
     var grens = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    await supa('audit_log', 'DELETE', null, { created_at: 'lt.' + grens });
+    await supa('audit_log', 'DELETE', null, { ts: 'lt.' + grens });
   } catch(e) {
     console.warn('Audit cleanup mislukt:', e.message);
   }
@@ -11762,7 +11763,7 @@ async function laadAuditLog() {
   try {
     var res = await supa('audit_log', 'GET', null, {
       select: '*',
-      order: 'created_at.desc',
+      order: 'ts.desc',
       limit: 200
     });
     var el = document.getElementById('audit-content');
@@ -11803,7 +11804,7 @@ async function laadAuditLog() {
         '<th style="width:130px">Tijdstip</th><th>Gebruiker</th><th>Actie</th><th>Object</th><th>Details</th>' +
         '</tr></thead><tbody>' +
         res.map(function(row) {
-          var d = new Date(row.created_at);
+          var d = new Date(row.ts);
           var tijdStr = d.toLocaleDateString('nl-NL') + ' ' + d.toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
           var kleur = actieKleur[row.actie] || '#6b7280';
           var label = actieLabel[row.actie] || row.actie;
