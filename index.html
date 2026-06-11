@@ -6786,7 +6786,9 @@ function adminNav(id){
   if(renders[id])renders[id]();
   if(id==='nieuw'){goStep(0);if(!_editId)resetForm();}
   _adminView=id;
-  window.scrollTo(0,0);
+  // Scroll naar boven — admin-content is de scroll container, niet window
+  var ac=document.querySelector('.admin-content');
+  if(ac)ac.scrollTop=0;
 }
 
 function bcClick(){if(_adminBcNav)adminNav(_adminBcNav);}
