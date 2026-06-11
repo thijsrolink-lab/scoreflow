@@ -5578,6 +5578,9 @@ async function laadAlleData() {
       try { await laadSponsoren(); } catch(e) { console.warn('Sponsoren laden mislukt:', e.message); }
     }
 
+    // Commissies laden
+    try { await laadCommissies(); } catch(e) { console.warn('Commissies laden mislukt:', e.message); }
+
     // Competities laden
     if (typeof laadCompetities === 'function') {
       try { await laadCompetities(); } catch(e) { console.warn('Competities laden mislukt:', e.message); }
@@ -6344,21 +6347,35 @@ var NOTIFICATIES=[
 ];
 
 // ── Commissies (lokale opslag) ────────────────────────────────
-function laadCommissies(){
-  try{
-    var opg=JSON.parse(localStorage.getItem('sf_commissies')||'null');
-    if(Array.isArray(opg))return opg;
-  }catch(e){}
-  return [
-    {id:'comm-1',naam:'Damescommissie',  kleur:'#e879a0',leden:[]},
-    {id:'comm-2',naam:'Herencommissie',  kleur:'#3b82f6',leden:[]},
-    {id:'comm-3',naam:'Seniorencommissie',kleur:'#f59e0b',leden:[]},
-  ];
+// ── Commissies laden vanuit Supabase ─────────────────────────
+async function laadCommissies() {
+  try {
+    var cs = await supa('commissies', 'GET', null, { select: '*', order: 'aangemaakt.asc' });
+    if (!cs || cs.length === 0) {
+      COMMISSIES = [];
+      return;
+    }
+    // Laad leden per commissie
+    var leden = await supa('commissie_leden', 'GET', null, { select: '*' });
+    COMMISSIES = cs.map(function(c) {
+      return {
+        id: c.id,
+        naam: c.naam,
+        kleur: c.kleur || '#3b82f6',
+        leden: (leden || []).filter(function(l) { return l.commissie_id === c.id; })
+                            .map(function(l) { return l.gebruiker_id; })
+      };
+    });
+  } catch(e) {
+    console.warn('Commissies laden mislukt:', e.message);
+    // Fallback naar localStorage als DB niet bereikbaar
+    try {
+      var opg = JSON.parse(localStorage.getItem('sf_commissies') || 'null');
+      if (Array.isArray(opg)) COMMISSIES = opg;
+    } catch(e2) {}
+  }
 }
-function slaCommissiesOp(){
-  try{localStorage.setItem('sf_commissies',JSON.stringify(COMMISSIES));}catch(e){}
-}
-var COMMISSIES=laadCommissies();
+var COMMISSIES = [];
 
 
 var _editId=null;
@@ -11815,34 +11832,48 @@ function openCommissieModal(id) {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-function slaCommissieOp(id) {
+async function slaCommissieOp(id) {
   var naam = document.getElementById('cm-naam').value.trim();
   if (!naam) { toast('Vul een naam in.','err'); return; }
   var gekozenKleur = '#3b82f6';
   var gekozenEl = document.querySelector('#modal-commissie .kleur-opt[style*="outline: 3px"]') ||
                   document.querySelector('#modal-commissie .kleur-opt[style*="outline:3px"]');
   if (gekozenEl) gekozenKleur = gekozenEl.dataset.kleur;
-  if (id) {
-    var c = COMMISSIES.find(function(x){return x.id===id;});
-    if (c) { c.naam=naam; c.kleur=gekozenKleur; }
-  } else {
-    COMMISSIES.push({id:'comm-'+Date.now(),naam:naam,kleur:gekozenKleur,leden:[]});
+
+  try {
+    if (id) {
+      // PATCH bestaande commissie
+      await supa('commissies', 'PATCH', { naam: naam, kleur: gekozenKleur }, { id: 'eq.' + id });
+      var c = COMMISSIES.find(function(x){return x.id===id;});
+      if (c) { c.naam=naam; c.kleur=gekozenKleur; }
+    } else {
+      // POST nieuwe commissie
+      var res = await supa('commissies', 'POST', { naam: naam, kleur: gekozenKleur });
+      var nieuw = res && res[0];
+      if (nieuw) COMMISSIES.push({ id: nieuw.id, naam: nieuw.naam, kleur: nieuw.kleur, leden: [] });
+    }
+    closeModal('modal-commissie');
+    renderCommissies();
+    toast(id ? 'Commissie bijgewerkt.' : 'Commissie aangemaakt.');
+  } catch(e) {
+    toast('Opslaan mislukt: ' + e.message, 'err');
   }
-  slaCommissiesOp();
-  closeModal('modal-commissie');
-  renderCommissies();
-  toast(id?'Commissie bijgewerkt.':'Commissie aangemaakt.');
 }
 
-function verwijderCommissie(id) {
+async function verwijderCommissie(id) {
   var c = COMMISSIES.find(function(x){return x.id===id;});
   if (!c) return;
   if (!confirm('Commissie "'+c.naam+'" verwijderen? Wedstrijden worden losgekoppeld.')) return;
-  WEDSTRIJDEN.forEach(function(w){if(w.commissieId===id)w.commissieId=null;});
-  COMMISSIES = COMMISSIES.filter(function(x){return x.id!==id;});
-  slaCommissiesOp();
-  renderCommissies();
-  toast('Commissie verwijderd.');
+  try {
+    await supa('commissies', 'DELETE', null, { id: 'eq.' + id });
+    WEDSTRIJDEN.forEach(function(w){if(w.commissieId===id)w.commissieId=null;});
+    COMMISSIES = COMMISSIES.filter(function(x){return x.id!==id;});
+    closeModal('modal-commissie');
+    renderCommissies();
+    toast('Commissie verwijderd.');
+  } catch(e) {
+    toast('Verwijderen mislukt: ' + e.message, 'err');
+  }
 }
 
 function openLedenModal(commissieId) {
@@ -11861,7 +11892,7 @@ function openLedenModal(commissieId) {
     html += '<p style="font-size:13px;color:var(--txm);margin:0 0 .75rem 0">Selecteer een gebruiker om toe te voegen:</p>';
     html += '<div style="display:flex;flex-direction:column;gap:4px">';
     beschikbaar.forEach(function(u) {
-      html += '<div class="wd-rij" style="cursor:pointer" onclick="voegLidToeAanCommissie(\''+commissieId+'\','+u.id+')">';
+      html += '<div class="wd-rij" style="cursor:pointer" onclick="voegLidToeAanCommissie(\''+commissieId+'\',\''+u.id+'\')">'; 
       html += '<div class="av" style="width:30px;height:30px;font-size:11px">'+u.voor[0]+u.ach[0]+'</div>';
       html += '<div style="flex:1"><div style="font-weight:500;font-size:13px">'+escHtml(u.voor+' '+u.ach)+'</div>';
       html += '<div style="font-size:11px;color:var(--txm)">'+u.rol+'</div></div>';
@@ -11873,25 +11904,37 @@ function openLedenModal(commissieId) {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-function voegLidToeAanCommissie(commissieId, userId) {
+async function voegLidToeAanCommissie(commissieId, userId) {
   var c = COMMISSIES.find(function(x){return x.id===commissieId;});
   if (!c) return;
-  if (!c.leden) c.leden = [];
-  if (c.leden.indexOf(userId) < 0) c.leden.push(userId);
-  slaCommissiesOp();
-  closeModal('modal-comm-leden');
-  renderCommissies();
-  var u = USERS.find(function(x){return x.id===userId;});
-  toast((u?u.voor+' '+u.ach:'Lid')+' toegevoegd aan '+c.naam+'.');
+  try {
+    await supa('commissie_leden', 'POST', { commissie_id: commissieId, gebruiker_id: userId });
+    if (!c.leden) c.leden = [];
+    if (c.leden.indexOf(userId) < 0) c.leden.push(userId);
+    closeModal('modal-comm-leden');
+    renderCommissies();
+    var u = USERS.find(function(x){return x.id===userId;});
+    toast((u?u.voor+' '+u.ach:'Lid')+' toegevoegd aan '+c.naam+'.');
+  } catch(e) {
+    toast('Toevoegen mislukt: ' + e.message, 'err');
+  }
 }
 
-function verwijderLidUitCommissie(commissieId, userId) {
+async function verwijderLidUitCommissie(commissieId, userId) {
   var c = COMMISSIES.find(function(x){return x.id===commissieId;});
   if (!c) return;
-  c.leden = (c.leden||[]).filter(function(l){return l!=userId;});
-  slaCommissiesOp();
-  renderCommissies();
+  try {
+    await supa('commissie_leden', 'DELETE', null, {
+      commissie_id: 'eq.' + commissieId,
+      gebruiker_id: 'eq.' + userId
+    });
+    c.leden = (c.leden||[]).filter(function(l){return l!=userId;});
+    renderCommissies();
+  } catch(e) {
+    toast('Verwijderen mislukt: ' + e.message, 'err');
+  }
 }
+
 
 
 // ── Baaninformatie ────────────────────────────────────────────
