@@ -7883,10 +7883,11 @@ function renderInschrijvingen(){
     var s = USERS.find(function(x){ return x.id === i.sid; });
     var w = WEDSTRIJDEN.find(function(x){ return x.id === i.wid; });
     if (!s || !w) return '';
-    var sh = berekenSpeelhandicap(s.hcp, w.slope, w.cr, w.holes === 9 ? 36 : 72, w.hcpperc / 100, w.holes);
+    var hcp = s.hcp != null ? s.hcp : 0;
+    var sh = berekenSpeelhandicap(hcp, w.slope, w.cr, w.holes === 9 ? 36 : 72, w.hcpperc / 100, w.holes);
     var sb = i.status === 'ingeschreven' ? 'bg' : i.status === 'wachtlijst' ? 'ba' : 'bx';
     return '<tr><td style="font-weight:500">'+s.voor+' '+s.ach+'</td><td style="color:var(--txm)">'+w.naam+'</td>' +
-      '<td><span class="badge '+(s.hcp<=10?'bg':s.hcp<=20?'bb':'bx')+'">'+s.hcp.toFixed(1)+'</span></td>' +
+      '<td><span class="badge '+(hcp<=10?'bg':hcp<=20?'bb':'bx')+'">'+hcp.toFixed(1)+'</span></td>' +
       '<td><span class="badge bg">'+sh+'</span></td>' +
       '<td style="color:var(--txm)">'+i.datum+'</td>' +
       '<td><span class="badge '+sb+'">'+i.status+'</span></td>' +
