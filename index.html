@@ -7403,6 +7403,7 @@ function renderWedstrijden(){
       '</div>' +
       '<span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding:4px 10px;border-radius:999px;background:' + faseBg + ';color:' + faseColor + '">' + fase + '</span>' +
       (w.commissieId ? (function(){var c=COMMISSIES.find(function(x){return x.id===w.commissieId;});return c?'<span style="font-size:11px;padding:3px 8px;border-radius:999px;background:'+c.kleur+'22;color:'+c.kleur+';font-weight:500;border:1px solid '+c.kleur+'44">'+escHtml(c.naam)+'</span>':'';})() : '') +
+      (function(){var cp=(COMPETITIES||[]).find(function(c){return c.wids&&c.wids.indexOf(w.id)>=0;});return cp?'<span style="font-size:11px;padding:3px 8px;border-radius:999px;background:#f0fdf4;color:#15803d;font-weight:500;border:1px solid #bbf7d0">🏆 '+escHtml(cp.naam)+'</span>':'';})() +
       (acts ? '<div style="display:flex;gap:4px" onclick="event.stopPropagation()">' + acts + '</div>' : '') +
     '</div>';
   }
