@@ -6961,6 +6961,14 @@ function updateAdminBadges(){
   var unread=NOTIFICATIES.filter(function(n){return !n.gelezen;}).length;
   document.querySelectorAll('[id^="asbadge-wl"]').forEach(function(el){el.textContent=wl||'';});
   document.querySelectorAll('[id^="asbadge-notif"]').forEach(function(el){el.textContent=unread||'';});
+  // Taken badge: tel hoog-prioriteit taken voor huidige user
+  if (typeof getMijnTaken === 'function') {
+    var taken = getMijnTaken();
+    var hoogPrio = taken.filter(function(t){return t.prio==='hoog'||t.type==='urgent';}).length;
+    document.querySelectorAll('[id^="asbadge-taken"]').forEach(function(el){
+      el.textContent = hoogPrio || '';
+    });
+  }
 }
 
 // ============================================================
