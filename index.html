@@ -7411,6 +7411,10 @@ function renderWedstrijden(){
     // Ben ik wedstrijdleider van deze wedstrijd?
     var isMijnWedstrijd = _currentUser && w.leiderId && String(w.leiderId) === String(_currentUser.id);
 
+    // Openstaande hoog-prio taken voor deze wedstrijd
+    var openTaken = getOpenstaandeTaken(w.id).filter(function(t){ return t.prio==='hoog'||t.type==='urgent'; });
+    var heeftTaken = openTaken.length > 0;
+
     // Selectiemodus
     if (selectieModus) {
       return '<div class="wd-rij" onclick="wdToggleSelectie(\'' + w.id + '\')" style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:2px solid ' + (isGesel ? '#16a34a' : '#e6eaf0') + ';border-radius:8px;margin-bottom:.5rem;cursor:pointer;background:' + (isGesel ? '#f0fdf4' : '#fff') + ';transition:all .15s">' +
@@ -7436,9 +7440,9 @@ function renderWedstrijden(){
       acts += '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();afrondWedstrijd(\'' + w.id + '\')" style="background:#0c1b2a;color:#fff;border-color:#0c1b2a">Afronden</button>';
     }
 
-    // Achtergrond: highlight als jij de leider bent
+    // Achtergrond: highlight als jij de leider bent, oranje rand als er taken zijn
     var rowBg = isMijnWedstrijd ? '#f0fdf4' : '#fff';
-    var rowBorder = isMijnWedstrijd ? '1px solid #bbf7d0' : '1px solid #e6eaf0';
+    var rowBorder = heeftTaken ? '1px solid #fcd34d' : isMijnWedstrijd ? '1px solid #bbf7d0' : '1px solid #e6eaf0';
 
     return '<div class="wd-rij" onclick="openWdDetail(\'' + w.id + '\')" style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:' + rowBorder + ';border-radius:8px;margin-bottom:.5rem;cursor:pointer;background:' + rowBg + ';transition:all .15s">' +
       '<div style="min-width:72px">' +
@@ -7446,7 +7450,10 @@ function renderWedstrijden(){
         '<div style="font-size:18px;font-weight:700;color:#0c1b2a;line-height:1">' + d.getDate() + ' ' + MN[d.getMonth()].substring(0,3).toLowerCase() + '</div>' +
       '</div>' +
       '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:15px;font-weight:600;color:#0c1b2a;margin-bottom:2px">' + escHtml(w.naam) + (isMijnWedstrijd ? ' <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;background:#16a34a;color:#fff;vertical-align:middle">Jouw wedstrijd</span>' : '') + '</div>' +
+        '<div style="font-size:15px;font-weight:600;color:#0c1b2a;margin-bottom:2px">' + escHtml(w.naam) +
+          (isMijnWedstrijd ? ' <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;background:#16a34a;color:#fff;vertical-align:middle">Jouw wedstrijd</span>' : '') +
+          (heeftTaken ? ' <span title="' + openTaken.length + ' openstaande taak' + (openTaken.length>1?'en':'') + '" style="font-size:13px;vertical-align:middle">⚠️</span>' : '') +
+        '</div>' +
         '<div style="font-size:12px;color:#8b94a3">' + escHtml(w.vorm) + ' · ' + w.holes + ' holes · ' + ic + (w.max ? '/' + w.max : '') + ' deelnemers</div>' +
       '</div>' +
       '<span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding:4px 10px;border-radius:999px;background:' + faseBg + ';color:' + faseColor + '">' + fase + '</span>' +
