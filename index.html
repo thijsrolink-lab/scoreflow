@@ -2663,6 +2663,34 @@ function statusBadge(w) {
     info.txt + '</span>';
 }
 
+// ============================================================
+// AUDIT LOG
+// ============================================================
+function logActie(actie, details, objectId, objectNaam) {
+  if (!_currentUser) return;
+  // Fire-and-forget: niet awaiten zodat UI nooit blokkeert
+  supa('audit_log', 'POST', {
+    user_id:     _currentUser.id || null,
+    user_naam:   (_currentUser.voor + ' ' + _currentUser.ach).trim(),
+    actie:       actie,
+    details:     details || null,
+    object_id:   objectId ? String(objectId) : null,
+    object_naam: objectNaam || null
+  }).catch(function(e) {
+    console.warn('Audit log mislukt:', e.message);
+  });
+}
+
+// Cleanup: verwijder entries ouder dan 30 dagen (draait bij openen audit log)
+async function cleanupAuditLog() {
+  try {
+    var grens = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    await supa('audit_log', 'DELETE', null, { created_at: 'lt.' + grens });
+  } catch(e) {
+    console.warn('Audit cleanup mislukt:', e.message);
+  }
+}
+
 // Admin actie: start wedstrijd handmatig
 function startWedstrijd(wId) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
@@ -2675,6 +2703,7 @@ function startWedstrijd(wId) {
     toast('Starten faalde: ' + e.message, 'err');
     if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
   });
+  logActie('wedstrijd_gestart', 'Status: live', w.id, w.naam);
   toast('Wedstrijd is gestart — scorekaart is nu open voor spelers.');
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
@@ -2691,6 +2720,7 @@ function afrondWedstrijd(wId) {
     toast('Afronden faalde: ' + e.message, 'err');
     if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
   });
+  logActie('wedstrijd_afgerond', 'Status: afgerond', w.id, w.naam);
   toast('Wedstrijd afgerond — uitslag is definitief.');
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
@@ -2712,6 +2742,7 @@ function afgelastWedstrijd(wId) {
     toast('Afgelasten faalde: ' + e.message, 'err');
     if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
   });
+  logActie('wedstrijd_afgelast', reden ? 'Reden: ' + reden : null, w.id, w.naam);
   toast('Wedstrijd afgelast.');
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
@@ -2731,6 +2762,7 @@ function heractiveerWedstrijd(wId) {
     toast('Heractiveren faalde: ' + e.message, 'err');
     if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
   });
+  logActie('wedstrijd_heractiveerd', 'Status: gepubliceerd', w.id, w.naam);
   toast('Wedstrijd heractiveerd.');
   if (typeof _adminView === 'string' && typeof adminNav === 'function') adminNav(_adminView);
 }
@@ -7412,6 +7444,7 @@ async function wdBundelTotCompetitie() {
     if (saved && saved.id) {
       if (!window.COMPETITIES) COMPETITIES = [];
       COMPETITIES.push(saved);
+      logActie('competitie_aangemaakt', geselecteerd.length + ' rondes', null, naam);
       toast('Competitie "' + naam + '" aangemaakt met ' + geselecteerd.length + ' rondes!');
       wdStopSelectie();
       adminNav('competities');
@@ -7537,6 +7570,7 @@ function editW(id){
 function delW(id){
   if(!confirm('Wedstrijd verwijderen?'))return;
   WEDSTRIJDEN=WEDSTRIJDEN.filter(function(x){return x.id!==id;});
+  logActie('wedstrijd_verwijderd', null, wId, wNaam);
   renderWedstrijden();toast('Wedstrijd verwijderd.');
   // Supabase verwijderen
   supa('wedstrijden','DELETE',null,{id:'eq.'+id})
@@ -7742,6 +7776,7 @@ async function bouwEnSlaWedstrijdOp(status) {
         await koppelAlleSponsorenAanWedstrijd(savedEditId, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || [], _wizSideGames || []);
       } catch(e) { console.warn('Sponsoren koppelen:', e.message); }
     }
+    logActie(_editId ? 'wedstrijd_bewerkt' : 'wedstrijd_aangemaakt', 'Status: ' + status, data.id || _editId, data.naam);
     toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
     adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
     return;
@@ -7753,6 +7788,7 @@ async function bouwEnSlaWedstrijdOp(status) {
     if (!nieuwW || !nieuwW.id) throw new Error('Wedstrijd aanmaken faalde — geen ID van DB.');
     // Voeg toe aan lokale state met echte DB-data (geen tussenliggende fake row)
     WEDSTRIJDEN.push(Object.assign({ ing: 0 }, nieuwW));
+    logActie('wedstrijd_aangemaakt', 'Status: ' + status, nieuwW.id, nieuwW.naam);
     toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
     adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
   } catch(e) {
@@ -7851,6 +7887,8 @@ function editSpeler(id){
 
 function delSpeler(id){
   if(!confirm('Speler verwijderen?'))return;
+  var delSpeler=USERS.find(function(x){return x.id===id;});
+  logActie('speler_verwijderd', null, id, delSpeler?delSpeler.voor+' '+delSpeler.ach:id);
   USERS=USERS.filter(function(x){return x.id!==id;});renderSpelers();toast('Speler verwijderd.');
   supa('gebruikers','DELETE',null,{id:'eq.'+id})
     .catch(function(e){console.warn('delSpeler:',e.message);});
@@ -7898,6 +7936,7 @@ async function saveSpeler(){
           await dbSaveGebruiker(USERS[i]);
         }
       }
+      logActie('speler_bijgewerkt', pwInput && isSuper ? 'Wachtwoord gewijzigd' : null, spelerData.id, spelerData.voor + ' ' + spelerData.ach);
       toast('Speler bijgewerkt' + (pwInput && isSuper ? ' (wachtwoord gewijzigd)' : ''));
     } else {
       // Nieuw
@@ -7916,6 +7955,7 @@ async function saveSpeler(){
         nieuw.id = Date.now();
         USERS.push(nieuw);
       }
+      logActie('speler_aangemaakt', 'Rol: Speler', null, spelerData.voor + ' ' + spelerData.ach);
       toast('Speler toegevoegd. Wachtwoord: ' + (pwInput || 'welkom123'));
     }
   } catch(e) {
@@ -8028,6 +8068,8 @@ function editAdmin(id){
 
 function delAdmin(id){
   if(!confirm('Admin verwijderen?'))return;
+  var delUser=USERS.find(function(x){return x.id===id;});
+  logActie('gebruiker_verwijderd', delUser?'Rol: '+delUser.rol:null, id, delUser?delUser.voor+' '+delUser.ach:id);
   USERS=USERS.filter(function(x){return x.id!==id;});renderAdmins();toast('Admin verwijderd.');
 }
 
@@ -8043,6 +8085,7 @@ function saveAdmin(){
   if(eid){var i=USERS.findIndex(function(x){return x.id===eid;});if(i>-1){USERS[i].voor=voor;USERS[i].ach=ach;USERS[i].email=email;USERS[i].rol=rol;if(document.getElementById('ma-pw').value)USERS[i].pw=pw;}}
   else USERS.push({id:Date.now(),voor:voor,ach:ach,email:email,pw:pw,rol:rol,lid:'ADMIN-'+String(Date.now()).slice(-4),ltype:'Admin',hcp:null,gs:'M',jaar:1980,tel:'',deelnames:0});
   document.getElementById('modal-admin').dataset.edit='';
+  logActie(eid?'gebruiker_bijgewerkt':'gebruiker_aangemaakt', 'Rol: '+rol, null, voor+' '+ach);
   closeModal('modal-admin');renderAdmins();toast(eid?'Admin bijgewerkt.':'Admin toegevoegd. Wachtwoord: '+pw);
 }
 
@@ -8138,6 +8181,8 @@ function doAdminInschrijven(){
 
 function adminPromote(id){
   var i=INSCHRIJVINGEN.find(function(x){return x.id===id;});if(!i)return;
+  var wlSpeler=USERS.find(function(u){return u.id===i.sid;});
+  logActie('inschrijving_toegelaten', 'Van wachtlijst', i.wid, wlSpeler?wlSpeler.voor+' '+wlSpeler.ach:'Speler');
   i.status='ingeschreven';renderInschrijvingen();toast('Speler toegelaten van wachtlijst.');
   supa('inschrijvingen','PATCH',{status:'ingeschreven'},{id:'eq.'+id})
     .catch(function(e){console.warn('adminPromote:',e.message);});
@@ -8146,6 +8191,8 @@ function adminPromote(id){
 function adminAfmelden(id){
   if(!confirm('Speler afmelden?'))return;
   var i=INSCHRIJVINGEN.find(function(x){return x.id===id;});if(!i)return;
+  var afmSpeler=USERS.find(function(u){return u.id===i.sid;});
+  logActie('inschrijving_afgemeld', null, i.wid, afmSpeler?afmSpeler.voor+' '+afmSpeler.ach:'Speler');
   i.status='afgemeld';renderInschrijvingen();toast('Speler afgemeld.');
   supa('inschrijvingen','PATCH',{status:'afgemeld'},{id:'eq.'+id})
     .catch(function(e){console.warn('adminAfmelden:',e.message);});
@@ -11709,25 +11756,64 @@ function renderAuditLog() {
 }
 
 async function laadAuditLog() {
+  // Cleanup oude entries (fire-and-forget)
+  cleanupAuditLog();
+
   try {
     var res = await supa('audit_log', 'GET', null, {
       select: '*',
       order: 'created_at.desc',
-      limit: 100
+      limit: 200
     });
     var el = document.getElementById('audit-content');
     if (!el) return;
     if (!res || res.length === 0) {
-      el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--txm);font-size:13px">Geen audit-entries gevonden.<br><small>Voer eerst de SQL-migratie uit om de audit_log tabel aan te maken.</small></div>';
+      el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--txm);font-size:13px">Nog geen acties gelogd.<br><small>Acties worden vastgelegd zodra je wedstrijden, spelers of gebruikers beheert.</small></div>';
     } else {
-      el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tijdstip</th><th>Gebruiker</th><th>Actie</th><th>Details</th></tr></thead><tbody>' +
+      // Kleur per actie-categorie
+      var actieKleur = {
+        wedstrijd_aangemaakt: '#16a34a', wedstrijd_bewerkt: '#2563eb',
+        wedstrijd_gepubliceerd: '#16a34a', wedstrijd_gestart: '#7c3aed',
+        wedstrijd_afgerond: '#374151', wedstrijd_afgelast: '#dc2626',
+        wedstrijd_heractiveerd: '#d97706', wedstrijd_verwijderd: '#dc2626',
+        speler_aangemaakt: '#0891b2', speler_bijgewerkt: '#2563eb',
+        speler_verwijderd: '#dc2626',
+        gebruiker_aangemaakt: '#0891b2', gebruiker_bijgewerkt: '#2563eb',
+        gebruiker_verwijderd: '#dc2626',
+        inschrijving_toegelaten: '#16a34a', inschrijving_afgemeld: '#d97706',
+        commissie_aangemaakt: '#8b5cf6', commissie_bijgewerkt: '#2563eb',
+        commissie_verwijderd: '#dc2626',
+        competitie_aangemaakt: '#0891b2',
+      };
+      var actieLabel = {
+        wedstrijd_aangemaakt: 'Wedstrijd aangemaakt', wedstrijd_bewerkt: 'Wedstrijd bewerkt',
+        wedstrijd_gestart: 'Wedstrijd gestart', wedstrijd_afgerond: 'Wedstrijd afgerond',
+        wedstrijd_afgelast: 'Wedstrijd afgelast', wedstrijd_heractiveerd: 'Wedstrijd heractiveerd',
+        wedstrijd_verwijderd: 'Wedstrijd verwijderd',
+        speler_aangemaakt: 'Speler aangemaakt', speler_bijgewerkt: 'Speler bewerkt',
+        speler_verwijderd: 'Speler verwijderd',
+        gebruiker_aangemaakt: 'Gebruiker aangemaakt', gebruiker_bijgewerkt: 'Gebruiker bewerkt',
+        gebruiker_verwijderd: 'Gebruiker verwijderd',
+        inschrijving_toegelaten: 'Inschrijving toegelaten', inschrijving_afgemeld: 'Afgemeld',
+        commissie_aangemaakt: 'Commissie aangemaakt', commissie_bijgewerkt: 'Commissie bewerkt',
+        commissie_verwijderd: 'Commissie verwijderd',
+        competitie_aangemaakt: 'Competitie aangemaakt',
+      };
+      el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+        '<th style="width:130px">Tijdstip</th><th>Gebruiker</th><th>Actie</th><th>Object</th><th>Details</th>' +
+        '</tr></thead><tbody>' +
         res.map(function(row) {
           var d = new Date(row.created_at);
           var tijdStr = d.toLocaleDateString('nl-NL') + ' ' + d.toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
-          return '<tr><td style="white-space:nowrap;font-size:12px;color:var(--txm)">'+tijdStr+'</td>' +
-            '<td style="font-size:13px">'+escHtml(row.user_naam||row.user_id||'?')+'</td>' +
-            '<td><span class="badge bx" style="font-size:11px">'+escHtml(row.actie||'')+'</span></td>' +
-            '<td style="font-size:12px;color:var(--txm)">'+escHtml(row.details||'')+'</td></tr>';
+          var kleur = actieKleur[row.actie] || '#6b7280';
+          var label = actieLabel[row.actie] || row.actie;
+          return '<tr>' +
+            '<td style="white-space:nowrap;font-size:11px;color:var(--txm)">'+tijdStr+'</td>' +
+            '<td style="font-size:13px;font-weight:500">'+escHtml(row.user_naam||'?')+'</td>' +
+            '<td><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:'+kleur+'18;color:'+kleur+'">'+escHtml(label)+'</span></td>' +
+            '<td style="font-size:12px;color:var(--tx)">'+escHtml(row.object_naam||'')+'</td>' +
+            '<td style="font-size:12px;color:var(--txm)">'+escHtml(row.details||'')+'</td>' +
+            '</tr>';
         }).join('') + '</tbody></table></div>';
     }
     // Scroll naar boven na async load — dubbele rAF na reflow
@@ -11868,6 +11954,7 @@ async function slaCommissieOp(id) {
     }
     closeModal('modal-commissie');
     renderCommissies();
+    logActie(id ? 'commissie_bijgewerkt' : 'commissie_aangemaakt', null, id || null, naam);
     toast(id ? 'Commissie bijgewerkt.' : 'Commissie aangemaakt.');
   } catch(e) {
     toast('Opslaan mislukt: ' + e.message, 'err');
@@ -11884,6 +11971,7 @@ async function verwijderCommissie(id) {
     COMMISSIES = COMMISSIES.filter(function(x){return x.id!==id;});
     closeModal('modal-commissie');
     renderCommissies();
+    logActie('commissie_verwijderd', null, id, c.naam);
     toast('Commissie verwijderd.');
   } catch(e) {
     toast('Verwijderen mislukt: ' + e.message, 'err');
