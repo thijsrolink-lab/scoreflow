@@ -17457,8 +17457,7 @@ async function dbSaveCompetitie(comp) {
       min_rondes: comp.minRondes || 2,
       ecl_hcp_perc: comp.eclHcpPerc || 75,
       wids: comp.wids || [],
-      status: comp.status || 'actief',
-      bijgewerkt: new Date().toISOString()
+      status: comp.status || 'actief'
     };
     if (comp.id && String(comp.id).includes('-')) {
       // Bestaande competitie (UUID)
@@ -17681,7 +17680,7 @@ function renderCompeties() {
     var d1 = comp.start ? new Date(comp.start) : null;
     var d2 = comp.eind ? new Date(comp.eind) : null;
 
-    return '<div class="lr" onclick="openWdDetail(\'' + w.id + '\')">' +
+    return '<div class="lr" onclick="openCompWizard(\'' + comp.id + '\')">' +
       '<div class="lr-l">' +
         '<div class="lr-n">'+escHtml(comp.naam)+'</div>' +
         '<div class="lr-m">' +
