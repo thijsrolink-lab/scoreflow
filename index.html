@@ -12815,6 +12815,80 @@ function spelerAfmelden(wId,sId){
 }
 
 // Mijn inschrijvingen
+function renderSpelerCompetities() {
+  var el = document.getElementById('sp-competities-lijst');
+  if (!el) return;
+  var u = _currentUser;
+
+  var actief = (COMPETITIES || []).filter(function(c){
+    return c && c.status === 'actief' && c.wids && c.wids.length > 0;
+  });
+
+  if (actief.length === 0) {
+    el.innerHTML = '<p style="color:var(--txm);font-size:13px">Geen actieve competities op dit moment.</p>';
+    return;
+  }
+
+  el.innerHTML = actief.map(function(comp) {
+    var ws = WEDSTRIJDEN.filter(function(w){ return comp.wids.indexOf(w.id) >= 0; })
+      .sort(function(a,b){ return a.datum.localeCompare(b.datum); });
+    var typeInfo = COMP_TYPES.find(function(t){return t.id===comp.type;}) || {label: comp.type};
+    var d1 = comp.start ? new Date(comp.start) : null;
+    var d2 = comp.eind  ? new Date(comp.eind)  : null;
+
+    var ingeschreven = ws.some(function(w){
+      return INSCHRIJVINGEN.some(function(i){
+        return i.wid===w.id && String(i.sid)===String(u.id) && i.status==='ingeschreven';
+      });
+    });
+    var aantalRondes = ws.filter(function(w){
+      return INSCHRIJVINGEN.some(function(i){
+        return i.wid===w.id && String(i.sid)===String(u.id) && i.status==='ingeschreven';
+      });
+    }).length;
+
+    return '<div class="w-card" style="margin-bottom:.75rem">' +
+      '<div class="w-card-top">' +
+        '<div class="w-card-info">' +
+          '<div class="w-card-naam">' + escHtml(comp.naam) + '</div>' +
+          '<div class="w-card-meta">' +
+            '<span class="badge bg" style="background:var(--gm);font-size:10px">' + typeInfo.label + '</span>' +
+            '<span>' + ws.length + ' rondes</span>' +
+            (d1 ? '<span>' + d1.getDate()+' '+MN[d1.getMonth()]+' t/m ' +
+              (d2 ? d2.getDate()+' '+MN[d2.getMonth()]+' '+d2.getFullYear() : '?') + '</span>' : '') +
+          '</div>' +
+          '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">' +
+          ws.map(function(w) {
+            var meedoen = INSCHRIJVINGEN.some(function(i){
+              return i.wid===w.id && String(i.sid)===String(u.id) && i.status==='ingeschreven';
+            });
+            var d = new Date(w.datum);
+            return '<span style="font-size:11px;padding:2px 7px;border-radius:999px;background:' +
+              (meedoen?'var(--gl)':'var(--surf)') + ';color:' + (meedoen?'var(--g)':'var(--txm)') +
+              ';border:1px solid ' + (meedoen?'var(--lime2)':'var(--bd)') + '">' +
+              d.getDate()+' '+MN[d.getMonth()] + '</span>';
+          }).join('') +
+          '</div>' +
+        '</div>' +
+        '<div style="flex-shrink:0">' +
+          (ingeschreven
+            ? '<div style="text-align:right"><span class="badge bg" style="margin-bottom:4px">Ingeschreven</span>' +
+              '<div style="font-size:11px;color:var(--txm)">' + aantalRondes + '/' + ws.length + ' rondes</div></div>'
+            : '<button class="inschrijf-btn" onclick="spelerInschrijfVoorCompetitie(\'' + comp.id + '\')">Inschrijven</button>') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function spelerInschrijfVoorCompetitie(compId) {
+  var u = _currentUser;
+  if (!u) return;
+  await inschrijfSpelersVoorCompetitie(compId, [u.id]);
+  renderSpelerCompetities();
+  renderSpelerInschrijvingen();
+}
+
 function renderSpelerInschrijvingen(){
   var u=_currentUser;
   var mijn=INSCHRIJVINGEN.filter(function(i){return i.sid===u.id;}).sort(function(a,b){return new Date(b.datum)-new Date(a.datum);});
@@ -17707,33 +17781,216 @@ function openKlassement(compId) {
   if (!comp) return;
 
   var ws = WEDSTRIJDEN.filter(function(w){ return comp.wids && comp.wids.indexOf(w.id) >= 0; });
+
+  // Bouw tabbed modal
+  var div = document.createElement('div');
+  div.className = 'modal-bg open';
+  div.id = 'modal-klassement';
+  div.addEventListener('click', function(e){ if(e.target===div) closeModal('modal-klassement'); });
+
+  div.innerHTML = '<div class="modal" style="max-width:720px;width:95%;max-height:88vh;overflow-y:auto">' +
+    '<div class="modal-title">' +
+      '<span>' + escHtml(comp.naam) + '</span>' +
+      '<button class="modal-close" onclick="closeModal(\'modal-klassement\')">&#215;</button>' +
+    '</div>' +
+    // Tabs
+    '<div style="display:flex;gap:0;border-bottom:1px solid var(--bd);margin-bottom:1.25rem">' +
+      '<button id="ktab-klassement" onclick="kTabSwitch(\'klassement\')" style="padding:.5rem 1.25rem;font-size:13px;font-weight:600;border:none;border-bottom:2px solid var(--g);background:none;cursor:pointer;color:var(--g)">Klassement</button>' +
+      '<button id="ktab-deelnemers" onclick="kTabSwitch(\'deelnemers\')" style="padding:.5rem 1.25rem;font-size:13px;font-weight:500;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:var(--txm)">Deelnemers</button>' +
+    '</div>' +
+    '<div id="ktab-content-klassement"></div>' +
+    '<div id="ktab-content-deelnemers" style="display:none"></div>' +
+    '</div>';
+
+  // Verwijder eventuele oude modal
+  var oud = document.getElementById('modal-klassement');
+  if (oud) oud.remove();
+  document.body.appendChild(div);
+
+  // Vul klassement tab
+  renderKlassementTab(comp, ws);
+  // Vul deelnemers tab
+  renderDeelnemersTab(comp, ws);
+}
+
+function kTabSwitch(tab) {
+  ['klassement','deelnemers'].forEach(function(t) {
+    var btn = document.getElementById('ktab-' + t);
+    var content = document.getElementById('ktab-content-' + t);
+    var actief = t === tab;
+    if (btn) {
+      btn.style.borderBottomColor = actief ? 'var(--g)' : 'transparent';
+      btn.style.color = actief ? 'var(--g)' : 'var(--txm)';
+      btn.style.fontWeight = actief ? '600' : '500';
+    }
+    if (content) content.style.display = actief ? '' : 'none';
+  });
+}
+
+function renderKlassementTab(comp, ws) {
+  var el = document.getElementById('ktab-content-klassement');
+  if (!el) return;
+
   if (ws.length === 0) {
-    toast('Geen wedstrijden gekoppeld aan deze competitie.', 'err');
+    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--txm)">Geen wedstrijden gekoppeld aan deze competitie.</div>';
     return;
   }
 
-  // Gebruik de eerste wedstrijd voor baaninstellingen
   var w0 = ws[0];
   var baan = getBaan(comp.holes || w0.holes);
   baan.slope = comp.slope || w0.slope;
   baan.cr = comp.cr || w0.cr;
   baan.parTotaal = baan.par.reduce(function(a,b){return a+b;},0);
 
-  var html = '<div class="modal-title">'+escHtml(comp.naam)+' — Klassement' +
-    '<button class="modal-close" onclick="closeModal(\'modal-klassement\')">&#215;</button></div>';
-
+  var html = '';
   if (comp.type === 'eclectic') {
-    html += renderEclectiekKlassement(comp, ws, baan);
+    html = renderEclectiekKlassement(comp, ws, baan);
   } else if (comp.type === 'strokeplay') {
-    html += renderStrokeplayKlassement(comp, ws, baan);
+    html = renderStrokeplayKlassement(comp, ws, baan);
   } else if (comp.type === 'oom') {
-    html += renderOomKlassement(comp, ws, baan);
+    html = renderOomKlassement(comp, ws, baan);
   } else if (comp.type === 'weekly') {
-    html += renderWeeklyKlassement(comp, ws, baan);
+    html = renderWeeklyKlassement(comp, ws, baan);
+  } else {
+    html = '<div style="color:var(--txm);font-size:13px">Klassement voor dit type nog niet beschikbaar.</div>';
+  }
+  el.innerHTML = html;
+}
+
+function renderDeelnemersTab(comp, ws) {
+  var el = document.getElementById('ktab-content-deelnemers');
+  if (!el) return;
+
+  // Alle unieke ingeschreven spelers over alle rondes
+  var sidSet = {};
+  ws.forEach(function(w) {
+    INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';})
+      .forEach(function(i){sidSet[i.sid]=true;});
+  });
+  var deelnemers = Object.keys(sidSet).map(function(sid){
+    return USERS.find(function(u){return u.id==sid;});
+  }).filter(Boolean).sort(function(a,b){return (a.ach||'').localeCompare(b.ach||'');});
+
+  var html = '';
+
+  // Deelnemerslijst
+  if (deelnemers.length > 0) {
+    html += '<div style="margin-bottom:1.25rem">';
+    html += '<div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Ingeschreven (' + deelnemers.length + ')</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px">';
+    deelnemers.forEach(function(u) {
+      var rondeCount = ws.filter(function(w){
+        return INSCHRIJVINGEN.some(function(i){return i.wid===w.id&&i.sid==u.id&&i.status==='ingeschreven';});
+      }).length;
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surf);border-radius:8px;border:1px solid var(--bd)">';
+      html += '<div class="av" style="width:28px;height:28px;font-size:10px;background:var(--gl);color:var(--g)">' + u.voor[0] + u.ach[0] + '</div>';
+      html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(u.voor+' '+u.ach) + '</div>';
+      html += '<div style="font-size:11px;color:var(--txm)">' + rondeCount + '/' + ws.length + ' rondes · HCP ' + (u.hcp!=null?u.hcp.toFixed(1):'?') + '</div></div>';
+      html += '<button onclick="afmeldenVanCompetitie(\'' + comp.id + '\',\'' + u.id + '\')" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:14px;padding:2px" title="Afmelden">&#215;</button>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  } else {
+    html += '<div style="text-align:center;padding:1.5rem;color:var(--txm);font-size:13px">Nog geen deelnemers ingeschreven.</div>';
   }
 
-  document.getElementById('modal-klassement-body').innerHTML = html;
-  openModal('modal-klassement');
+  // Spelers toevoegen
+  var beschikbaar = USERS.filter(function(u){
+    return u.rol === 'Speler' && !sidSet[u.id];
+  }).sort(function(a,b){return (a.ach||'').localeCompare(b.ach||'');});
+
+  html += '<div style="border-top:1px solid var(--bd);padding-top:1rem">';
+  html += '<div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Speler toevoegen</div>';
+
+  if (beschikbaar.length === 0) {
+    html += '<div style="font-size:13px;color:var(--txm)">Alle spelers zijn al ingeschreven.</div>';
+  } else {
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
+    html += '<select id="comp-inschr-speler" style="padding:6px 10px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r);flex:1;min-width:180px">';
+    html += '<option value="">— Kies speler —</option>';
+    beschikbaar.forEach(function(u) {
+      html += '<option value="' + u.id + '">' + escHtml(u.voor+' '+u.ach) + ' (HCP ' + (u.hcp!=null?u.hcp.toFixed(1):'?') + ')</option>';
+    });
+    html += '</select>';
+    html += '<button class="btn btn-p btn-sm" onclick="inschrijfVoorCompetitie(\'' + comp.id + '\')">+ Inschrijven</button>';
+    html += '</div>';
+    html += '<div style="font-size:11px;color:var(--txm);margin-top:6px">Speler wordt direct ingeschreven voor alle ' + ws.length + ' ronde(s).</div>';
+  }
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+async function inschrijfVoorCompetitie(compId) {
+  var sel = document.getElementById('comp-inschr-speler');
+  if (!sel || !sel.value) { toast('Kies een speler.', 'err'); return; }
+  var spelerIds = [sel.value];
+  await inschrijfSpelersVoorCompetitie(compId, spelerIds);
+}
+
+async function inschrijfSpelersVoorCompetitie(compId, spelerIds) {
+  var comp = COMPETITIES.find(function(c){return c.id===compId;});
+  if (!comp || !comp.wids || !comp.wids.length) { toast('Competitie heeft geen rondes.', 'err'); return; }
+
+  var aangemaakt = 0;
+  for (var si = 0; si < spelerIds.length; si++) {
+    var sid = spelerIds[si];
+    for (var wi = 0; wi < comp.wids.length; wi++) {
+      var wid = comp.wids[wi];
+      // Check of al ingeschreven
+      var bestaatAl = INSCHRIJVINGEN.some(function(i){
+        return i.wid===wid && String(i.sid)===String(sid) && i.status==='ingeschreven';
+      });
+      if (bestaatAl) continue;
+      try {
+        var res = await supa('inschrijvingen', 'POST', {
+          wid: wid, sid: sid, status: 'ingeschreven',
+          datum: new Date().toISOString().split('T')[0], opm: ''
+        });
+        if (res && res[0]) {
+          INSCHRIJVINGEN.push({
+            id: res[0].id, wid: wid, sid: sid,
+            status: 'ingeschreven', datum: res[0].datum, opm: ''
+          });
+          aangemaakt++;
+        }
+      } catch(e) { console.warn('Inschrijving mislukt:', e.message); }
+    }
+  }
+
+  var u = USERS.find(function(x){return String(x.id)===String(spelerIds[0]);});
+  var naam = u ? u.voor+' '+u.ach : 'Speler';
+  toast(naam + ' ingeschreven voor ' + aangemaakt + ' ronde(s).');
+  logActie('competitie_inschrijving', aangemaakt + ' rondes', compId, comp.naam + ' — ' + naam);
+
+  // Herrender deelnemers tab
+  var ws = WEDSTRIJDEN.filter(function(w){ return comp.wids.indexOf(w.id) >= 0; });
+  renderDeelnemersTab(comp, ws);
+}
+
+async function afmeldenVanCompetitie(compId, spelerIdRaw) {
+  var comp = COMPETITIES.find(function(c){return c.id===compId;});
+  if (!comp) return;
+  var u = USERS.find(function(x){return String(x.id)===String(spelerIdRaw);});
+  if (!confirm((u?u.voor+' '+u.ach:'Speler')+' afmelden van alle rondes in '+comp.naam+'?')) return;
+
+  var afgemeld = 0;
+  for (var wi = 0; wi < comp.wids.length; wi++) {
+    var wid = comp.wids[wi];
+    var ing = INSCHRIJVINGEN.find(function(i){
+      return i.wid===wid && String(i.sid)===String(spelerIdRaw) && i.status==='ingeschreven';
+    });
+    if (!ing) continue;
+    try {
+      await supa('inschrijvingen', 'PATCH', {status:'afgemeld'}, {id:'eq.'+ing.id});
+      ing.status = 'afgemeld';
+      afgemeld++;
+    } catch(e) { console.warn('Afmelden mislukt:', e.message); }
+  }
+
+  toast((u?u.voor+' '+u.ach:'Speler')+' afgemeld van '+afgemeld+' ronde(s).');
+  var ws = WEDSTRIJDEN.filter(function(w){ return comp.wids.indexOf(w.id) >= 0; });
+  renderDeelnemersTab(comp, ws);
 }
 
 function renderEclectiekKlassement(comp, ws, baan) {
@@ -18752,6 +19009,7 @@ window.addEventListener('offline', updateOnlineStatus);
       <div class="sp-nav-item" data-spview="scorekaart" onclick="spNav('scorekaart',this)">Scorekaart</div>
       
       <div class="sp-nav-item" data-spview="inschrijvingen" onclick="spNav('inschrijvingen',this)">Inschrijvingen</div>
+      <div class="sp-nav-item" data-spview="sp-competities" onclick="spNav('sp-competities',this);renderSpelerCompetities()">Competities</div>
       <div class="sp-nav-item" data-spview="scores" onclick="spNav('scores',this)">Uitslagen</div>
       <div class="sp-nav-item" data-spview="ranglijst" onclick="spNav('ranglijst',this)">Ranglijst</div>
       <div class="sp-nav-item" data-spview="berichten" onclick="spNav('berichten',this)" id="sp-nav-berichten">Berichten</div>
@@ -18771,6 +19029,12 @@ window.addEventListener('offline', updateOnlineStatus);
     <div id="sp-inschrijvingen" class="sp-view">
       <div class="sp-section-title">Mijn inschrijvingen</div>
       <div id="sp-mijn-inschrijvingen"></div>
+    </div>
+
+    <!-- Competities -->
+    <div id="sp-sp-competities" class="sp-view">
+      <div class="sp-section-title">Competities</div>
+      <div id="sp-competities-lijst"></div>
     </div>
 
     <!-- Mijn scores -->
