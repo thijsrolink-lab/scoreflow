@@ -11462,7 +11462,7 @@ function wdTemplateGebruiken(idx) {
   // Navigeer naar nieuw, vul template in
   adminNav('nieuw');
   setTimeout(function() {
-    if (document.getElementById('fnaam')) document.getElementById('fnaam').value = '';
+    if (document.getElementById('fnaam')) document.getElementById('fnaam').value = t.naam || '';
     if (document.getElementById('fvorm')) {
       var btns = document.querySelectorAll('[data-vorm]');
       btns.forEach(function(b) {
