@@ -17749,27 +17749,65 @@ function renderCompeties() {
   }
 
   el.innerHTML = COMPETITIES.map(function(comp) {
-    var ws = WEDSTRIJDEN.filter(function(w){ return comp.wids && comp.wids.indexOf(w.id) >= 0; });
-    var typeInfo = COMP_TYPES.find(function(t){return t.id===comp.type;}) || {label: comp.type};
+    var ws = WEDSTRIJDEN.filter(function(w){ return comp.wids && comp.wids.indexOf(w.id) >= 0; })
+      .sort(function(a,b){ return (a.datum||'').localeCompare(b.datum||''); });
+    var typeInfo = COMP_TYPES.find(function(t){return t.id===comp.type;}) || {label: comp.type||'?'};
     var d1 = comp.start ? new Date(comp.start) : null;
-    var d2 = comp.eind ? new Date(comp.eind) : null;
+    var d2 = comp.eind  ? new Date(comp.eind)  : null;
 
-    return '<div class="lr" onclick="openCompWizard(\'' + comp.id + '\')">' +
-      '<div class="lr-l">' +
-        '<div class="lr-n">'+escHtml(comp.naam)+'</div>' +
-        '<div class="lr-m">' +
-          '<span class="badge bg" style="background:var(--gm)">'+typeInfo.label+'</span> · ' +
-          ws.length + ' wedstrijd' + (ws.length !== 1 ? 'en' : '') +
-          (d1 ? ' · ' + d1.getDate()+' '+MN[d1.getMonth()]+' '+d1.getFullYear() : '') +
-          (d2 ? ' t/m ' + d2.getDate()+' '+MN[d2.getMonth()]+' '+d2.getFullYear() : '') +
+    // Deelnemers tellen (uniek over alle rondes)
+    var sidSet = {};
+    ws.forEach(function(w){
+      INSCHRIJVINGEN.filter(function(i){return i.wid===w.id&&i.status==='ingeschreven';})
+        .forEach(function(i){sidSet[i.sid]=true;});
+    });
+    var aantalDeelnemers = Object.keys(sidSet).length;
+
+    // Wedstrijden als rijen
+    var rondesHtml = ws.length === 0
+      ? '<div style="font-size:12px;color:var(--txm);padding:.5rem 0">Nog geen rondes gekoppeld — bewerk de competitie om rondes toe te voegen.</div>'
+      : '<div style="margin-top:.75rem;display:flex;flex-direction:column;gap:4px">' +
+        ws.map(function(w, i) {
+          var d = w.datum ? new Date(w.datum) : null;
+          var dagNm = d ? ['Zo','Ma','Di','Wo','Do','Vr','Za'][d.getDay()] : '';
+          var datumStr = d ? dagNm+' '+d.getDate()+' '+MN[d.getMonth()] : '—';
+          var fase = wedstrijdFase(w);
+          var faseKleur = fase==='live'?'#16a34a':fase==='afgerond'?'#6b7280':fase==='afgelast'?'#dc2626':'#3b82f6';
+          var faseBg   = fase==='live'?'#f0fdf4':fase==='afgerond'?'#f1f4f8':fase==='afgelast'?'#fef2f2':'#eff6ff';
+          var ic = INSCHRIJVINGEN.filter(function(ing){return ing.wid===w.id&&ing.status==='ingeschreven';}).length;
+          return '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--surf);border-radius:8px;border:1px solid var(--bd);cursor:pointer" onclick="event.stopPropagation();adminNavToW(\'wddetail\',\''+w.id+'\')">' +
+            '<div style="width:20px;height:20px;border-radius:50%;background:var(--gl);color:var(--g);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</div>' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escHtml(w.naam)+'</div>' +
+              '<div style="font-size:11px;color:var(--txm)">'+datumStr+(w.tijd?' · '+w.tijd.slice(0,5):'')+(ic?' · '+ic+' deeln.':'')+'</div>' +
+            '</div>' +
+            '<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:'+faseBg+';color:'+faseKleur+';flex-shrink:0">'+fase+'</span>' +
+          '</div>';
+        }).join('') +
+        '</div>';
+
+    return '<div style="border:1px solid var(--bd);border-radius:var(--rl);margin-bottom:1rem;overflow:hidden">' +
+      // Header
+      '<div style="padding:1rem 1.25rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:15px;font-weight:600;color:var(--tx);margin-bottom:4px">'+escHtml(comp.naam)+'</div>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">' +
+            '<span class="badge bg" style="background:var(--gm);font-size:11px">'+typeInfo.label+'</span>' +
+            '<span style="font-size:12px;color:var(--txm)">'+ws.length+' ronde'+(ws.length!==1?'s':'')+'</span>' +
+            (aantalDeelnemers ? '<span style="font-size:12px;color:var(--txm)">'+aantalDeelnemers+' deelnemer'+(aantalDeelnemers!==1?'s':'')+'</span>' : '') +
+            (d1 ? '<span style="font-size:12px;color:var(--txm)">'+d1.getDate()+' '+MN[d1.getMonth()]+' '+d1.getFullYear()+
+              (d2 ? ' t/m '+d2.getDate()+' '+MN[d2.getMonth()]+' '+d2.getFullYear() : '') + '</span>' : '') +
+          '</div>' +
         '</div>' +
-        (ws.length > 0 ? '<div style="font-size:11px;color:var(--txm);margin-top:3px">' +
-          ws.map(function(w){return escHtml(w.naam);}).join(' · ') + '</div>' : '') +
+        '<div style="display:flex;gap:6px;flex-shrink:0">' +
+          '<button class="btn btn-p btn-xs" onclick="event.stopPropagation();openKlassement(\''+comp.id+'\')">Klassement</button>' +
+          '<button class="btn btn-s btn-xs" onclick="event.stopPropagation();openCompWizard(\''+comp.id+'\')">Bewerken</button>' +
+          '<button class="btn btn-d btn-xs" onclick="event.stopPropagation();delCompetitie(\''+comp.id+'\')">&#215;</button>' +
+        '</div>' +
       '</div>' +
-      '<div class="lr-r" style="display:flex;gap:6px;flex-wrap:wrap">' +
-        '<button class="btn btn-p btn-xs" onclick="openKlassement(\'' + comp.id + '\')">Klassement</button>' +
-        '<button class="btn btn-s btn-xs" onclick="openCompWizard(\'' + comp.id + '\')">Bewerken</button>' +
-        '<button class="btn btn-d btn-xs" onclick="delCompetitie(\'' + comp.id + '\')">&#215;</button>' +
+      // Rondes
+      '<div style="padding:0 1.25rem 1rem">' +
+        rondesHtml +
       '</div>' +
     '</div>';
   }).join('');
