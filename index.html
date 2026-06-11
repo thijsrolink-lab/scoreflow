@@ -7787,7 +7787,7 @@ async function bouwEnSlaWedstrijdOp(status) {
         await koppelAlleSponsorenAanWedstrijd(savedEditId, hoofdId, _wizCoSponsoren || [], _wizHoleSponsoren || [], _wizSideGames || []);
       } catch(e) { console.warn('Sponsoren koppelen:', e.message); }
     }
-    logActie(_editId ? 'wedstrijd_bewerkt' : 'wedstrijd_aangemaakt', 'Status: ' + status, data.id || _editId, data.naam);
+    logActie(savedEditId ? 'wedstrijd_bewerkt' : 'wedstrijd_aangemaakt', 'Status: ' + status, data.id || savedEditId, data.naam);
     toast(status === 'gepubliceerd' ? 'Wedstrijd gepubliceerd!' : 'Concept opgeslagen.');
     adminNav(status === 'gepubliceerd' ? 'kalender' : 'wedstrijden');
     return;
