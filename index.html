@@ -6783,11 +6783,11 @@ function adminNav(id){
   var btnNieuw=document.getElementById('btn-nieuw-w');
   if(btnNieuw)btnNieuw.style.display=heeftToegang('nieuw')?'':'none';
   var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,commissies:renderCommissies,notificaties:renderNotificaties,rapportages:renderRapportages,auditlog:renderAuditLog,wddetail:renderWdDetail,mijntaken:renderMijnTaken,sponsoren:renderSponsoren,aiassistent:renderAiAssistent,ranking:renderRanking,'wd-templates':renderWdTemplates,baaninformatie:renderBaanInformatie,instellingen:renderInstellingen};
+  var ac=document.querySelector('.admin-content');
+  if(ac)ac.scrollTop=0;
   if(renders[id])renders[id]();
   if(id==='nieuw'){goStep(0);if(!_editId)resetForm();}
   _adminView=id;
-  // Scroll naar boven — admin-content is de scroll container, niet window
-  var ac=document.querySelector('.admin-content');
   if(ac)ac.scrollTop=0;
 }
 
@@ -7855,27 +7855,45 @@ function renderInschrijvingen(){
     if (typeof updateAdminBadges === 'function') updateAdminBadges();
     return;
   }
-  // Anders: oude view-flow (alleen als oude elementen nog bestaan)
-  var el=document.getElementById('ing-fw');
-  var ingC=document.getElementById('ing-c'), ingW=document.getElementById('ing-w'), ingA=document.getElementById('ing-a'), ingBody=document.getElementById('ing-body');
+
+  // Standalone deelnemers-view — gebruik old-ing-* IDs
+  var el = document.getElementById('old-ing-fw') || document.getElementById('ing-fw');
+  var ingC = document.getElementById('old-ing-c') || document.getElementById('ing-c');
+  var ingW = document.getElementById('old-ing-w') || document.getElementById('ing-w');
+  var ingA = document.getElementById('old-ing-a') || document.getElementById('ing-a');
+  var ingBody = document.getElementById('old-ing-body') || document.getElementById('ing-body');
+
   if (!ingC || !ingW || !ingA || !ingBody) {
-    // Oude view bestaat niet meer — niets te doen
     if (typeof updateAdminBadges === 'function') updateAdminBadges();
     return;
   }
-  var cur=el?el.value:'';
-  if(el){el.innerHTML='<option value="">Alle wedstrijden</option>'+WEDSTRIJDEN.map(function(w){return '<option value="'+w.id+'">'+w.naam+'</option>';}).join('');el.value=cur;}
-  var wf=el?parseInt(el.value)||0:0;
-  var list=INSCHRIJVINGEN.filter(function(i){return !wf||i.wid===wf;});
-  ingC.textContent=list.filter(function(i){return i.status==='ingeschreven';}).length;
-  ingW.textContent=list.filter(function(i){return i.status==='wachtlijst';}).length;
-  ingA.textContent=list.filter(function(i){return i.status==='afgemeld';}).length;
-  ingBody.innerHTML=list.map(function(i){
-    var s=USERS.find(function(x){return x.id===i.sid;}),w=WEDSTRIJDEN.find(function(x){return x.id===i.wid;});
-    if(!s||!w)return '';
-    var sh=berekenSpeelhandicap(s.hcp,w.slope,w.cr,w.holes===9?36:72,w.hcpperc/100,w.holes);
-    var sb=i.status==='ingeschreven'?'bg':i.status==='wachtlijst'?'ba':'bx';
-    return '<tr><td style="font-weight:500">'+s.voor+' '+s.ach+'</td><td style="color:var(--txm)">'+w.naam+'</td><td><span class="badge '+(s.hcp<=10?'bg':s.hcp<=20?'bb':'bx')+'">'+s.hcp.toFixed(1)+'</span></td><td><span class="badge bg">'+sh+'</span></td><td style="color:var(--txm)">'+i.datum+'</td><td><span class="badge '+sb+'">'+i.status+'</span></td><td><div style="display:flex;gap:4px">'+(i.status==='wachtlijst'?'<button class="btn btn-p btn-xs" onclick="adminPromote(\'' + i.id + '\')">Toelaten</button>':'')+'<button class="btn btn-d btn-xs" onclick="adminAfmelden(\'' + i.id + '\')">Afmelden</button></div></td></tr>';
+
+  var cur = el ? el.value : '';
+  if (el && el.tagName === 'SELECT') {
+    el.innerHTML = '<option value="">Alle wedstrijden</option>' +
+      WEDSTRIJDEN.map(function(w){ return '<option value="'+w.id+'">'+w.naam+'</option>'; }).join('');
+    el.value = cur;
+  }
+  var wf = el ? el.value : '';
+  var list = INSCHRIJVINGEN.filter(function(i){ return !wf || i.wid === wf; });
+  ingC.textContent = list.filter(function(i){ return i.status === 'ingeschreven'; }).length;
+  ingW.textContent = list.filter(function(i){ return i.status === 'wachtlijst'; }).length;
+  ingA.textContent = list.filter(function(i){ return i.status === 'afgemeld'; }).length;
+  ingBody.innerHTML = list.map(function(i){
+    var s = USERS.find(function(x){ return x.id === i.sid; });
+    var w = WEDSTRIJDEN.find(function(x){ return x.id === i.wid; });
+    if (!s || !w) return '';
+    var sh = berekenSpeelhandicap(s.hcp, w.slope, w.cr, w.holes === 9 ? 36 : 72, w.hcpperc / 100, w.holes);
+    var sb = i.status === 'ingeschreven' ? 'bg' : i.status === 'wachtlijst' ? 'ba' : 'bx';
+    return '<tr><td style="font-weight:500">'+s.voor+' '+s.ach+'</td><td style="color:var(--txm)">'+w.naam+'</td>' +
+      '<td><span class="badge '+(s.hcp<=10?'bg':s.hcp<=20?'bb':'bx')+'">'+s.hcp.toFixed(1)+'</span></td>' +
+      '<td><span class="badge bg">'+sh+'</span></td>' +
+      '<td style="color:var(--txm)">'+i.datum+'</td>' +
+      '<td><span class="badge '+sb+'">'+i.status+'</span></td>' +
+      '<td><div style="display:flex;gap:4px">' +
+        (i.status === 'wachtlijst' ? '<button class="btn btn-p btn-xs" onclick="adminPromote(\''+i.id+'\')">Toelaten</button>' : '') +
+        '<button class="btn btn-d btn-xs" onclick="adminAfmelden(\''+i.id+'\')">Afmelden</button>' +
+      '</div></td></tr>';
   }).join('');
   updateAdminBadges();
 }
