@@ -6346,18 +6346,77 @@ var _adminBcNav=null;
 // ============================================================
 // AUTH
 // ============================================================
-var ROL_RECHTEN={
+var ROL_RECHTEN_DEFAULT={
   Superadmin:['dashboard','kalender','wedstrijden','wddetail','mijntaken','sponsoren','nieuw','competities','ranking','spelers','inschrijvingen','flights','scores','admins','commissies','notificaties','rapportages','auditlog','instellingen','aiassistent','wd-templates','baaninformatie'],
   Wedstrijdleider:['dashboard','kalender','wedstrijden','wddetail','mijntaken','nieuw','competities','ranking','inschrijvingen','flights','scores','notificaties','rapportages','aiassistent','wd-templates'],
   Secretaris:['dashboard','kalender','wedstrijden','wddetail','spelers','inschrijvingen','notificaties'],
   Speler:[],
 };
 
+// Laad aanpasbare rechten uit localStorage, val terug op defaults
+function laadRolRechten(){
+  try{
+    var opgeslagen=JSON.parse(localStorage.getItem('sf_rol_rechten')||'null');
+    if(opgeslagen&&opgeslagen.Wedstrijdleider&&opgeslagen.Secretaris){
+      // Superadmin altijd volledig (niet aanpasbaar)
+      opgeslagen.Superadmin=ROL_RECHTEN_DEFAULT.Superadmin.slice();
+      opgeslagen.Speler=[];
+      return opgeslagen;
+    }
+  }catch(e){}
+  return {
+    Superadmin:ROL_RECHTEN_DEFAULT.Superadmin.slice(),
+    Wedstrijdleider:ROL_RECHTEN_DEFAULT.Wedstrijdleider.slice(),
+    Secretaris:ROL_RECHTEN_DEFAULT.Secretaris.slice(),
+    Speler:[],
+  };
+}
+var ROL_RECHTEN=laadRolRechten();
+
 function heeftToegang(view){
   if(!_currentUser)return false;
   var rechten=ROL_RECHTEN[_currentUser.rol]||[];
   return rechten.indexOf(view)>=0;
 }
+
+// Modules gegroepeerd voor de rechten-UI
+var ROL_MODULES=[
+  {groep:'Overzicht',      items:[
+    {id:'dashboard',    label:'Dashboard'},
+    {id:'mijntaken',    label:'Mijn taken'},
+  ]},
+  {groep:'Wedstrijden',    items:[
+    {id:'kalender',     label:'Kalender'},
+    {id:'wedstrijden',  label:'Alle wedstrijden'},
+    {id:'nieuw',        label:'Wedstrijd aanmaken'},
+    {id:'wddetail',     label:'Wedstrijd detail'},
+    {id:'flights',      label:'Flights'},
+    {id:'scores',       label:'Scores'},
+    {id:'wd-templates', label:'Templates'},
+    {id:'aiassistent',  label:'AI Assistent'},
+  ]},
+  {groep:'Competities',    items:[
+    {id:'competities',  label:'Competities'},
+    {id:'ranking',      label:'Ranking'},
+  ]},
+  {groep:'Spelers',        items:[
+    {id:'spelers',      label:'Clubleden'},
+    {id:'inschrijvingen',label:'Deelnemers'},
+  ]},
+  {groep:'Inzichten',      items:[
+    {id:'rapportages',  label:'Rapportages'},
+    {id:'auditlog',     label:'Audit log'},
+  ]},
+  {groep:'Beheer',         items:[
+    {id:'notificaties', label:'Notificaties'},
+    {id:'commissies',   label:'Commissies'},
+  ]},
+  {groep:'Instellingen',   items:[
+    {id:'baaninformatie',label:'Baaninformatie'},
+    {id:'sponsoren',    label:'Sponsoren'},
+    {id:'instellingen', label:'Clubinstellingen'},
+  ]},
+];
 
 async function doLogin(){
   var email=document.getElementById('login-email').value.trim().toLowerCase();
@@ -7812,8 +7871,79 @@ function renderAdmins(){
     var rolCls='role-'+u.rol.toLowerCase().replace(' ','');
     return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;font-size:11px;background:var(--gl);color:var(--g)">'+u.voor[0]+u.ach[0]+'</div><span style="font-weight:500">'+u.voor+' '+u.ach+'</span></div></td><td style="color:var(--txm)">'+u.email+'</td><td><span class="role-badge '+rolCls+'">'+u.rol+'</span></td><td style="color:var(--txh);font-size:12px">Vandaag</td><td><div style="display:flex;gap:4px">'+(u.id!==_currentUser.id?'<button class="btn btn-s btn-xs" onclick="editAdmin(\'' + u.id + '\')">Bewerk</button><button class="btn btn-d btn-xs" onclick="delAdmin(\'' + u.id + '\')">&#215;</button>':'<span style="font-size:12px;color:var(--txh)">Jijzelf</span>')+'</div></td></tr>';
   }).join('');
+  renderRechtenTabel();
 }
 
+function renderRechtenTabel(){
+  var el=document.getElementById('rechten-tabel');
+  if(!el)return;
+  var rollen=['Wedstrijdleider','Secretaris'];
+  var rechten=ROL_RECHTEN;
+  var html='<div style="overflow-x:auto"><table class="tbl" style="min-width:500px">';
+  html+='<thead><tr><th style="width:160px">Module</th>';
+  rollen.forEach(function(r){html+='<th style="text-align:center;min-width:130px">'+r+'</th>';});
+  html+='</tr></thead><tbody>';
+  ROL_MODULES.forEach(function(groep){
+    html+='<tr><td colspan="'+(rollen.length+1)+'" style="background:var(--gl);font-size:11px;font-weight:600;color:var(--g);text-transform:uppercase;letter-spacing:.05em;padding:6px 12px">'+groep.groep+'</td></tr>';
+    groep.items.forEach(function(item){
+      html+='<tr><td style="font-size:13px;padding-left:16px">'+item.label+'</td>';
+      rollen.forEach(function(rol){
+        var heeft=rechten[rol]&&rechten[rol].indexOf(item.id)>=0;
+        var cbId='recht-'+rol.replace(' ','')+'-'+item.id;
+        html+='<td style="text-align:center"><input type="checkbox" id="'+cbId+'" data-rol="'+rol+'" data-view="'+item.id+'"'+(heeft?' checked':'')+' style="width:16px;height:16px;cursor:pointer" onchange="rechtenCheckChange(this)"/></td>';
+      });
+      html+='</tr>';
+    });
+  });
+  html+='</tbody></table></div>';
+  html+='<div style="margin-top:1rem;display:flex;align-items:center;gap:10px">';
+  html+='<button class="btn btn-p" onclick="slaRechtenOp()">Rechten opslaan</button>';
+  html+='<button class="btn btn-s" onclick="resetRechten()">Standaard herstellen</button>';
+  html+='<span id="rechten-status" style="font-size:12px;color:var(--txm)"></span>';
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function rechtenCheckChange(cb){
+  if(cb.dataset.view==='dashboard'&&!cb.checked){
+    cb.checked=true;toast('Dashboard kan niet uitgeschakeld worden.','err');return;
+  }
+  if(cb.dataset.view==='wedstrijden'){
+    var wdCb=document.getElementById('recht-'+cb.dataset.rol.replace(' ','')+'-wddetail');
+    if(wdCb)wdCb.checked=cb.checked;
+  }
+  var st=document.getElementById('rechten-status');
+  if(st){st.textContent='Niet opgeslagen';st.style.color='var(--amber,#d97706)';}
+}
+
+function slaRechtenOp(){
+  var nieuweRechten={Superadmin:ROL_RECHTEN_DEFAULT.Superadmin.slice(),Speler:[]};
+  ['Wedstrijdleider','Secretaris'].forEach(function(rol){
+    var lijst=['dashboard','wddetail'];
+    ROL_MODULES.forEach(function(groep){
+      groep.items.forEach(function(item){
+        var cb=document.getElementById('recht-'+rol.replace(' ','')+'-'+item.id);
+        if(cb&&cb.checked&&lijst.indexOf(item.id)<0)lijst.push(item.id);
+      });
+    });
+    nieuweRechten[rol]=lijst;
+  });
+  localStorage.setItem('sf_rol_rechten',JSON.stringify(nieuweRechten));
+  ROL_RECHTEN=nieuweRechten;
+  buildAdminNav();
+  var st=document.getElementById('rechten-status');
+  if(st){st.textContent='Opgeslagen ✓';st.style.color='var(--g)';}
+  toast('Rolrechten opgeslagen.');
+}
+
+function resetRechten(){
+  if(!confirm('Rolrechten terugzetten naar standaard?'))return;
+  localStorage.removeItem('sf_rol_rechten');
+  ROL_RECHTEN=laadRolRechten();
+  renderRechtenTabel();
+  buildAdminNav();
+  toast('Rechten teruggezet naar standaard.');
+}
 function editAdmin(id){
   var u=USERS.find(function(x){return x.id===id;});if(!u)return;
   openModal('modal-admin');
@@ -17902,6 +18032,13 @@ window.addEventListener('offline', updateOnlineStatus);
             <button class="btn btn-p btn-xs" onclick="openNieuwAdmin()">+ Admin toevoegen</button>
           <div class="card-hd-r"><button class="help-knop" onclick="openHelp('admins')">&#63; Help</button></div></div>
           <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Naam</th><th>E-mail</th><th>Rol</th><th>Laatste login</th><th></th></tr></thead><tbody id="admins-body"></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">Rolrechten
+            <div class="card-hd-r"><span style="font-size:12px;color:var(--txm);font-weight:400">Superadmin heeft altijd alle rechten</span></div>
+          </div>
+          <p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0">Stel per rol in welke modules zichtbaar en toegankelijk zijn. Wijzigingen worden lokaal opgeslagen en gelden direct na opslaan.</p>
+          <div id="rechten-tabel"></div>
         </div>
       </div>
 
