@@ -6366,13 +6366,11 @@ async function laadCommissies() {
                             .map(function(l) { return l.gebruiker_id; })
       };
     });
+    // Verwijder eventuele oude localStorage-data
+    try { localStorage.removeItem('sf_commissies'); } catch(e) {}
   } catch(e) {
     console.warn('Commissies laden mislukt:', e.message);
-    // Fallback naar localStorage als DB niet bereikbaar
-    try {
-      var opg = JSON.parse(localStorage.getItem('sf_commissies') || 'null');
-      if (Array.isArray(opg)) COMMISSIES = opg;
-    } catch(e2) {}
+    COMMISSIES = [];
   }
 }
 var COMMISSIES = [];
