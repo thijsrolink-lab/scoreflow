@@ -6815,9 +6815,10 @@ function initAdminInterface(){
   var loadPromise = USERS.length > 8 ? Promise.resolve() : laadAlleData();
   loadPromise.then(function() {
     adminNav('dashboard');
+    updateAdminBadges();
   }).catch(function() {
-    // Fallback: gebruik lokale data
     adminNav('dashboard');
+    updateAdminBadges();
   });
 }
 
