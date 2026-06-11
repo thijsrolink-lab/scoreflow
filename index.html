@@ -2809,10 +2809,12 @@ function getOpenstaandeTaken(wId) {
   if (fase === 'gepubliceerd' || fase === 'concept') {
     if (!w.leiderId) {
       taken.push({
-        type: 'warn',
-        prio: 'hoog',
+        type: fase === 'gepubliceerd' ? 'warn' : 'info',
+        prio: fase === 'gepubliceerd' ? 'hoog' : 'laag',
         tab: 'info',
-        tekst: 'Geen wedstrijdleider gekoppeld',
+        tekst: fase === 'gepubliceerd'
+          ? 'Geen wedstrijdleider gekoppeld — verplicht voor gepubliceerde wedstrijd'
+          : 'Geen wedstrijdleider gekoppeld',
         knop: 'Leider kiezen',
         actie: "editW('" + wId + "')"
       });
