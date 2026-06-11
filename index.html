@@ -2668,8 +2668,8 @@ function statusBadge(w) {
 // ============================================================
 function logActie(actie, details, objectId, objectNaam) {
   if (!_currentUser) return;
-  // Fire-and-forget: niet awaiten zodat UI nooit blokkeert
-  supa('audit_log', 'POST', {
+  // Directe fetch met return=minimal — vereist geen SELECT policy op audit_log
+  var body = {
     user_id:     _currentUser.id || null,
     user_naam:   (_currentUser.voor + ' ' + _currentUser.ach).trim(),
     user_email:  _currentUser.email || null,
@@ -2677,6 +2677,16 @@ function logActie(actie, details, objectId, objectNaam) {
     details:     details || null,
     object_naam: objectNaam || null,
     record_id:   objectId ? String(objectId) : null
+  };
+  fetch(SUPA_URL + '/rest/v1/audit_log', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + ((SUPA_SESSION && SUPA_SESSION.access_token) || SUPA_KEY),
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(body)
   }).catch(function(e) {
     console.warn('Audit log mislukt:', e.message);
   });
