@@ -5494,6 +5494,17 @@ function applyClubBranding() {
 
 
 // Competitie types
+// Standaard OOM puntenschema: positie → punten
+// Aanpasbaar per competitie via comp.puntenschema
+var OOM_SCHEMA_DEFAULT = [100,80,60,50,45,40,35,30,25,20,18,16,14,12,10,9,8,7,6,5];
+var OOM_DEELNAME_PUNTEN = 3; // punten voor iedereen buiten top 20
+
+function oomPuntenVoorPositie(pos, schema) {
+  var s = schema || OOM_SCHEMA_DEFAULT;
+  if (pos <= s.length) return s[pos - 1];
+  return OOM_DEELNAME_PUNTEN;
+}
+
 var COMP_TYPES = [
   { id: 'eclectic',   label: 'Eclectic',           omschrijving: 'Beste score per hole over alle rondes' },
   { id: 'strokeplay', label: 'Strokeplay multi-ronde', omschrijving: 'Totaal slagen over alle rondes (bijv. clubkampioenschap)' },
@@ -17269,6 +17280,28 @@ function openCompWizard(id) {
   html += '<input type="number" id="comp-eclhcp" value="'+(comp?comp.eclHcpPerc||75:75)+'" min="50" max="100"/></div>';
   html += '</div></div>';
 
+  // OOM puntenschema
+  html += '<div id="comp-oom-instellingen" style="margin-top:.75rem">';
+  html += '<div style="font-size:11px;font-weight:600;color:var(--g);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">Puntenschema (Order of Merit)</div>';
+  html += '<div style="font-size:12px;color:var(--txm);margin-bottom:.75rem">Punten per eindpositie per ronde. Spelers buiten de tabel krijgen altijd deelname-punten.</div>';
+  var schema = (comp && comp.puntenschema) ? comp.puntenschema : OOM_SCHEMA_DEFAULT.slice(0,10);
+  html += '<div id="comp-schema-rijen" style="display:flex;flex-direction:column;gap:4px">';
+  schema.forEach(function(p, i) {
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    html += '<span style="width:24px;font-size:12px;font-weight:600;color:var(--txm);text-align:right">'+(i+1)+'e</span>';
+    html += '<input type="number" class="comp-schema-input" min="0" max="999" value="'+p+'" style="width:70px;padding:4px 8px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r)">';
+    html += '<span style="font-size:12px;color:var(--txm)">punten</span>';
+    if (i >= 3) html += '<button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:14px;padding:0">&#215;</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div style="display:flex;gap:8px;margin-top:.5rem;align-items:center">';
+  html += '<button class="btn btn-s btn-xs" onclick="compSchemaRijToevoegen()">+ Positie toevoegen</button>';
+  html += '<button class="btn btn-s btn-xs" onclick="compSchemaReset()">Standaard herstellen</button>';
+  html += '<span style="font-size:11px;color:var(--txm)">Deelname (buiten schema): <input type="number" id="comp-deelname-punten" value="'+(comp&&comp.deelnamePunten!=null?comp.deelnamePunten:OOM_DEELNAME_PUNTEN)+'" min="0" max="99" style="width:45px;padding:2px 5px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r)"> pts</span>';
+  html += '</div>';
+  html += '</div>';
+
   html += '</div>'; // stap 2
 
   // Navigatie knoppen
@@ -17327,6 +17360,51 @@ function compUpdateTypeInfo() {
   // Toon/verberg eclectic instellingen
   var eclEl = document.getElementById('comp-eclectic-instellingen');
   if (eclEl) eclEl.style.display = type === 'eclectic' ? '' : 'none';
+
+  // Toon/verberg OOM puntenschema
+  var oomEl = document.getElementById('comp-oom-instellingen');
+  if (oomEl) oomEl.style.display = (type === 'oom' || type === 'weekly') ? '' : 'none';
+}
+
+function compSchemaRijToevoegen() {
+  var container = document.getElementById('comp-schema-rijen');
+  if (!container) return;
+  var huidig = container.querySelectorAll('.comp-schema-input');
+  var positie = huidig.length + 1;
+  var vorigeWaarde = huidig.length > 0 ? Math.max(1, parseInt(huidig[huidig.length-1].value)||1) : 5;
+  var nieuweWaarde = Math.max(1, vorigeWaarde - 1);
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;align-items:center;gap:8px';
+  div.innerHTML = '<span style="width:24px;font-size:12px;font-weight:600;color:var(--txm);text-align:right">'+positie+'e</span>' +
+    '<input type="number" class="comp-schema-input" min="0" max="999" value="'+nieuweWaarde+'" style="width:70px;padding:4px 8px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r)">' +
+    '<span style="font-size:12px;color:var(--txm)">punten</span>' +
+    '<button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:14px;padding:0">&#215;</button>';
+  container.appendChild(div);
+}
+
+function compSchemaReset() {
+  var container = document.getElementById('comp-schema-rijen');
+  if (!container) return;
+  container.innerHTML = '';
+  OOM_SCHEMA_DEFAULT.slice(0,10).forEach(function(p, i) {
+    var div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:8px';
+    div.innerHTML = '<span style="width:24px;font-size:12px;font-weight:600;color:var(--txm);text-align:right">'+(i+1)+'e</span>' +
+      '<input type="number" class="comp-schema-input" min="0" max="999" value="'+p+'" style="width:70px;padding:4px 8px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r)">' +
+      '<span style="font-size:12px;color:var(--txm)">punten</span>' +
+      (i >= 3 ? '<button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:14px;padding:0">&#215;</button>' : '');
+    container.appendChild(div);
+  });
+  var dpEl = document.getElementById('comp-deelname-punten');
+  if (dpEl) dpEl.value = OOM_DEELNAME_PUNTEN;
+}
+
+function compLeesSchema() {
+  var inputs = document.querySelectorAll('#comp-schema-rijen .comp-schema-input');
+  if (!inputs || inputs.length === 0) return null;
+  var schema = Array.from(inputs).map(function(inp){ return parseInt(inp.value)||0; });
+  var dpEl = document.getElementById('comp-deelname-punten');
+  return { punten: schema, deelname: dpEl ? (parseInt(dpEl.value)||0) : OOM_DEELNAME_PUNTEN };
 }
 
 // ── Competitie: rondes genereren ────────────────────────────
@@ -17486,6 +17564,7 @@ async function saveCompetitie() {
     hcpperc: parseInt(document.getElementById('comp-hcpperc').value) || 100,
     minRondes: parseInt(document.getElementById('comp-minrondes').value) || 2,
     eclHcpPerc: parseInt(document.getElementById('comp-eclhcp').value) || 75,
+    puntenschema: compLeesSchema(),
     wids: wids,
     status: 'actief',
     aangemaakt: new Date().toISOString(),
@@ -17531,7 +17610,8 @@ async function dbSaveCompetitie(comp) {
       min_rondes: comp.minRondes || 2,
       ecl_hcp_perc: comp.eclHcpPerc || 75,
       wids: comp.wids || [],
-      status: comp.status || 'actief'
+      status: comp.status || 'actief',
+      puntenschema: comp.puntenschema || null
     };
     if (comp.id && String(comp.id).includes('-')) {
       // Bestaande competitie (UUID)
@@ -17569,6 +17649,8 @@ function dbCompetitieNaarApp(c) {
     eclHcpPerc: c.ecl_hcp_perc || 75,
     wids: c.wids || [],
     status: c.status || 'actief',
+    puntenschema: c.puntenschema || null,
+    deelnamePunten: c.deelname_punten != null ? c.deelname_punten : OOM_DEELNAME_PUNTEN,
     aangemaakt: c.aangemaakt_op || new Date().toISOString()
   };
 }
@@ -18157,7 +18239,8 @@ function renderStrokeplayKlassement(comp, ws, baan) {
 }
 
 function renderOomKlassement(comp, ws, baan) {
-  var schaal = {1:25,2:20,3:16,4:13,5:11,6:9,7:7,8:6,9:5,10:4};
+  var schema = (comp.puntenschema && comp.puntenschema.punten) ? comp.puntenschema.punten : OOM_SCHEMA_DEFAULT;
+  var deelnamePts = (comp.puntenschema && comp.puntenschema.deelname != null) ? comp.puntenschema.deelname : OOM_DEELNAME_PUNTEN;
   var puntenTotaal = {};
 
   ws.forEach(function(w) {
@@ -18174,22 +18257,45 @@ function renderOomKlassement(comp, ws, baan) {
 
     rows.forEach(function(r,i){
       if(!r.ges)return;
-      if(!puntenTotaal[r.id])puntenTotaal[r.id]={naam:r.naam,punten:0,wedstrijden:0};
-      var p=schaal[i+1]||Math.max(1,3-Math.floor(i/5));
-      puntenTotaal[r.id].punten+=p; puntenTotaal[r.id].wedstrijden++;
+      if(!puntenTotaal[r.id])puntenTotaal[r.id]={naam:r.naam,punten:0,wedstrijden:0,rondes:[]};
+      var p = i < schema.length ? schema[i] : deelnamePts;
+      puntenTotaal[r.id].punten+=p;
+      puntenTotaal[r.id].wedstrijden++;
+      puntenTotaal[r.id].rondes.push({wNaam:w.naam,positie:i+1,pts:p});
     });
   });
 
   var lb = Object.values(puntenTotaal).sort(function(a,b){return b.punten-a.punten;});
-  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Order of Merit · punten per wedstrijd op basis van eindpositie</div>';
-  html += '<table class="tbl"><thead><tr><th>#</th><th>Speler</th><th>Wedstrijden</th><th>OoM punten</th></tr></thead><tbody>';
-  lb.forEach(function(r,i){
-    var p=i+1;var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
-    html+='<tr><td><div class="lb-pos '+pcls+'">'+p+'</div></td><td style="font-weight:500">'+escHtml(r.naam)+'</td><td>'+r.wedstrijden+'</td><td style="font-weight:700;color:var(--gm);font-size:16px">'+r.punten+'</td></tr>';
-  });
+
+  var schemaHtml = '<div style="margin-bottom:1rem;padding:.75rem;background:var(--surf);border-radius:var(--r);border:1px solid var(--bd)">' +
+    '<div style="font-size:11px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Puntenschema</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:5px">' +
+    schema.slice(0,10).map(function(p,i){
+      return '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:#fff;border:1px solid var(--bd)">'+(i+1)+'e: <strong>'+p+'</strong></span>';
+    }).join('') +
+    (schema.length > 10 ? '<span style="font-size:11px;color:var(--txm)">+' + (schema.length-10) + ' meer</span>' : '') +
+    '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:#fff;border:1px solid var(--bd)">Deelname: <strong>'+deelnamePts+'</strong></span>' +
+    '</div></div>';
+
+  var html = '<div style="font-size:13px;color:var(--txm);margin-bottom:.75rem">Order of Merit · punten per ronde op basis van eindpositie · ' + ws.length + ' ronde(s)</div>';
+  html += schemaHtml;
+  html += '<table class="tbl"><thead><tr><th style="width:36px">#</th><th>Speler</th><th>Rondes</th><th style="text-align:right">Punten</th></tr></thead><tbody>';
+
+  if (lb.length === 0) {
+    html += '<tr><td colspan="4" style="text-align:center;color:var(--txm);padding:1rem">Nog geen scores ingevoerd.</td></tr>';
+  } else {
+    lb.forEach(function(r,i){
+      var p=i+1; var pcls=p===1?'lp1':p===2?'lp2':p===3?'lp3':'lpn';
+      html+='<tr title="'+r.rondes.map(function(rr){return rr.wNaam+': '+rr.positie+'e ('+rr.pts+' pts)';}).join('\n')+'">';
+      html+='<td><div class="lb-pos '+pcls+'">'+p+'</div></td>';
+      html+='<td style="font-weight:500">'+escHtml(r.naam)+'</td>';
+      html+='<td style="color:var(--txm)">'+r.wedstrijden+'/'+ws.length+'</td>';
+      html+='<td style="font-weight:700;color:var(--gm);font-size:16px;text-align:right">'+r.punten+'</td>';
+      html+='</tr>';
+    });
+  }
   return html+'</tbody></table>';
 }
-
 function renderWeeklyKlassement(comp, ws, baan) {
   // Zelfde als OoM maar telt ook nul-rondes mee
   return renderOomKlassement(comp, ws, baan);
