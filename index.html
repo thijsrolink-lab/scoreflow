@@ -6344,8 +6344,8 @@ var _adminBcNav=null;
 // AUTH
 // ============================================================
 var ROL_RECHTEN={
-  Superadmin:['dashboard','kalender','wedstrijden','wddetail','mijntaken','sponsoren','nieuw','competities','spelers','inschrijvingen','flights','scores','admins','notificaties','rapportages','instellingen','aiassistent'],
-  Wedstrijdleider:['dashboard','kalender','wedstrijden','wddetail','mijntaken','nieuw','competities','inschrijvingen','flights','scores','notificaties','rapportages','aiassistent'],
+  Superadmin:['dashboard','kalender','wedstrijden','wddetail','mijntaken','sponsoren','nieuw','competities','ranking','spelers','inschrijvingen','flights','scores','admins','commissies','notificaties','rapportages','auditlog','instellingen','aiassistent','wd-templates','baaninformatie'],
+  Wedstrijdleider:['dashboard','kalender','wedstrijden','wddetail','mijntaken','nieuw','competities','ranking','inschrijvingen','flights','scores','notificaties','rapportages','aiassistent','wd-templates'],
   Secretaris:['dashboard','kalender','wedstrijden','wddetail','spelers','inschrijvingen','notificaties'],
   Speler:[],
 };
@@ -6575,29 +6575,57 @@ function toonScherm(naam){
 // ADMIN NAVIGATIE
 // ============================================================
 var ADMIN_NAV_ITEMS=[
+  // ── Overzicht ──────────────────────────────────────────────
   {sec:'Overzicht',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
-  {id:'dashboard',label:'Dashboard',rollen:['Superadmin','Wedstrijdleider','Secretaris'],icon:'<rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>'},
-  {id:'kalender',label:'Kalender',rollen:['Superadmin','Wedstrijdleider','Secretaris'],icon:'<rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 1v4M11 1v4M2 7h12"/>'},
-  {id:'aiassistent',label:'AI Assistent',rollen:['Superadmin','Wedstrijdleider'],icon:'<circle cx="8" cy="8" r="6"/><path d="M5 8h6M8 5l3 3-3 3"/>'},
-  {sec:'Wedstrijden',rollen:['Superadmin','Wedstrijdleider']},
-  {id:'competities',label:'Competities',rollen:['Superadmin','Wedstrijdleider'],icon:'<path d="M8 2l1.5 4.5H15l-4.5 3 1.5 4.5L8 11.5 4.5 14 6 9.5 1.5 6.5H7.5z"/>'},
-  {id:'mijntaken',label:'Mijn taken',rollen:['Superadmin','Wedstrijdleider'],badge:'taken',icon:'<path d="M3 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5z"/><path d="M6 8l1.5 1.5L10 7"/>'},
-  {id:'wedstrijden',label:'Alle wedstrijden',rollen:['Superadmin','Wedstrijdleider','Secretaris'],icon:'<path d="M2 4h12M2 8h12M2 12h8"/>'},
-  {id:'nieuw',label:'Nieuwe wedstrijd',rollen:['Superadmin','Wedstrijdleider'],icon:'<circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/>'},
-  {sec:'Deelnemers',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
-  {id:'spelers',label:'Ledenbestand',rollen:['Superadmin','Secretaris'],icon:'<circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M12 9c1.5.5 3 1.5 3 4"/>'},
-  
-  {sec:'Communicatie',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
-  {id:'notificaties',label:'Notificaties',rollen:['Superadmin','Wedstrijdleider','Secretaris'],badge:'notif',icon:'<path d="M8 2a5 5 0 0 1 5 5v2l1 2H2l1-2V7a5 5 0 0 1 5-5z"/><path d="M6 13a2 2 0 0 0 4 0"/>'},
-  {sec:'Analyse',rollen:['Superadmin','Wedstrijdleider']},
-  {id:'rapportages',label:'Rapportages',rollen:['Superadmin','Wedstrijdleider'],icon:'<rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 10V8M8 10V6M11 10V4"/>'},
-  {id:'sponsoren',label:'Sponsoren',rollen:['Superadmin'],icon:'<path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4.5 2-7L2 9h7z"/>'},
-  {sec:'Beheer',rollen:['Superadmin']},
-  {id:'admins',label:'Admins & rollen',rollen:['Superadmin'],icon:'<circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/><path d="M14 8l1.5 1.5L18 7"/>'},
-  {id:'instellingen',label:'Clubinstellingen',rollen:['Superadmin'],icon:'<circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M11.4 4.6l-1.4 1.4M4.6 11.4l-1.4 1.4"/>'},
+  {id:'dashboard',   label:'Dashboard',        rollen:['Superadmin','Wedstrijdleider','Secretaris'], icon:'<rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>'},
+  {id:'mijntaken',   label:'Mijn taken',        rollen:['Superadmin','Wedstrijdleider'],             badge:'taken', icon:'<path d="M3 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5z"/><path d="M6 8l1.5 1.5L10 7"/>'},
+
+  // ── Wedstrijden ────────────────────────────────────────────
+  {sec:'Wedstrijden',rollen:['Superadmin','Wedstrijdleider','Secretaris']},
+  {id:'kalender',    label:'Kalender',          rollen:['Superadmin','Wedstrijdleider','Secretaris'], icon:'<rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 1v4M11 1v4M2 7h12"/>'},
+  {id:'wedstrijden', label:'Alle wedstrijden',  rollen:['Superadmin','Wedstrijdleider','Secretaris'], icon:'<path d="M2 4h12M2 8h12M2 12h8"/>'},
+  {id:'wd-templates',label:'Templates',         rollen:['Superadmin','Wedstrijdleider'],              icon:'<rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/><circle cx="12" cy="12" r="3.5" style="fill:var(--g)"/><path d="M12 10.5v3M10.5 12h3" style="stroke:#fff"/>'},
+  {id:'aiassistent', label:'AI Assistent',      rollen:['Superadmin','Wedstrijdleider'],              icon:'<circle cx="8" cy="8" r="6"/><path d="M5 8h6M8 5l3 3-3 3"/>'},
+
+  // ── Competities ────────────────────────────────────────────
+  {sec:'Competities',rollen:['Superadmin','Wedstrijdleider']},
+  {id:'competities', label:'Competities',       rollen:['Superadmin','Wedstrijdleider'],              icon:'<path d="M8 2l1.5 4.5H15l-4.5 3 1.5 4.5L8 11.5 4.5 14 6 9.5 1.5 6.5H7.5z"/>'},
+  {id:'ranking',     label:'Ranking',           rollen:['Superadmin','Wedstrijdleider'],              icon:'<path d="M4 14V9M8 14V5M12 14V8"/><path d="M1 14h14"/>'},
+
+  // ── Spelers ────────────────────────────────────────────────
+  {sec:'Spelers',    rollen:['Superadmin','Wedstrijdleider','Secretaris']},
+  {id:'spelers',     label:'Clubleden',         rollen:['Superadmin','Secretaris'],                   icon:'<circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M12 9c1.5.5 3 1.5 3 4"/>'},
+  {id:'inschrijvingen',label:'Deelnemers',      rollen:['Superadmin','Wedstrijdleider','Secretaris'], icon:'<path d="M3 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M6 8l1.5 1.5L10 6"/>'},
+
+  // ── Inzichten ──────────────────────────────────────────────
+  {sec:'Inzichten',  rollen:['Superadmin','Wedstrijdleider']},
+  {id:'rapportages', label:'Rapportages',       rollen:['Superadmin','Wedstrijdleider'],              icon:'<rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 10V8M8 10V6M11 10V4"/>'},
+  {id:'auditlog',    label:'Audit log',         rollen:['Superadmin'],                                icon:'<path d="M2 4h12M2 7h8M2 10h6"/><circle cx="12" cy="11" r="3"/><path d="M14.5 13.5l1.5 1.5"/>'},
+
+  // ── Beheer ─────────────────────────────────────────────────
+  {sec:'Beheer',     rollen:['Superadmin']},
+  {id:'admins',      label:'Gebruikers & rollen',rollen:['Superadmin'],                               icon:'<circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/>'},
+  {id:'commissies',  label:'Commissies',         rollen:['Superadmin'],                               icon:'<circle cx="5" cy="5" r="2.5"/><circle cx="11" cy="5" r="2.5"/><circle cx="8" cy="11" r="2.5"/>'},
+  {id:'notificaties',label:'Notificaties',       rollen:['Superadmin','Wedstrijdleider','Secretaris'],badge:'notif', icon:'<path d="M8 2a5 5 0 0 1 5 5v2l1 2H2l1-2V7a5 5 0 0 1 5-5z"/><path d="M6 13a2 2 0 0 0 4 0"/>'},
+
+  // ── Instellingen ───────────────────────────────────────────
+  {sec:'Instellingen',rollen:['Superadmin']},
+  {id:'baaninformatie',label:'Baaninformatie',  rollen:['Superadmin'],                               icon:'<path d="M2 13c2-4 4-6 6-6s4 2 6 6"/><circle cx="8" cy="5" r="2"/>'},
+  {id:'sponsoren',   label:'Sponsoren',          rollen:['Superadmin'],                               icon:'<path d="M8 2l1.2 3.5H13l-3 2.2 1.1 3.5L8 9.2l-3.1 2 1.1-3.5-3-2.2h3.8z"/>'},
+  {id:'instellingen',label:'Clubinstellingen',  rollen:['Superadmin'],                               icon:'<circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4"/>'},
 ];
 
-var ADMIN_TITLES={dashboard:'Dashboard',kalender:'Wedstrijdkalender',wedstrijden:'Alle wedstrijden',wddetail:'Wedstrijd',mijntaken:'Mijn taken',sponsoren:'Sponsoren',nieuw:'Nieuwe wedstrijd',competities:'Competities',spelers:'Ledenbestand',inschrijvingen:'Inschrijvingen',flights:'Flight-indeling',scores:'Scores & leaderboard',admins:'Admins & rollen',notificaties:'Notificaties',rapportages:'Rapportages',instellingen:'Clubinstellingen',aiassistent:'AI Assistent'};
+var ADMIN_TITLES={
+  dashboard:'Dashboard', mijntaken:'Mijn taken',
+  kalender:'Wedstrijdkalender', wedstrijden:'Alle wedstrijden', wddetail:'Wedstrijd',
+  'wd-templates':'Templates — Wedstrijden', aiassistent:'AI Assistent',
+  competities:'Competities', ranking:'Ranking',
+  spelers:'Clubleden', inschrijvingen:'Deelnemers',
+  rapportages:'Rapportages', auditlog:'Audit log',
+  admins:'Gebruikers & rollen', commissies:'Commissies', notificaties:'Notificaties',
+  baaninformatie:'Baaninformatie', sponsoren:'Sponsoren', instellingen:'Clubinstellingen',
+  nieuw:'Nieuwe wedstrijd', flights:'Flight-indeling', scores:'Scores & leaderboard',
+};
 
 var ADMIN_BC={
   nieuw:{parent:'Wedstrijden',nav:'wedstrijden'},
@@ -6750,7 +6778,7 @@ function adminNav(id){
   // Verberg + Wedstrijd knop als geen toegang
   var btnNieuw=document.getElementById('btn-nieuw-w');
   if(btnNieuw)btnNieuw.style.display=heeftToegang('nieuw')?'':'none';
-  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,notificaties:renderNotificaties,rapportages:renderRapportages,wddetail:renderWdDetail,mijntaken:renderMijnTaken,sponsoren:renderSponsoren,aiassistent:renderAiAssistent};
+  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,commissies:renderCommissies,notificaties:renderNotificaties,rapportages:renderRapportages,auditlog:renderAuditLog,wddetail:renderWdDetail,mijntaken:renderMijnTaken,sponsoren:renderSponsoren,aiassistent:renderAiAssistent,ranking:renderRanking,'wd-templates':renderWdTemplates,baaninformatie:renderBaanInformatie,instellingen:renderInstellingen};
   if(renders[id])renders[id]();
   if(id==='nieuw'){goStep(0);if(!_editId)resetForm();}
   _adminView=id;
@@ -11385,7 +11413,194 @@ async function aiChatVerstuur() {
   if (msgs) msgs.scrollTop = msgs.scrollHeight;
 }
 
-// ── Competitie-detectie na import ───────────────────────────
+// ── Ranking (seizoensranglijst) ───────────────────────────────
+function renderRanking() {
+  var el = document.getElementById('v-ranking');
+  if (!el) return;
+  if (COMPETITIES && COMPETITIES.filter(function(c){return c.type==='order_of_merit'||c.type==='eclectic';}).length > 0) {
+    // Toon competitie-standings
+    var comp = COMPETITIES.filter(function(c){return c.status==='actief';});
+    el.innerHTML = '<div class="card"><div class="card-hd">Ranking</div>' +
+      (comp.length > 0 ? comp.map(function(c) {
+        return '<div class="wd-rij" onclick="adminNavToW(\'competities\',\''+c.id+'\')"><div style="flex:1"><div style="font-weight:500">'+escHtml(c.naam)+'</div><div style="font-size:12px;color:var(--txm)">'+c.wids.length+' rondes</div></div><span class="badge bg">Actief</span></div>';
+      }).join('') : stubView('Ranking', 'Actieve seizoenscompetities verschijnen hier automatisch als ranglijst.', '🏆')) +
+      '</div>';
+  } else {
+    el.innerHTML = stubView('Ranking', 'Maak een Order of Merit of Eclectic competitie aan om hier de ranglijst te zien.', '🏆');
+  }
+}
+
+// ── Wedstrijd Templates ───────────────────────────────────────
+function renderWdTemplates() {
+  var el = document.getElementById('v-wd-templates');
+  if (!el) return;
+  // Laad opgeslagen templates uit localStorage
+  var templates = [];
+  try { templates = JSON.parse(localStorage.getItem('sf_wd_templates') || '[]'); } catch(e) {}
+  var html = '<div class="card" style="margin-bottom:1rem"><div class="card-hd">Wedstrijd Templates' +
+    '<div class="card-hd-r"><button class="btn btn-p btn-sm" onclick="wdTemplateVanHuidig()">+ Sla huidige op</button></div></div>' +
+    '<p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0">Sla wedstrijd-instellingen op als template. Gebruik bij nieuwe wedstrijd voor snelle aanmaak.</p>';
+  if (templates.length === 0) {
+    html += '<div style="text-align:center;padding:2rem;color:var(--txm);font-size:13px">Nog geen templates opgeslagen.<br><br>' +
+      '<button class="btn btn-s" onclick="adminNav(\'aiassistent\')">→ AI Assistent voor seizoensplanner</button></div>';
+  } else {
+    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Naam</th><th>Vorm</th><th>Holes</th><th>Max</th><th></th></tr></thead><tbody>' +
+      templates.map(function(t, i) {
+        return '<tr><td style="font-weight:500">'+escHtml(t.naam)+'</td><td>'+escHtml(t.vorm)+'</td><td>'+t.holes+'</td><td>'+t.max+'</td>' +
+          '<td><button class="btn btn-p btn-xs" onclick="wdTemplateGebruiken('+i+')">Gebruik</button> ' +
+          '<button class="btn btn-d btn-xs" onclick="wdTemplateVerwijderen('+i+')">✕</button></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function wdTemplateGebruiken(idx) {
+  var templates = JSON.parse(localStorage.getItem('sf_wd_templates') || '[]');
+  var t = templates[idx];
+  if (!t) return;
+  // Navigeer naar nieuw, vul template in
+  adminNav('nieuw');
+  setTimeout(function() {
+    if (document.getElementById('fnaam')) document.getElementById('fnaam').value = '';
+    if (document.getElementById('fvorm')) {
+      var btns = document.querySelectorAll('[data-vorm]');
+      btns.forEach(function(b) {
+        b.classList.toggle('on', b.dataset.vorm === t.vorm);
+      });
+    }
+    if (document.getElementById('fhmax')) document.getElementById('fhmax').value = t.max || 72;
+    toast('Template "' + t.naam + '" ingeladen — vul datum en naam in.');
+  }, 200);
+}
+
+function wdTemplateVerwijderen(idx) {
+  if (!confirm('Template verwijderen?')) return;
+  var templates = JSON.parse(localStorage.getItem('sf_wd_templates') || '[]');
+  templates.splice(idx, 1);
+  localStorage.setItem('sf_wd_templates', JSON.stringify(templates));
+  renderWdTemplates();
+  toast('Template verwijderd.');
+}
+
+function wdTemplateVanHuidig() {
+  // Sla huidige wedstrijd-instellingen op als template
+  var naam = prompt('Naam voor dit template:', 'Maandbeker Stableford');
+  if (!naam) return;
+  try {
+    var templates = JSON.parse(localStorage.getItem('sf_wd_templates') || '[]');
+    // Gebruik instellingen van meest recente gepubliceerde wedstrijd als basis
+    var recent = WEDSTRIJDEN.filter(function(w){return w.status==='gepubliceerd';})
+      .sort(function(a,b){return b.datum.localeCompare(a.datum);})[0];
+    templates.push({
+      naam: naam,
+      vorm: recent ? recent.vorm : 'Stableford',
+      holes: recent ? recent.holes : 18,
+      max: recent ? recent.max : 72,
+      hcpperc: recent ? recent.hcpperc : 100,
+      interval: recent ? recent.intervalMin : 10,
+      ts: Date.now()
+    });
+    localStorage.setItem('sf_wd_templates', JSON.stringify(templates));
+    toast('Template "' + naam + '" opgeslagen!');
+    renderWdTemplates();
+  } catch(e) { toast('Opslaan mislukt.', 'err'); }
+}
+
+
+function renderAuditLog() {
+  var el = document.getElementById('v-auditlog');
+  if (!el) return;
+  el.innerHTML = '<div class="card"><div class="card-hd">Audit log</div>' +
+    '<p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0">Alle acties door admins en wedstrijdleiders worden hier gelogd.</p>' +
+    '<div id="audit-content"><div style="text-align:center;padding:1rem;color:var(--txm)">⏳ Laden...</div></div></div>';
+  laadAuditLog();
+}
+
+async function laadAuditLog() {
+  try {
+    var res = await supa('audit_log', 'GET', null, {
+      select: '*',
+      order: 'created_at.desc',
+      limit: 100
+    });
+    var el = document.getElementById('audit-content');
+    if (!el) return;
+    if (!res || res.length === 0) {
+      el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--txm);font-size:13px">Geen audit-entries gevonden.<br><small>Voer eerst de SQL-migratie uit om de audit_log tabel aan te maken.</small></div>';
+      return;
+    }
+    el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tijdstip</th><th>Gebruiker</th><th>Actie</th><th>Details</th></tr></thead><tbody>' +
+      res.map(function(row) {
+        var d = new Date(row.created_at);
+        var tijdStr = d.toLocaleDateString('nl-NL') + ' ' + d.toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
+        return '<tr><td style="white-space:nowrap;font-size:12px;color:var(--txm)">'+tijdStr+'</td>' +
+          '<td style="font-size:13px">'+escHtml(row.user_naam||row.user_id||'?')+'</td>' +
+          '<td><span class="badge bx" style="font-size:11px">'+escHtml(row.actie||'')+'</span></td>' +
+          '<td style="font-size:12px;color:var(--txm)">'+escHtml(row.details||'')+'</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  } catch(e) {
+    var el2 = document.getElementById('audit-content');
+    if (el2) el2.innerHTML = '<div style="padding:1rem;color:var(--txm);font-size:13px">Audit log niet beschikbaar. ' +
+      'Zorg dat de <code>audit_log</code> tabel bestaat in Supabase en RLS correct is ingesteld.</div>';
+  }
+}
+
+// ── Commissies ────────────────────────────────────────────────
+function renderCommissies() {
+  var el = document.getElementById('v-commissies');
+  if (!el) return;
+  el.innerHTML = stubView('Commissies',
+    'Beheer dames-, heren- en seniorencommissie. Wijs leden toe en stel commissie-specifieke instellingen in.',
+    '👥', 'Deze functie is in ontwikkeling voor een toekomstige versie.');
+}
+
+// ── Baaninformatie ────────────────────────────────────────────
+function renderBaanInformatie() {
+  var el = document.getElementById('v-baaninformatie');
+  if (!el) return;
+  // Lees huidige baan-instellingen uit eerste wedstrijd
+  var eersteBaan = WEDSTRIJDEN.length > 0 ? {
+    naam: WEDSTRIJDEN[0].baan,
+    cr: WEDSTRIJDEN[0].cr,
+    slope: WEDSTRIJDEN[0].slope,
+  } : { naam: 'De Hooge Rotterdamsche', cr: 72.1, slope: 131 };
+
+  el.innerHTML = '<div class="card"><div class="card-hd">Baaninformatie</div>' +
+    '<p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0">Baangegevens die als standaard worden gebruikt bij nieuwe wedstrijden.</p>' +
+    '<div class="g3">' +
+    '<div class="field"><label>Baannaam</label><input type="text" id="baan-naam" value="'+escHtml(eersteBaan.naam)+'"/></div>' +
+    '<div class="field"><label>Course Rating (CR)</label><input type="number" step="0.1" id="baan-cr" value="'+eersteBaan.cr+'"/></div>' +
+    '<div class="field"><label>Slope rating</label><input type="number" id="baan-slope" value="'+eersteBaan.slope+'"/></div>' +
+    '</div>' +
+    '<div class="g2" style="margin-top:.5rem">' +
+    '<div class="field"><label>Par totaal</label><input type="number" id="baan-par" value="72"/></div>' +
+    '<div class="field"><label>Aantal holes</label><select id="baan-holes"><option value="18">18 holes</option><option value="9">9 holes</option></select></div>' +
+    '</div>' +
+    '<button class="btn btn-p" onclick="baanInfoOpslaan()" style="margin-top:.75rem">Opslaan</button>' +
+    '</div>';
+}
+
+function baanInfoOpslaan() {
+  var naam = document.getElementById('baan-naam').value;
+  var cr = parseFloat(document.getElementById('baan-cr').value);
+  var slope = parseInt(document.getElementById('baan-slope').value);
+  if (!naam || !cr || !slope) { toast('Vul alle velden in.', 'err'); return; }
+  try {
+    localStorage.setItem('sf_baan_defaults', JSON.stringify({ naam: naam, cr: cr, slope: slope }));
+    toast('Baaninformatie opgeslagen als standaard voor nieuwe wedstrijden.');
+  } catch(e) { toast('Opslaan mislukt.', 'err'); }
+}
+
+// Hulp: stub-view voor nog te bouwen schermen
+function stubView(titel, omschrijving, icon, extra) {
+  return '<div style="text-align:center;padding:3rem 1rem;color:var(--txm)">' +
+    '<div style="font-size:40px;margin-bottom:12px">' + (icon||'🚧') + '</div>' +
+    '<div style="font-size:16px;font-weight:500;color:var(--tx);margin-bottom:8px">' + escHtml(titel) + '</div>' +
+    '<div style="font-size:13px;max-width:380px;margin:0 auto">' + escHtml(omschrijving) + '</div>' +
+    (extra ? '<div style="font-size:12px;margin-top:8px;color:var(--txm)">' + escHtml(extra) + '</div>' : '') +
+    '</div>';
+}
 
 // Detecteer groepen wedstrijden die samen een competitie vormen
 function aiDetecteerCompetities(wedstrijden) {
@@ -17856,6 +18071,11 @@ window.addEventListener('offline', updateOnlineStatus);
       </div>
 
       <!-- CLUB INSTELLINGEN (superadmin) -->
+      <div id="v-ranking" class="view"></div>
+      <div id="v-wd-templates" class="view"></div>
+      <div id="v-auditlog" class="view"></div>
+      <div id="v-commissies" class="view"></div>
+      <div id="v-baaninformatie" class="view"></div>
       <div id="v-instellingen" class="view">
         <div class="card">
           <div class="card-hd">Clubinstellingen</div>
