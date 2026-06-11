@@ -2683,7 +2683,7 @@ function startWedstrijd(wId) {
 function afrondWedstrijd(wId) {
   var w = WEDSTRIJDEN.find(function(x) { return x.id === wId; });
   if (!w) return;
-  if (!confirm('Wedstrijd afronden? Alle scores worden definitief. Alleen superadmin kan daarna nog corrigeren.')) return;
+  if (!confirm('Wedstrijd afronden? Alle scores worden definitief. Alleen Admin kan daarna nog corrigeren.')) return;
   var oudeStatus = w.status;
   w.status = 'afgerond';
   dbSaveWedstrijd(w).catch(function(e){
@@ -5515,7 +5515,10 @@ async function supaLogout() {
 }
 
 function dbGebruikerNaarApp(g) {
-  return { id: g.id, voor: g.voor, ach: g.ach, email: g.email, rol: g.rol,
+  // Migreer oude rolnamen naar nieuwe (DB kan nog oude waarden hebben)
+  var rolMap = { 'Superadmin': 'Admin', 'Secretaris': 'Wedstrijdplanner' };
+  var rol = rolMap[g.rol] || g.rol;
+  return { id: g.id, voor: g.voor, ach: g.ach, email: g.email, rol: rol,
     hcp: g.hcp, lid: g.lid, ltype: g.ltype, gs: g.gs, jaar: g.jaar, tel: g.tel,
     authUid: g.auth_uid || null,
     pw: g.pw || '' };
@@ -7654,7 +7657,7 @@ function bouwWedstrijdUitFormulier(status) {
       var el = document.getElementById('fleider');
       if (el && el.value) return el.value;
       // Default: huidige user als die admin/wedstrijdleider is
-      if (_currentUser && (_currentUser.rol === 'Superadmin' || _currentUser.rol === 'Wedstrijdleider')) {
+      if (_currentUser && (_currentUser.rol === 'Admin' || _currentUser.rol === 'Wedstrijdleider')) {
         return _currentUser.id;
       }
       return null;
@@ -18227,7 +18230,7 @@ window.addEventListener('offline', updateOnlineStatus);
         </div>
       </div>
 
-      <!-- ADMINS BEHEREN (alleen superadmin) -->
+      <!-- ADMINS BEHEREN (alleen admin) -->
       <div id="v-admins" class="view">
         <div class="card">
           <div class="card-hd">Admins &amp; rollen
@@ -18419,7 +18422,7 @@ window.addEventListener('offline', updateOnlineStatus);
 
       </div>
 
-      <!-- CLUB INSTELLINGEN (superadmin) -->
+      <!-- CLUB INSTELLINGEN (admin) -->
       <div id="v-ranking" class="view"></div>
       <div id="v-wd-templates" class="view"></div>
       <div id="v-auditlog" class="view"></div>
@@ -18835,7 +18838,7 @@ window.addEventListener('offline', updateOnlineStatus);
       <div class="field"><label>Type lidmaatschap</label><select id="ms-ltype"><option>Volledig lid</option><option>Weekendlid</option><option>Junior</option><option>Senior</option><option>Gast</option></select></div>
     </div>
 
-    <!-- Login-instellingen (superadmin) -->
+    <!-- Login-instellingen (admin) -->
     <div class="ms-login-block" style="margin-top:1rem;padding:1rem;background:rgba(22,163,74,0.04);border:1px solid rgba(22,163,74,0.15);border-radius:8px">
       <div style="font-size:11px;color:#16a34a;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:.75rem">🔑 Login-instellingen</div>
       <div class="g2">
