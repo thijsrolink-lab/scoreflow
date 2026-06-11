@@ -6815,10 +6815,6 @@ function renderAdminDashboard(){
         '<h2>Welkom terug, <span class="accent">' + escHtml(naam) + '</span>.</h2>' +
         '<div class="sub">' + datumStr + ' · Dit is wat er speelt op de club.</div>' +
       '</div>' +
-      '<div class="dash-welcome-actions">' +
-        (heeftToegang('nieuw') ? '<button class="btn btn-p btn-sm" onclick="adminNav(\'nieuw\')">+ Nieuwe wedstrijd</button>' : '') +
-        (heeftToegang('kalender') ? '<button class="btn btn-s btn-sm" onclick="adminNav(\'kalender\')">Kalender openen</button>' : '') +
-      '</div>' +
     '</div>';
   var welEl = document.getElementById('dash-welcome');
   if (welEl) welEl.innerHTML = welkomHtml;
@@ -6933,49 +6929,6 @@ function renderAdminDashboard(){
 
   var cardsEl = document.getElementById('dash-cards-section');
   if (cardsEl) cardsEl.innerHTML = cardsHtml;
-
-  // ── Snel acties als pills ───────────────────────────────
-  var tiles = [
-    { id: 'inschrijvingen', label: 'Inschrijvingen' },
-    { id: 'flights',        label: 'Startlijsten' },
-    { id: 'scores',         label: 'Scores invoeren' },
-    { id: 'spelers',        label: 'Leden' },
-    { id: 'competities',    label: 'Competities' },
-    { id: 'rapportages',    label: 'Rapportages' },
-  ].filter(function(t) { return heeftToegang(t.id); });
-
-  var tilesHtml = '<div class="quick-links">' +
-    tiles.map(function(t) {
-      return '<a class="quick-link" onclick="adminNav(\'' + t.id + '\')">' + t.label + '</a>';
-    }).join('') + '</div>';
-
-  var qaEl = document.getElementById('dash-quick-actions');
-  if (qaEl) qaEl.innerHTML = tilesHtml;
-
-  // ── Berichten widget ────────────────────────────────────
-  var berichten = (BERICHTEN || []).slice().sort(function(a, b) {
-    return new Date(b.datum || 0) - new Date(a.datum || 0);
-  }).slice(0, 3);
-
-  var notEl = document.getElementById('dash-notifs');
-  if (notEl) {
-    if (berichten.length === 0) {
-      notEl.innerHTML = '<p style="font-size:13px;color:var(--sm-muted,#8b94a3);padding:.5rem 0">Geen nieuwe berichten.</p>';
-    } else {
-      notEl.innerHTML = berichten.map(function(b) {
-        var bd = b.datum ? new Date(b.datum) : null;
-        var dt = bd ? (bd.getDate() + ' ' + MN[bd.getMonth()].slice(0,3)) : '';
-        return '<div class="bericht-item">' +
-          '<div class="bericht-item-dot"></div>' +
-          '<div class="bericht-item-content">' +
-            '<div class="bericht-item-titel">' + escHtml(b.titel || b.onderwerp || 'Bericht') + '</div>' +
-            (b.tekst ? '<div class="bericht-item-tekst">' + escHtml(b.tekst).slice(0,70) + '</div>' : '') +
-          '</div>' +
-          (dt ? '<div class="bericht-item-datum">' + dt + '</div>' : '') +
-        '</div>';
-      }).join('');
-    }
-  }
 }
 
 // ============================================================
@@ -17473,9 +17426,7 @@ window.addEventListener('offline', updateOnlineStatus);
         <div id="dash-welcome" style="margin-bottom:1.25rem"></div>
         <div id="dash-hero" style="margin-bottom:1.25rem"></div>
         <div id="dash-cards-section" style="margin-bottom:1.25rem"></div>
-        <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:2.5rem" id="dash-bottom">
-          <div class="dash-bottom-section"><h4>Snel acties</h4><div id="dash-quick-actions"></div></div>
-          <div class="dash-bottom-section"><h4>Berichten</h4><div id="dash-notifs"></div></div>
+      </div><!-- /dash-cards-section -->
         </div>
       </div>
 
