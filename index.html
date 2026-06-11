@@ -140,6 +140,7 @@ body{font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-ser
 .modal{background:var(--card);border-radius:var(--rxl);border:1px solid var(--bd);padding:1.5rem;max-width:540px;width:100%;max-height:88vh;overflow-y:auto}
 .modal-title{font-family:Inter,sans-serif;font-size:16px;color:var(--g);margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between}
 .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--txm);line-height:1}
+.kleur-opt:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
 /* Offline indicator — gele banner bovenaan body als netwerk weg */
 body.offline::before {
   content: '⚠️ Geen internet — scores worden lokaal bewaard, sync wanneer terug online';
@@ -11921,34 +11922,103 @@ function renderCommissies() {
 }
 
 function openCommissieModal(id) {
+  var bestaand = document.getElementById('modal-commissie');
+  if (bestaand) bestaand.remove();
+
   var c = id ? COMMISSIES.find(function(x){return x.id===id;}) : null;
-  var html = '<div class="modal-bg open" id="modal-commissie" onclick="if(event.target===this)closeModal(\'modal-commissie\')">';
-  html += '<div class="modal-box" style="max-width:440px">';
-  html += '<div class="modal-hd">'+(c?'Commissie bewerken':'Nieuwe commissie')+'<button class="modal-x" onclick="closeModal(\'modal-commissie\')">&#215;</button></div>';
-  html += '<div class="modal-body">';
-  html += '<div class="field"><label>Naam commissie</label><input id="cm-naam" type="text" placeholder="bv. Damescommissie" value="'+escHtml(c?c.naam:'')+'"/></div>';
-  html += '<div class="field"><label>Kleur</label>';
-  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">';
   var kleuren = ['#e879a0','#3b82f6','#f59e0b','#10b981','#8b5cf6','#ef4444','#06b6d4','#84cc16','#f97316','#6b7280'];
-  kleuren.forEach(function(k) {
-    var sel = (c&&c.kleur===k)||(!c&&k===kleuren[0]);
-    html += '<div onclick="this.parentNode.querySelectorAll(\'.kleur-opt\').forEach(function(x){x.style.outline=\'none\'});this.style.outline=\'3px solid #333\'" class="kleur-opt" data-kleur="'+k+'" style="width:28px;height:28px;border-radius:50%;background:'+k+';cursor:pointer;'+(sel?'outline:3px solid #333;outline-offset:2px':'')+'"></div>';
+  var kleurNamen = ['Roze','Blauw','Amber','Groen','Paars','Rood','Cyaan','Limoen','Oranje','Grijs'];
+  var huidigeKleur = c ? (c.kleur || kleuren[1]) : kleuren[1];
+
+  var div = document.createElement('div');
+  div.className = 'modal-bg open';
+  div.id = 'modal-commissie';
+  div.addEventListener('click', function(e){ if(e.target===div) closeModal('modal-commissie'); });
+
+  var kleurOpties = kleuren.map(function(k, i) {
+    var sel = k === huidigeKleur;
+    return '<div class="kleur-opt' + (sel?' sel':'') + '" data-kleur="' + k + '" ' +
+      'style="cursor:pointer;border-radius:10px;padding:10px 6px;text-align:center;' +
+      'border:2px solid ' + (sel?k:'transparent') + ';background:' + k + '18;transition:all .15s">' +
+      '<div style="width:24px;height:24px;border-radius:50%;background:' + k + ';margin:0 auto 4px"></div>' +
+      '<div style="font-size:10px;color:' + k + ';font-weight:600">' + kleurNamen[i] + '</div>' +
+      '</div>';
+  }).join('');
+
+  var huidigeLedenHtml = '';
+  if (c && c.leden && c.leden.length > 0) {
+    var leden = c.leden.map(function(lid){return USERS.find(function(u){return u.id==lid;});}).filter(Boolean);
+    if (leden.length > 0) {
+      huidigeLedenHtml = '<div style="margin-bottom:1.25rem;padding:12px;background:var(--surf);border-radius:var(--r);border:1px solid var(--bd)">' +
+        '<div style="font-size:12px;font-weight:600;color:var(--txm);margin-bottom:8px">Huidige leden</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
+        leden.map(function(u) {
+          return '<span style="display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--bd);border-radius:20px;padding:3px 10px 3px 5px;font-size:12px">' +
+            '<span style="width:20px;height:20px;border-radius:50%;background:' + huidigeKleur + ';color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">' + u.voor[0] + u.ach[0] + '</span>' +
+            escHtml(u.voor + ' ' + u.ach) + '</span>';
+        }).join('') +
+        '</div></div>';
+    }
+  }
+
+  div.innerHTML = '<div class="modal" style="max-width:460px">' +
+    '<div class="modal-title">' +
+      '<span>' + (c ? '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + huidigeKleur + ';margin-right:8px"></span>' : '') +
+      (c ? 'Commissie bewerken' : 'Nieuwe commissie') + '</span>' +
+      '<button class="modal-close" id="cm-sluit">&#215;</button>' +
+    '</div>' +
+    '<div class="field" style="margin-bottom:1.25rem">' +
+      '<label style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Naam</label>' +
+      '<input id="cm-naam" type="text" placeholder="bv. Damescommissie" value="' + escHtml(c?c.naam:'') + '" style="margin-top:6px;font-size:15px;padding:10px 12px"/>' +
+    '</div>' +
+    '<div style="margin-bottom:1.5rem">' +
+      '<div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Kleur</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="cm-kleuren">' + kleurOpties + '</div>' +
+    '</div>' +
+    huidigeLedenHtml +
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding-top:1rem;border-top:1px solid var(--bd)">' +
+      (c ? '<button class="btn btn-d btn-sm" id="cm-verwijder">Verwijderen</button>' : '<span></span>') +
+      '<div style="display:flex;gap:8px">' +
+        '<button class="btn btn-s btn-sm" id="cm-annuleer">Annuleren</button>' +
+        '<button class="btn btn-p btn-sm" id="cm-opslaan">' + (c?'Opslaan':'Aanmaken') + '</button>' +
+      '</div>' +
+    '</div>' +
+    '</div>';
+
+  document.body.appendChild(div);
+
+  // Event listeners
+  document.getElementById('cm-sluit').onclick = function(){ closeModal('modal-commissie'); };
+  document.getElementById('cm-annuleer').onclick = function(){ closeModal('modal-commissie'); };
+  document.getElementById('cm-opslaan').onclick = function(){ slaCommissieOp(id||null); };
+  if (c) {
+    document.getElementById('cm-verwijder').onclick = function(){ verwijderCommissie(c.id); };
+  }
+
+  // Kleur selector
+  document.getElementById('cm-kleuren').addEventListener('click', function(e) {
+    var opt = e.target.closest('.kleur-opt');
+    if (!opt) return;
+    document.querySelectorAll('#modal-commissie .kleur-opt').forEach(function(x){
+      x.classList.remove('sel');
+      x.style.border = '2px solid transparent';
+    });
+    opt.classList.add('sel');
+    opt.style.border = '2px solid ' + opt.dataset.kleur;
   });
-  html += '</div></div>';
-  html += '</div>';
-  html += '<div class="modal-ft">';
-  if (c) html += '<button class="btn btn-d" onclick="verwijderCommissie(\''+c.id+'\');closeModal(\'modal-commissie\')">Verwijderen</button>';
-  html += '<button class="btn btn-p" onclick="slaCommissieOp('+(c?'\''+c.id+'\'':'null')+')">Opslaan</button>';
-  html += '</div></div></div>';
-  document.body.insertAdjacentHTML('beforeend', html);
+
+  // Focus naam
+  setTimeout(function(){
+    var inp = document.getElementById('cm-naam');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 50);
 }
 
 async function slaCommissieOp(id) {
   var naam = document.getElementById('cm-naam').value.trim();
   if (!naam) { toast('Vul een naam in.','err'); return; }
   var gekozenKleur = '#3b82f6';
-  var gekozenEl = document.querySelector('#modal-commissie .kleur-opt[style*="outline: 3px"]') ||
-                  document.querySelector('#modal-commissie .kleur-opt[style*="outline:3px"]');
+  var gekozenEl = document.querySelector('#modal-commissie .kleur-opt.sel');
   if (gekozenEl) gekozenKleur = gekozenEl.dataset.kleur;
 
   try {
@@ -11990,31 +12060,94 @@ async function verwijderCommissie(id) {
 }
 
 function openLedenModal(commissieId) {
+  var bestaand = document.getElementById('modal-comm-leden');
+  if (bestaand) bestaand.remove();
+
   var c = COMMISSIES.find(function(x){return x.id===commissieId;});
   if (!c) return;
+
+  var huidigeLeden = (c.leden||[]).map(function(lid){
+    return USERS.find(function(u){return u.id==lid;});
+  }).filter(Boolean);
+
   var beschikbaar = USERS.filter(function(u){
     return u.rol !== 'Speler' && (c.leden||[]).indexOf(u.id) < 0;
   });
-  var html = '<div class="modal-bg open" id="modal-comm-leden" onclick="if(event.target===this)closeModal(\'modal-comm-leden\')">';
-  html += '<div class="modal-box" style="max-width:400px">';
-  html += '<div class="modal-hd">Lid toevoegen — '+escHtml(c.naam)+'<button class="modal-x" onclick="closeModal(\'modal-comm-leden\')">&#215;</button></div>';
-  html += '<div class="modal-body">';
-  if (beschikbaar.length === 0) {
-    html += '<p style="font-size:13px;color:var(--txm)">Alle gebruikers zijn al lid van deze commissie.</p>';
-  } else {
-    html += '<p style="font-size:13px;color:var(--txm);margin:0 0 .75rem 0">Selecteer een gebruiker om toe te voegen:</p>';
-    html += '<div style="display:flex;flex-direction:column;gap:4px">';
-    beschikbaar.forEach(function(u) {
-      html += '<div class="wd-rij" style="cursor:pointer" onclick="voegLidToeAanCommissie(\''+commissieId+'\',\''+u.id+'\')">'; 
-      html += '<div class="av" style="width:30px;height:30px;font-size:11px">'+u.voor[0]+u.ach[0]+'</div>';
-      html += '<div style="flex:1"><div style="font-weight:500;font-size:13px">'+escHtml(u.voor+' '+u.ach)+'</div>';
-      html += '<div style="font-size:11px;color:var(--txm)">'+u.rol+'</div></div>';
-      html += '</div>';
-    });
-    html += '</div>';
-  }
-  html += '</div></div></div>';
-  document.body.insertAdjacentHTML('beforeend', html);
+
+  var div = document.createElement('div');
+  div.className = 'modal-bg open';
+  div.id = 'modal-comm-leden';
+  div.addEventListener('click', function(e){ if(e.target===div) closeModal('modal-comm-leden'); });
+
+  var ledenHtml = huidigeLeden.length > 0 ?
+    '<div style="margin-bottom:1.25rem">' +
+    '<div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Huidige leden</div>' +
+    '<div id="cm-leden-lijst" style="display:flex;flex-direction:column;gap:4px">' +
+    huidigeLeden.map(function(u) {
+      return '<div data-uid="' + u.id + '" style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surf);border-radius:8px;border:1px solid var(--bd)">' +
+        '<div style="width:32px;height:32px;border-radius:50%;background:' + c.kleur + ';color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">' + u.voor[0] + u.ach[0] + '</div>' +
+        '<div style="flex:1"><div style="font-weight:500;font-size:13px">' + escHtml(u.voor+' '+u.ach) + '</div>' +
+        '<div style="font-size:11px;color:var(--txm)">' + u.rol + '</div></div>' +
+        '<button class="cm-lid-verwijder" data-uid="' + u.id + '" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:18px;line-height:1;padding:4px" title="Verwijder">&#215;</button>' +
+        '</div>';
+    }).join('') +
+    '</div></div>' : '';
+
+  var beschikbaarHtml = beschikbaar.length > 0 ?
+    '<div>' +
+    '<div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Toevoegen</div>' +
+    '<div id="cm-beschikbaar-lijst" style="display:flex;flex-direction:column;gap:4px;max-height:240px;overflow-y:auto">' +
+    beschikbaar.map(function(u) {
+      return '<div class="cm-lid-toevoegen" data-uid="' + u.id + '" ' +
+        'style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);cursor:pointer;background:#fff;transition:background .1s">' +
+        '<div style="width:32px;height:32px;border-radius:50%;background:var(--gl);color:var(--g);font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">' + u.voor[0] + u.ach[0] + '</div>' +
+        '<div style="flex:1"><div style="font-weight:500;font-size:13px">' + escHtml(u.voor+' '+u.ach) + '</div>' +
+        '<div style="font-size:11px;color:var(--txm)">' + u.rol + '</div></div>' +
+        '<span style="font-size:20px;color:var(--g);font-weight:300;line-height:1">+</span>' +
+        '</div>';
+    }).join('') +
+    '</div></div>' :
+    (huidigeLeden.length === 0 ? '<p style="font-size:13px;color:var(--txm);text-align:center;padding:1rem">Geen gebruikers beschikbaar.</p>' : '');
+
+  div.innerHTML = '<div class="modal" style="max-width:420px">' +
+    '<div class="modal-title">' +
+      '<span style="display:flex;align-items:center;gap:8px">' +
+        '<span style="width:10px;height:10px;border-radius:50%;background:' + c.kleur + ';flex-shrink:0"></span>' +
+        '<span>Leden — ' + escHtml(c.naam) + '</span>' +
+      '</span>' +
+      '<button class="modal-close" id="cm-l-sluit">&#215;</button>' +
+    '</div>' +
+    ledenHtml +
+    beschikbaarHtml +
+    '<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--bd);text-align:right">' +
+      '<button class="btn btn-s btn-sm" id="cm-l-sluiten">Sluiten</button>' +
+    '</div>' +
+    '</div>';
+
+  document.body.appendChild(div);
+
+  // Sluiten
+  document.getElementById('cm-l-sluit').onclick = function(){ closeModal('modal-comm-leden'); };
+  document.getElementById('cm-l-sluiten').onclick = function(){ closeModal('modal-comm-leden'); };
+
+  // Lid verwijderen
+  div.querySelectorAll('.cm-lid-verwijder').forEach(function(btn) {
+    btn.onclick = function() {
+      verwijderLidUitCommissie(commissieId, btn.dataset.uid);
+      // Ververs modal
+      closeModal('modal-comm-leden');
+      setTimeout(function(){ openLedenModal(commissieId); }, 100);
+    };
+  });
+
+  // Lid toevoegen
+  div.querySelectorAll('.cm-lid-toevoegen').forEach(function(rij) {
+    rij.addEventListener('mouseover', function(){ rij.style.background='var(--surf)'; });
+    rij.addEventListener('mouseout', function(){ rij.style.background='#fff'; });
+    rij.onclick = function() {
+      voegLidToeAanCommissie(commissieId, rij.dataset.uid);
+    };
+  });
 }
 
 async function voegLidToeAanCommissie(commissieId, userId) {
@@ -12024,7 +12157,9 @@ async function voegLidToeAanCommissie(commissieId, userId) {
     await supa('commissie_leden', 'POST', { commissie_id: commissieId, gebruiker_id: userId });
     if (!c.leden) c.leden = [];
     if (c.leden.indexOf(userId) < 0) c.leden.push(userId);
+    // Modal verversen zodat je direct meer leden kunt toevoegen
     closeModal('modal-comm-leden');
+    openLedenModal(commissieId);
     renderCommissies();
     var u = USERS.find(function(x){return x.id===userId;});
     toast((u?u.voor+' '+u.ach:'Lid')+' toegevoegd aan '+c.naam+'.');
