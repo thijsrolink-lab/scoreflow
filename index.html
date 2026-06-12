@@ -3639,200 +3639,6 @@ function teeKleurHex(kleur) {
   return map[kleur] || '#6b7280';
 }
 
-// ── Divisie-bibliotheek (Beheer) ──────────────────────────────
-
-function laadDivisieBibliotheek() {
-  try {
-    var opg = JSON.parse(localStorage.getItem('sf_divisie_bibliotheek') || 'null');
-    if (Array.isArray(opg)) return opg;
-  } catch(e) {}
-  // Standaard templates
-  return [
-    { id:'db-1', naam:'Heren (geel)', vorm:'Stableford', teeKleur:'geel', cr:72.1, slope:131, par:72, shMax:36, hcpMin:null, hcpMax:null, gs:'M', leeftijdMin:null, leeftijdMax:null },
-    { id:'db-2', naam:'Dames (rood)', vorm:'Stableford', teeKleur:'rood', cr:70.4, slope:124, par:72, shMax:36, hcpMin:null, hcpMax:null, gs:'V', leeftijdMin:null, leeftijdMax:null },
-    { id:'db-3', naam:'Divisie A (HCP 0-18)', vorm:'Strokeplay', teeKleur:'wit', cr:73.2, slope:135, par:72, shMax:18, hcpMin:0, hcpMax:18, gs:'beide', leeftijdMin:null, leeftijdMax:null },
-    { id:'db-4', naam:'Divisie B (HCP 19-36)', vorm:'Stableford', teeKleur:'geel', cr:72.1, slope:131, par:72, shMax:36, hcpMin:19, hcpMax:36, gs:'beide', leeftijdMin:null, leeftijdMax:null },
-    { id:'db-5', naam:'Senioren (55+)', vorm:'Stableford', teeKleur:'geel', cr:72.1, slope:131, par:72, shMax:36, hcpMin:null, hcpMax:null, gs:'beide', leeftijdMin:55, leeftijdMax:null },
-    { id:'db-6', naam:'Jeugd (t/m 18)', vorm:'Stableford', teeKleur:'geel', cr:72.1, slope:131, par:72, shMax:36, hcpMin:null, hcpMax:null, gs:'beide', leeftijdMin:null, leeftijdMax:18 },
-  ];
-}
-
-function slaaDivisieBibliotheekOp(lijst) {
-  try { localStorage.setItem('sf_divisie_bibliotheek', JSON.stringify(lijst)); } catch(e) {}
-}
-
-var DIVISIE_BIBLIOTHEEK = laadDivisieBibliotheek();
-
-function renderDivisieBibliotheek() {
-  var el = document.getElementById('v-divisie-bibliotheek');
-  if (!el) return;
-
-  DIVISIE_BIBLIOTHEEK = laadDivisieBibliotheek();
-
-  var html = '<div class="card">';
-  html += '<div class="card-hd">Divisie-bibliotheek' +
-    '<div class="card-hd-r"><button class="btn btn-p btn-sm" onclick="openDivisieBibliotheekModal()">+ Nieuwe divisie</button></div>' +
-  '</div>';
-  html += '<p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0">Vaste divisies die je vaak gebruikt. In de wedstrijd-wizard kun je deze in één klik laden en eventueel aanpassen.</p>';
-
-  if (DIVISIE_BIBLIOTHEEK.length === 0) {
-    html += '<div style="text-align:center;padding:2rem;color:var(--txm)">Nog geen vaste divisies. Maak ze aan via "+ Nieuwe divisie".</div>';
-  } else {
-    html += '<div style="display:flex;flex-direction:column;gap:6px">';
-    DIVISIE_BIBLIOTHEEK.forEach(function(d, i) {
-      var filters = [];
-      if (d.hcpMin != null || d.hcpMax != null) filters.push('HCP '+(d.hcpMin||0)+'–'+(d.hcpMax||36));
-      if (d.gs && d.gs !== 'beide') filters.push(d.gs==='M'?'Heren':'Dames');
-      if (d.leeftijdMin) filters.push('> '+d.leeftijdMin+' jr');
-      if (d.leeftijdMax) filters.push('≤ '+d.leeftijdMax+' jr');
-
-      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surf);border:1px solid var(--bd);border-radius:var(--rl)">';
-      html += '<div style="width:14px;height:14px;border-radius:50%;background:'+teeKleurHex(d.teeKleur)+';flex-shrink:0;border:1px solid rgba(0,0,0,.1)"></div>';
-      html += '<div style="flex:1;min-width:0">';
-      html += '<div style="font-weight:600;font-size:14px">'+escHtml(d.naam)+'</div>';
-      html += '<div style="font-size:12px;color:var(--txm)">';
-      html += escHtml(d.vorm);
-      if (d.teeKleur) html += ' · '+d.teeKleur+' tee';
-      if (d.cr) html += ' (CR '+d.cr+' / Slope '+d.slope+')';
-      if (filters.length) html += ' · '+filters.join(', ');
-      html += '</div></div>';
-      html += '<div style="display:flex;gap:6px">';
-      html += '<button class="btn btn-s btn-xs" onclick="openDivisieBibliotheekModal('+i+')">Bewerken</button>';
-      html += '<button class="btn btn-d btn-xs" onclick="verwijderDivisieUitBibliotheek('+i+')">&#215;</button>';
-      html += '</div></div>';
-    });
-    html += '</div>';
-  }
-  html += '</div>';
-  el.innerHTML = html;
-}
-
-function openDivisieBibliotheekModal(idx) {
-  var bestaand = document.getElementById('modal-div-bib');
-  if (bestaand) bestaand.remove();
-  var d = idx != null ? (DIVISIE_BIBLIOTHEEK[idx] || {}) : {};
-  var isNieuw = idx == null;
-
-  var div = document.createElement('div');
-  div.className = 'modal-bg open';
-  div.id = 'modal-div-bib';
-  div.addEventListener('click', function(e){ if(e.target===div) div.remove(); });
-
-  // Zelfde inhoud als openDivisieModal maar voor de bibliotheek
-  div.innerHTML = '<div class="modal" style="max-width:500px">' +
-    '<div class="modal-title">' +
-      '<span>' + (isNieuw ? 'Nieuwe vaste divisie' : 'Divisie bewerken') + '</span>' +
-      '<button class="modal-close" onclick="document.getElementById(\'modal-div-bib\').remove()">&#215;</button>' +
-    '</div>' +
-
-    '<div class="field" style="margin-bottom:1rem">' +
-      '<label>Naam</label>' +
-      '<input id="db-naam" type="text" placeholder="bv. Heren geel, Divisie A" value="'+escHtml(d.naam||'')+'" style="margin-top:4px"/>' +
-    '</div>' +
-
-    '<div class="field" style="margin-bottom:1rem">' +
-      '<label>Scoringsvorm</label>' +
-      '<select id="db-vorm" style="margin-top:4px">' +
-        VORMEN_OPTIES.map(function(v){ return '<option value="'+v+'"'+(d.vorm===v?' selected':'')+'>'+v+'</option>'; }).join('') +
-      '</select>' +
-    '</div>' +
-
-    '<div style="background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:1rem;margin-bottom:1rem">' +
-      '<div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Tee</div>' +
-      '<div class="g2" style="margin-bottom:.5rem">' +
-        '<div class="field" style="margin:0"><label>Kleur</label>' +
-          '<select id="db-tee-kleur" style="margin-top:4px">' +
-            '<option value="">— Gebruik wedstrijd-tee —</option>' +
-            TEE_KLEUREN.map(function(k){ return '<option value="'+k+'"'+(d.teeKleur===k?' selected':'')+'>'+k.charAt(0).toUpperCase()+k.slice(1)+'</option>'; }).join('') +
-          '</select>' +
-        '</div>' +
-        '<div class="field" style="margin:0"><label>Max. speelhandicap</label>' +
-          '<input id="db-shmax" type="number" min="0" max="54" value="'+(d.shMax!=null?d.shMax:36)+'" style="margin-top:4px"/>' +
-        '</div>' +
-      '</div>' +
-      '<div class="g3">' +
-        '<div class="field" style="margin:0"><label>Course Rating</label><input id="db-cr" type="number" step="0.1" placeholder="72.1" value="'+(d.cr||'')+'" style="margin-top:4px"/></div>' +
-        '<div class="field" style="margin:0"><label>Slope</label><input id="db-slope" type="number" placeholder="131" value="'+(d.slope||'')+'" style="margin-top:4px"/></div>' +
-        '<div class="field" style="margin:0"><label>Par</label><input id="db-par" type="number" placeholder="72" value="'+(d.par||'')+'" style="margin-top:4px"/></div>' +
-      '</div>' +
-    '</div>' +
-
-    '<div style="background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:1rem;margin-bottom:1.25rem">' +
-      '<div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Filter</div>' +
-      '<div class="g2" style="margin-bottom:.75rem">' +
-        '<div class="field" style="margin:0"><label>HCP van</label><input id="db-hcp-min" type="number" step="0.1" min="0" max="54" placeholder="0.0" value="'+(d.hcpMin!=null?d.hcpMin:'')+'" style="margin-top:4px"/></div>' +
-        '<div class="field" style="margin:0"><label>HCP t/m</label><input id="db-hcp-max" type="number" step="0.1" min="0" max="54" placeholder="36.0" value="'+(d.hcpMax!=null?d.hcpMax:'')+'" style="margin-top:4px"/></div>' +
-      '</div>' +
-      '<div class="g2">' +
-        '<div class="field" style="margin:0"><label>Geslacht</label>' +
-          '<select id="db-gs" style="margin-top:4px">' +
-            '<option value="beide"'+((!d.gs||d.gs==="beide")?" selected":"")+'>Beide</option>' +
-            '<option value="M"'+(d.gs==="M"?" selected":"")+'>Heren (M)</option>' +
-            '<option value="V"'+(d.gs==="V"?" selected":"")+'>Dames (V)</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="field" style="margin:0"><label>Leeftijd (min – max)</label>' +
-          '<div style="display:flex;gap:6px;align-items:center;margin-top:4px">' +
-            '<input id="db-leeftijd-min" type="number" min="0" max="99" placeholder="min" value="'+(d.leeftijdMin||'')+'" style="flex:1"/>' +
-            '<span style="font-size:12px;color:var(--txm)">–</span>' +
-            '<input id="db-leeftijd-max" type="number" min="0" max="99" placeholder="max" value="'+(d.leeftijdMax||'')+'" style="flex:1"/>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>' +
-
-    '<div style="display:flex;justify-content:space-between;padding-top:1rem;border-top:1px solid var(--bd)">' +
-      (isNieuw ? '<span></span>' : '<button class="btn btn-d btn-sm" onclick="verwijderDivisieUitBibliotheek('+idx+');document.getElementById(\'modal-div-bib\').remove()">Verwijderen</button>') +
-      '<div style="display:flex;gap:8px">' +
-        '<button class="btn btn-s btn-sm" onclick="document.getElementById(\'modal-div-bib\').remove()">Annuleren</button>' +
-        '<button class="btn btn-p btn-sm" onclick="slaaDivisieInBibliotheekOp('+(isNieuw?'null':idx)+')">Opslaan</button>' +
-      '</div>' +
-    '</div>' +
-    '</div>';
-
-  document.body.appendChild(div);
-  setTimeout(function(){ var el=document.getElementById('db-naam'); if(el){el.focus();el.select();} }, 50);
-}
-
-function slaaDivisieInBibliotheekOp(idx) {
-  var naam = (document.getElementById('db-naam').value||'').trim();
-  if (!naam) { toast('Vul een naam in.','err'); return; }
-
-  var divisie = {
-    id: idx != null ? (DIVISIE_BIBLIOTHEEK[idx] && DIVISIE_BIBLIOTHEEK[idx].id) || ('db-'+Date.now()) : 'db-'+Date.now(),
-    naam: naam,
-    vorm: document.getElementById('db-vorm').value || 'Stableford',
-    teeKleur: document.getElementById('db-tee-kleur').value || null,
-    cr: parseFloat(document.getElementById('db-cr').value) || null,
-    slope: parseInt(document.getElementById('db-slope').value) || null,
-    par: parseInt(document.getElementById('db-par').value) || null,
-    shMax: parseInt(document.getElementById('db-shmax').value) || 36,
-    hcpMin: document.getElementById('db-hcp-min').value !== '' ? parseFloat(document.getElementById('db-hcp-min').value) : null,
-    hcpMax: document.getElementById('db-hcp-max').value !== '' ? parseFloat(document.getElementById('db-hcp-max').value) : null,
-    gs: document.getElementById('db-gs').value || 'beide',
-    leeftijdMin: document.getElementById('db-leeftijd-min').value !== '' ? parseInt(document.getElementById('db-leeftijd-min').value) : null,
-    leeftijdMax: document.getElementById('db-leeftijd-max').value !== '' ? parseInt(document.getElementById('db-leeftijd-max').value) : null,
-  };
-
-  if (idx != null) DIVISIE_BIBLIOTHEEK[idx] = divisie;
-  else DIVISIE_BIBLIOTHEEK.push(divisie);
-
-  slaaDivisieBibliotheekOp(DIVISIE_BIBLIOTHEEK);
-  renderDivisieBibliotheek();
-  document.getElementById('modal-div-bib').remove();
-  toast(idx != null ? 'Divisie bijgewerkt.' : 'Divisie opgeslagen in bibliotheek.');
-}
-
-function verwijderDivisieUitBibliotheek(idx) {
-  if (!confirm('Divisie "'+DIVISIE_BIBLIOTHEEK[idx].naam+'" verwijderen uit bibliotheek?')) return;
-  DIVISIE_BIBLIOTHEEK.splice(idx, 1);
-  slaaDivisieBibliotheekOp(DIVISIE_BIBLIOTHEEK);
-  renderDivisieBibliotheek();
-  toast('Divisie verwijderd uit bibliotheek.');
-}
-
-
-
 function openDivisieModal(idx) {
   var bestaand = document.getElementById('modal-divisie');
   if (bestaand) bestaand.remove();
@@ -4015,68 +3821,6 @@ function slaaaPrijsOp(idx) {
   document.getElementById('modal-prijs').remove();
   toast(idx != null ? 'Prijscategorie bijgewerkt.' : 'Prijscategorie toegevoegd.');
 }
-
-function openBibliotheekKiezer() {
-  var bestaand = document.getElementById('modal-bib-kiezer');
-  if (bestaand) bestaand.remove();
-
-  DIVISIE_BIBLIOTHEEK = laadDivisieBibliotheek();
-
-  var div = document.createElement('div');
-  div.className = 'modal-bg open';
-  div.id = 'modal-bib-kiezer';
-  div.addEventListener('click', function(e){ if(e.target===div) div.remove(); });
-
-  var lijstHtml = DIVISIE_BIBLIOTHEEK.length === 0
-    ? '<div style="text-align:center;padding:1.5rem;color:var(--txm);font-size:13px">Geen vaste divisies in bibliotheek.<br>Ga naar Beheer → Divisies om ze aan te maken.</div>'
-    : DIVISIE_BIBLIOTHEEK.map(function(d, i) {
-        var filters = [];
-        if (d.hcpMin != null || d.hcpMax != null) filters.push('HCP '+(d.hcpMin||0)+'–'+(d.hcpMax||36));
-        if (d.gs && d.gs !== 'beide') filters.push(d.gs==='M'?'Heren':'Dames');
-        if (d.leeftijdMin) filters.push('> '+d.leeftijdMin+' jr');
-        if (d.leeftijdMax) filters.push('≤ '+d.leeftijdMax+' jr');
-        var alIngeladen = _wizDivisies.some(function(wd){ return wd.naam === d.naam; });
-        return '<div onclick="'+(alIngeladen?'':('laadDivisieUitBibliotheek('+i+')'))+'" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--bd);margin-bottom:6px;cursor:'+(alIngeladen?'default':'pointer')+';background:'+(alIngeladen?'var(--surf)':'#fff')+';opacity:'+(alIngeladen?'.5':'1')+'">' +
-          '<div style="width:12px;height:12px;border-radius:50%;background:'+teeKleurHex(d.teeKleur)+';flex-shrink:0"></div>' +
-          '<div style="flex:1">' +
-            '<div style="font-weight:600;font-size:13px">'+escHtml(d.naam)+'</div>' +
-            '<div style="font-size:11px;color:var(--txm)">'+escHtml(d.vorm)+(d.teeKleur?' · '+d.teeKleur+' tee':'')+(filters.length?' · '+filters.join(', '):'')+' </div>' +
-          '</div>' +
-          (alIngeladen
-            ? '<span style="font-size:11px;color:var(--g)">✓ Toegevoegd</span>'
-            : '<span style="font-size:18px;color:var(--g)">+</span>') +
-        '</div>';
-      }).join('');
-
-  div.innerHTML = '<div class="modal" style="max-width:460px">' +
-    '<div class="modal-title">' +
-      '<span>Divisie uit bibliotheek laden</span>' +
-      '<button class="modal-close" onclick="document.getElementById(\'modal-bib-kiezer\').remove()">&#215;</button>' +
-    '</div>' +
-    '<p style="font-size:12px;color:var(--txm);margin:0 0 1rem 0">Klik op een divisie om hem toe te voegen. Je kunt hem daarna nog aanpassen via ✎.</p>' +
-    lijstHtml +
-    '<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--bd);text-align:right">' +
-      '<button class="btn btn-s btn-sm" onclick="document.getElementById(\'modal-bib-kiezer\').remove()">Sluiten</button>' +
-    '</div>' +
-    '</div>';
-
-  document.body.appendChild(div);
-}
-
-function laadDivisieUitBibliotheek(idx) {
-  var d = DIVISIE_BIBLIOTHEEK[idx];
-  if (!d) return;
-  // Kopieer — zodat aanpassingen in wizard de bibliotheek niet wijzigen
-  var kopie = JSON.parse(JSON.stringify(d));
-  kopie.id = 'div-' + Date.now() + '-' + idx;
-  _wizDivisies.push(kopie);
-  renderDivisiesWizard();
-  // Ververs de kiezer-lijst
-  var kiezer = document.getElementById('modal-bib-kiezer');
-  if (kiezer) { kiezer.remove(); openBibliotheekKiezer(); }
-  toast(d.naam + ' toegevoegd.');
-}
-
 
 function renderSponsorWizardStep() {
   // Vul hoofdsponsor dropdown
@@ -6952,7 +6696,7 @@ var _adminBcNav=null;
 // AUTH
 // ============================================================
 var ROL_RECHTEN_DEFAULT={
-  Admin:['dashboard','kalender','wedstrijden','wddetail','mijntaken','sponsoren','nieuw','competities','ranking','spelers','inschrijvingen','flights','scores','admins','commissies','notificaties','rapportages','auditlog','instellingen','aiassistent','wd-templates','baaninformatie','divisie-bibliotheek'],
+  Admin:['dashboard','kalender','wedstrijden','wddetail','mijntaken','sponsoren','nieuw','competities','ranking','spelers','inschrijvingen','flights','scores','admins','commissies','notificaties','rapportages','auditlog','instellingen','aiassistent','wd-templates','baaninformatie'],
   Wedstrijdleider:['dashboard','kalender','wedstrijden','wddetail','mijntaken','nieuw','competities','ranking','inschrijvingen','flights','scores','notificaties','rapportages','aiassistent','wd-templates'],
   Wedstrijdplanner:['dashboard','kalender','wedstrijden','wddetail','mijntaken','nieuw','competities','ranking','aiassistent','wd-templates'],
   Speler:[],
@@ -7015,7 +6759,6 @@ var ROL_MODULES=[
   {groep:'Beheer',         items:[
     {id:'notificaties', label:'Notificaties'},
     {id:'commissies',   label:'Commissies'},
-  {id:'divisie-bibliotheek', label:'Divisie-bibliotheek'},
   ]},
   {groep:'Instellingen',   items:[
     {id:'baaninformatie',label:'Baaninformatie'},
@@ -7274,7 +7017,6 @@ var ADMIN_NAV_ITEMS=[
   {sec:'Beheer',     rollen:['Admin']},
   {id:'admins',      label:'Gebruikers & rollen',rollen:['Admin'],                               icon:'<circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/>'},
   {id:'commissies',  label:'Commissies',         rollen:['Admin'],                               icon:'<circle cx="5" cy="5" r="2.5"/><circle cx="11" cy="5" r="2.5"/><circle cx="8" cy="11" r="2.5"/>'},
-  {id:'divisie-bibliotheek',label:'Divisies',        rollen:['Admin'],                               icon:'<path d="M2 4h12M2 8h8M2 12h10"/><circle cx="13" cy="11" r="2"/>'},
   {id:'notificaties',label:'Notificaties',       rollen:['Admin','Wedstrijdleider'],badge:'notif', icon:'<path d="M8 2a5 5 0 0 1 5 5v2l1 2H2l1-2V7a5 5 0 0 1 5-5z"/><path d="M6 13a2 2 0 0 0 4 0"/>'},
 
   // ── Instellingen ───────────────────────────────────────────
@@ -7448,7 +7190,7 @@ function adminNav(id){
   // Verberg + Wedstrijd knop als geen toegang
   var btnNieuw=document.getElementById('btn-nieuw-w');
   if(btnNieuw)btnNieuw.style.display=heeftToegang('nieuw')?'':'none';
-  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,commissies:renderCommissies,notificaties:renderNotificaties,rapportages:renderRapportages,auditlog:renderAuditLog,wddetail:renderWdDetail,mijntaken:renderMijnTaken,sponsoren:renderSponsoren,aiassistent:renderAiAssistent,ranking:renderRanking,'wd-templates':renderWdTemplates,baaninformatie:renderBaanInformatie,instellingen:renderInstellingen,'divisie-bibliotheek':renderDivisieBibliotheek};
+  var renders={dashboard:renderAdminDashboard,kalender:renderCal,wedstrijden:renderWedstrijden,competities:renderCompeties,spelers:renderSpelers,inschrijvingen:renderInschrijvingen,flights:renderFlightsInit,scores:renderScoresInit,admins:renderAdmins,commissies:renderCommissies,notificaties:renderNotificaties,rapportages:renderRapportages,auditlog:renderAuditLog,wddetail:renderWdDetail,mijntaken:renderMijnTaken,sponsoren:renderSponsoren,aiassistent:renderAiAssistent,ranking:renderRanking,'wd-templates':renderWdTemplates,baaninformatie:renderBaanInformatie,instellingen:renderInstellingen};
   if(renders[id])renders[id]();
   if(id==='nieuw'){goStep(0);if(!_editId)resetForm();}
   _adminView=id;
@@ -19362,10 +19104,7 @@ window.addEventListener('offline', updateOnlineStatus);
             <div style="margin-bottom:1.5rem">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
                 <div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Divisies</div>
-                <div style="display:flex;gap:6px">
-                  <button class="btn btn-s btn-xs" onclick="openBibliotheekKiezer()">📚 Uit bibliotheek</button>
-                  <button class="btn btn-p btn-xs" onclick="openDivisieModal()">+ Divisie toevoegen</button>
-                </div>
+                <button class="btn btn-p btn-xs" onclick="openDivisieModal()">+ Divisie toevoegen</button>
               </div>
               <div id="div-lijst">
                 <div style="font-size:12px;color:var(--txm);padding:.5rem 0">Nog geen divisies — wedstrijd krijgt één gecombineerd klassement.</div>
@@ -19718,9 +19457,6 @@ window.addEventListener('offline', updateOnlineStatus);
       <div id="v-wd-templates" class="view"></div>
       <div id="v-auditlog" class="view"></div>
       <div id="v-commissies" class="view"></div>
-
-      <!-- DIVISIE-BIBLIOTHEEK -->
-      <div id="v-divisie-bibliotheek" class="view"></div>
       <div id="v-baaninformatie" class="view"></div>
       <div id="v-instellingen" class="view">
         <div class="card">
