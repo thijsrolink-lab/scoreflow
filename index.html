@@ -3558,6 +3558,105 @@ async function scrapeSponsorSite() {
 // - cosponsoren: array sponsorIds
 // - holesponsoren: array {sponsorId, holeNr}
 var _wizCoSponsoren = [];
+var _wizTees = [];          // tees voor deze wedstrijd: {id, kleur, label}
+var _wizCategorieen = [];   // uitslag-categorieën: {id, naam, gs, hcpMin, hcpMax, teeId}
+var _wizSpecialHoles = [];  // special holes: {id, type, hole}
+
+// ── Tees (wizard stap 1) ──────────────────────────────────────
+var TEE_KLEUREN = ['geel','wit','rood','blauw','groen','oranje'];
+function teeKleurHex(kleur) {
+  var map = {geel:'#eab308',wit:'#d1d5db',rood:'#ef4444',blauw:'#3b82f6',groen:'#22c55e',oranje:'#f97316'};
+  return map[kleur] || '#6b7280';
+}
+
+function voegTeeToe() {
+  // Kies eerste kleur die nog niet gebruikt is
+  var gebruikt = _wizTees.map(function(t){return t.kleur;});
+  var kleur = TEE_KLEUREN.find(function(k){return gebruikt.indexOf(k)<0;}) || 'geel';
+  _wizTees.push({ id: 'tee-' + Date.now(), kleur: kleur, label: kleur.charAt(0).toUpperCase()+kleur.slice(1) });
+  renderTeesLijst();
+}
+
+function renderTeesLijst() {
+  var el = document.getElementById('tees-lijst');
+  if (!el) return;
+  if (_wizTees.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--txm);padding:.25rem 0">Nog geen tees — voeg toe welke tees gespeeld worden (bv. Geel voor heren, Rood voor dames).</div>';
+    return;
+  }
+  el.innerHTML = _wizTees.map(function(t, i) {
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;margin-bottom:5px">' +
+      '<select onchange="_wizTees['+i+'].kleur=this.value" style="width:100px;padding:4px 8px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r)">' +
+        TEE_KLEUREN.map(function(k){ return '<option value="'+k+'"'+(t.kleur===k?' selected':'')+'>'+k.charAt(0).toUpperCase()+k.slice(1)+'</option>'; }).join('') +
+      '</select>' +
+      '<div style="width:14px;height:14px;border-radius:50%;background:'+teeKleurHex(t.kleur)+';flex-shrink:0;border:1px solid rgba(0,0,0,.15)"></div>' +
+      '<input value="'+escHtml(t.label||'')+'" placeholder="Label (bv. Heren geel)" onchange="_wizTees['+i+'].label=this.value" style="flex:1;padding:4px 10px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r)"/>' +
+      '<button onclick="_wizTees.splice('+i+',1);renderTeesLijst();renderCategorieenLijst()" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:16px;padding:2px 6px">&#215;</button>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Categorieën (wizard stap 4 — Uitslag) ─────────────────────
+function voegCategorieToe() {
+  _wizCategorieen.push({ id: 'cat-' + Date.now(), naam: '', gs: 'beide', hcpMin: null, hcpMax: null, teeId: null });
+  renderCategorieenLijst();
+}
+
+function renderCategorieenLijst() {
+  var el = document.getElementById('cat-lijst');
+  if (!el) return;
+  if (_wizCategorieen.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--txm);padding:.25rem 0">Nog geen categorieën — de wedstrijd krijgt één gecombineerd klassement.</div>';
+    return;
+  }
+  el.innerHTML = _wizCategorieen.map(function(c, i) {
+    var teeOpts = '<option value="">— Geen tee —</option>' + _wizTees.map(function(t){
+      return '<option value="'+t.id+'"'+(c.teeId===t.id?' selected':'')+'>'+escHtml(t.label||t.kleur)+'</option>';
+    }).join('');
+    return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;margin-bottom:5px">' +
+      '<input value="'+escHtml(c.naam||'')+'" placeholder="Naam (bv. Heren, Dames, Netto A)" onchange="_wizCategorieen['+i+'].naam=this.value" style="flex:2;min-width:140px;padding:5px 10px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r)"/>' +
+      '<select onchange="_wizCategorieen['+i+'].gs=this.value" style="width:90px;padding:5px 6px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r)" title="Geslacht">' +
+        '<option value="beide"'+((!c.gs||c.gs==='beide')?' selected':'')+'>M+V</option>' +
+        '<option value="M"'+(c.gs==='M'?' selected':'')+'>Heren</option>' +
+        '<option value="V"'+(c.gs==='V'?' selected':'')+'>Dames</option>' +
+      '</select>' +
+      '<span style="font-size:11px;color:var(--txm)">HCP</span>' +
+      '<input type="number" step="0.1" min="0" max="54" value="'+(c.hcpMin!=null?c.hcpMin:'')+'" placeholder="van" onchange="_wizCategorieen['+i+'].hcpMin=this.value!==\'\'?parseFloat(this.value):null" style="width:60px;padding:5px 6px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r)"/>' +
+      '<span style="font-size:11px;color:var(--txm)">–</span>' +
+      '<input type="number" step="0.1" min="0" max="54" value="'+(c.hcpMax!=null?c.hcpMax:'')+'" placeholder="t/m" onchange="_wizCategorieen['+i+'].hcpMax=this.value!==\'\'?parseFloat(this.value):null" style="width:60px;padding:5px 6px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r)"/>' +
+      '<select onchange="_wizCategorieen['+i+'].teeId=this.value||null" style="width:120px;padding:5px 6px;font-size:12px;border:1px solid var(--bd);border-radius:var(--r)" title="Tee">' + teeOpts + '</select>' +
+      '<button onclick="_wizCategorieen.splice('+i+',1);renderCategorieenLijst()" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:16px;padding:2px 4px">&#215;</button>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Special holes (wizard stap 4) ─────────────────────────────
+var SPECIAL_TYPES = ['Neary (nearest to pin)','Longest drive','Leary (nearest to line)','Nearest to pin in 2','Eigen'];
+function voegSpecialHoleToe() {
+  _wizSpecialHoles.push({ id: 'sp-' + Date.now(), type: SPECIAL_TYPES[0], hole: 7, label: '' });
+  renderSpecialHolesLijst();
+}
+
+function renderSpecialHolesLijst() {
+  var el = document.getElementById('special-lijst');
+  if (!el) return;
+  if (_wizSpecialHoles.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--txm);padding:.25rem 0">Nog geen special holes.</div>';
+    return;
+  }
+  el.innerHTML = _wizSpecialHoles.map(function(s, i) {
+    return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 10px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;margin-bottom:5px">' +
+      '<span style="font-size:14px">🎯</span>' +
+      '<select onchange="_wizSpecialHoles['+i+'].type=this.value" style="flex:1;min-width:160px;padding:5px 8px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r)">' +
+        SPECIAL_TYPES.map(function(t){ return '<option value="'+t+'"'+(s.type===t?' selected':'')+'>'+t+'</option>'; }).join('') +
+      '</select>' +
+      '<span style="font-size:11px;color:var(--txm)">Hole</span>' +
+      '<input type="number" min="1" max="18" value="'+(s.hole||1)+'" onchange="_wizSpecialHoles['+i+'].hole=parseInt(this.value)||1" style="width:55px;padding:5px 6px;font-size:13px;border:1px solid var(--bd);border-radius:var(--r)"/>' +
+      '<button onclick="_wizSpecialHoles.splice('+i+',1);renderSpecialHolesLijst()" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:16px;padding:2px 4px">&#215;</button>' +
+    '</div>';
+  }).join('');
+}
+
 var _wizHoleSponsoren = [];
 
 // Genereer dropdown opties met actieve sponsoren
@@ -5603,7 +5702,13 @@ function dbWedstrijdNaarApp(w) {
     tsFormule: w.ts_formule || 'app',
     intervalMin: w.interval_min || 10,
     commissieId: w.commissie_id || null,
-    qualifying: w.qualifying !== false,};
+    qualifying: w.qualifying !== false,
+    tiebreak: w.tiebreak || 'matching',
+    leeftijdMin: w.leeftijd_min != null ? w.leeftijd_min : null,
+    leeftijdMax: w.leeftijd_max != null ? w.leeftijd_max : null,
+    tees: w.tees || null,
+    categorieen: w.categorieen || null,
+    specialHoles: w.special_holes || null,};
 }
 function dbIngNaarApp(i) {
   return {
@@ -5863,7 +5968,13 @@ async function dbSaveWedstrijd(w) {
     ts_formule: w.tsFormule || 'app',
     interval_min: w.intervalMin || 10,
     commissie_id: w.commissieId || null,
-    qualifying: w.qualifying !== false,};
+    qualifying: w.qualifying !== false,
+    tiebreak: w.tiebreak || 'matching',
+    leeftijd_min: w.leeftijdMin != null ? w.leeftijdMin : null,
+    leeftijd_max: w.leeftijdMax != null ? w.leeftijdMax : null,
+    tees: w.tees || null,
+    categorieen: w.categorieen || null,
+    special_holes: w.specialHoles || null,};
   if (w.id && String(w.id).includes('-')) {
     // PATCH: stuur Prefer return=representation zodat we de bijgewerkte row terugkrijgen
     var url = new URL(SUPA_URL + '/rest/v1/wedstrijden');
@@ -7638,13 +7749,23 @@ function editW(id){
     // Qualifying
     var qTg = document.querySelectorAll('#fqualifying-tg .tgb');
     qTg.forEach(function(b){ b.classList.toggle('on', b.dataset.val === String(w.qualifying !== false)); });
+    // Tiebreak
+    var tbEl = document.getElementById('ftiebreak');
+    if (tbEl) tbEl.value = w.tiebreak || 'matching';
+    // Leeftijd
+    var lmin = document.getElementById('fleeftijdmin'); if (lmin) lmin.value = w.leeftijdMin != null ? w.leeftijdMin : '';
+    var lmax = document.getElementById('fleeftijdmax'); if (lmax) lmax.value = w.leeftijdMax != null ? w.leeftijdMax : '';
+    // Tees / categorieën / special holes
+    _wizTees = w.tees ? JSON.parse(JSON.stringify(w.tees)) : [];
+    _wizCategorieen = w.categorieen ? JSON.parse(JSON.stringify(w.categorieen)) : [];
+    _wizSpecialHoles = w.specialHoles ? JSON.parse(JSON.stringify(w.specialHoles)) : [];
+    renderTeesLijst();
     // Inschrijf datums
     var fop = document.getElementById('fop'); if(fop && w.inschrijfOpen) fop.value = w.inschrijfOpen;
     var fsluit = document.getElementById('fsluit'); if(fsluit && w.inschrijfSluit) fsluit.value = w.inschrijfSluit;
-    // Wedstrijdvorm toggle-buttons
-    document.querySelectorAll('#vorm-tg .tgb').forEach(function(b){
-      b.classList.toggle('on', b.dataset.vorm === w.vorm);
-    });
+    // Wedstrijdvorm dropdown
+    var fvormEl = document.getElementById('fvorm');
+    if (fvormEl && w.vorm) fvormEl.value = w.vorm;
     if(typeof updateVormInfo === 'function') updateVormInfo();
     var pt = document.getElementById('page-title');
     if(pt) pt.textContent = 'Wedstrijd bewerken';
@@ -7698,9 +7819,10 @@ function updateVormInfo(){
 function goStep(n){
   for(var i=0;i<6;i++){var el=document.getElementById('s'+i);if(el)el.style.display=i===n?'block':'none';}
   document.querySelectorAll('.stp').forEach(function(s,i){s.className='stp'+(i<n?' done':i===n?' active':'');});
-  if(n===0) vulCommissieDropdown();       // commissies bijwerken bij stap 1
-  if(n===4) renderSponsorWizardStep();    // sponsoren laden bij betreden stap
-  if(n===5) buildOv();                    // overzicht (was stap 4)
+  if(n===0){ vulCommissieDropdown(); renderTeesLijst(); }
+  if(n===3){ renderCategorieenLijst(); renderSpecialHolesLijst(); }
+  if(n===4) renderSponsorWizardStep();
+  if(n===5) buildOv();
 }
 
 function vulCommissieDropdown(geselecteerd){
@@ -7719,6 +7841,9 @@ function vulCommissieDropdown(geselecteerd){
 
 function resetForm(){
   _editId=null;
+  _wizTees=[];
+  _wizCategorieen=[];
+  _wizSpecialHoles=[];
   // Default leider: huidige user als die admin is
   var defLeiderId = '';
   if (_currentUser && (_currentUser.rol === 'Admin' || _currentUser.rol === 'Wedstrijdleider')) {
@@ -7763,12 +7888,22 @@ function buildOv(){
   var datum=document.getElementById('fd').value||'-';
   var holes=document.getElementById('fh').value||'18';
   var max=document.getElementById('fmax').value||'72';
-  var btn=document.querySelector('#vorm-tg .tgb.on');var vorm=btn?btn.dataset.vorm:'Strokeplay';
+  var vormEl=document.getElementById('fvorm');var vorm=vormEl?vormEl.value:'Stableford';
+  var rondes=(document.getElementById('frondes')||{}).value||'1';
+  var teesStr=_wizTees.length?_wizTees.map(function(t){return escHtml(t.label||t.kleur);}).join(', '):'—';
+  var catsStr=_wizCategorieen.length?_wizCategorieen.map(function(c){return escHtml(c.naam||'(naamloos)');}).join(', '):'Één klassement';
+  var specStr=_wizSpecialHoles.length?_wizSpecialHoles.map(function(s){return escHtml(s.type)+' (hole '+s.hole+')';}).join(', '):'—';
+  var qBtn=document.querySelector('#fqualifying-tg .tgb.on');
+  var quali=qBtn&&qBtn.dataset.val==='false'?'Non-qualifying':'Qualifying';
   document.getElementById('ov-content').innerHTML=
-    '<div class="g4" style="margin-bottom:1rem">'+mc('Naam',naam,'')+mc('Datum',datum,'')+mc('Holes',holes,'')+mc('Max.',max,'deelnemers')+'</div>'+
+    '<div class="g4" style="margin-bottom:1rem">'+mc('Naam',naam,'')+mc('Datum',datum,'')+mc('Rondes',rondes,'× '+holes+' holes')+mc('Max.',max,'deelnemers')+'</div>'+
     '<div class="blk"><div class="blk-t">Samenvatting</div><table class="tbl">'+
     [['Wedstrijdvorm','<span class="badge bg">'+vorm+'</span>'],
-     ['Max. handicap',(document.getElementById('fhmax').value||'36')+' EGA'],
+     ['Status','<span class="badge bx">'+quali+'</span>'],
+     ['Tees',teesStr],
+     ['Uitslag-categorieën',catsStr],
+     ['Special holes',specStr],
+     ['Handicap-range',(document.getElementById('fhmin').value||'0')+' t/m '+(document.getElementById('fhmax').value||'36')+' EGA'],
      ['Startgeld','€ '+(document.getElementById('fsg').value||'0')],
     ].map(function(r){return '<tr><td style="color:var(--txm);width:40%;padding:7px 0;border-bottom:1px solid var(--surf)">'+r[0]+'</td><td style="padding:7px 0;border-bottom:1px solid var(--surf)">'+r[1]+'</td></tr>';}).join('')+'</table></div>';
 }
@@ -7776,7 +7911,7 @@ function buildOv(){
 function saveConcept(){
   var naam=document.getElementById('fn').value||'Nieuwe wedstrijd';
   var vormEl2=document.getElementById('fvorm');
-  WEDSTRIJDEN.push({id:Date.now(),naam:naam,datum:document.getElementById('fd').value||'2025-12-01',baan:document.getElementById('fb').value||'De Hooge Rotterdamsche',vorm:vormEl2?vormEl2.value:'Stableford',status:'concept',max:parseInt(document.getElementById('fmax').value)||72,ing:0,kleur:'ceb',cr:parseFloat(document.getElementById('fcr').value)||72.1,slope:parseInt(document.getElementById('fsl').value)||131,holes:parseInt(document.getElementById('fh').value)||18,flt:parseInt(document.getElementById('fflt').value)||3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:document.getElementById('fomschr').value||'',inschrijfOpen:document.getElementById('fop').value||null,inschrijfSluit:document.getElementById('fsluit').value||null});
+  WEDSTRIJDEN.push({id:Date.now(),naam:naam,datum:document.getElementById('fd').value||'2025-12-01',baan:document.getElementById('fb').value||'De Hooge Rotterdamsche',vorm:vormEl2?vormEl2.value:'Stableford',status:'concept',max:parseInt(document.getElementById('fmax').value)||72,ing:0,kleur:'ceb',cr:parseFloat((document.getElementById('fcr')||{}).value)||72.1,slope:parseInt((document.getElementById('fsl')||{}).value)||131,holes:parseInt(document.getElementById('fh').value)||18,flt:parseInt(document.getElementById('fflt').value)||3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:document.getElementById('fomschr').value||'',inschrijfOpen:document.getElementById('fop').value||null,inschrijfSluit:document.getElementById('fsluit').value||null});
   _editId=null;toast('Opgeslagen als concept.');adminNav('wedstrijden');
 }
 
@@ -7790,8 +7925,8 @@ function bouwWedstrijdUitFormulier(status) {
     naam: naam,
     datum: document.getElementById('fd').value || '2025-12-01',
     baan: document.getElementById('fb').value || 'De Hooge Rotterdamsche',
-    cr: parseFloat(document.getElementById('fcr').value) || 72.1,
-    slope: parseInt(document.getElementById('fsl').value) || 131,
+    cr: parseFloat((document.getElementById('fcr')||{}).value) || 72.1,
+    slope: parseInt((document.getElementById('fsl')||{}).value) || 131,
     holes: parseInt(document.getElementById('fh').value) || 18,
     vorm: vorm,
     status: status,
@@ -7826,6 +7961,12 @@ function bouwWedstrijdUitFormulier(status) {
     tsFormule: (document.getElementById('fts-formule') || {}).value || 'app',
     commissieId: (document.getElementById('fcommissie') || {}).value || null,
     qualifying: (function(){ var b=document.querySelector('#fqualifying-tg .tgb.on'); return b ? b.dataset.val !== 'false' : true; })(),
+    tiebreak: (document.getElementById('ftiebreak') || {}).value || 'matching',
+    leeftijdMin: (function(){var v=(document.getElementById('fleeftijdmin')||{}).value;return v!==''&&v!=null?parseInt(v):null;})(),
+    leeftijdMax: (function(){var v=(document.getElementById('fleeftijdmax')||{}).value;return v!==''&&v!=null?parseInt(v):null;})(),
+    tees: _wizTees.length ? JSON.parse(JSON.stringify(_wizTees)) : null,
+    categorieen: _wizCategorieen.length ? JSON.parse(JSON.stringify(_wizCategorieen)) : null,
+    specialHoles: _wizSpecialHoles.length ? JSON.parse(JSON.stringify(_wizSpecialHoles)) : null,
   };
 }
 
@@ -14288,7 +14429,7 @@ function snelAanmakenWizard() {
   setTimeout(function() {
     var sv = function(id, val) { var el = document.getElementById(id); if (el) el.value = val; };
     sv('fn', w.naam); sv('fd', w.datum); sv('fb', w.baan); sv('fmax', w.max); sv('fsg', w.startgeld);
-    document.querySelectorAll('#vorm-tg .tgb').forEach(function(b) { b.classList.toggle('on', b.dataset.vorm === w.vorm); });
+    var fvEl = document.getElementById('fvorm'); if (fvEl && w.vorm) fvEl.value = w.vorm;
     updateVormInfo();
   }, 100);
 }
@@ -18660,7 +18801,7 @@ window.addEventListener('offline', updateOnlineStatus);
           <div class="stp active" onclick="goStep(0)">1. Basis</div>
           <div class="stp" onclick="goStep(1)">2. Deelnemers</div>
           <div class="stp" onclick="goStep(2)">3. Regels</div>
-          <div class="stp" onclick="goStep(3)">4. Categorieën</div>
+          <div class="stp" onclick="goStep(3)">4. Uitslag</div>
           <div class="stp" onclick="goStep(4)">5. Sponsoren</div>
           <div class="stp" onclick="goStep(5)">6. Overzicht</div>
         </div>
@@ -18709,6 +18850,15 @@ window.addEventListener('offline', updateOnlineStatus);
                 <div class="field-hint">Bijv. 1 voor een dagwedstrijd, 3 voor een 72-holes kampioenschap</div>
               </div>
             </div>
+            <div class="g2">
+              <div class="field"><label>Holes per ronde</label><select id="fh" onchange="toggleNegenKeuze()"><option value="18">18 holes</option><option value="9">9 holes</option></select></div>
+              <div class="field" id="negen-keuze-field" style="display:none"><label>Welke 9 holes</label><select id="fnegen"><option value="uit">Eerste 9 (UIT, holes 1-9)</option><option value="in">Tweede 9 (IN, holes 10-18)</option></select></div>
+            </div>
+            <div class="blk" style="margin-top:.5rem"><div class="blk-t" style="display:flex;align-items:center;justify-content:space-between">Tees
+              <button type="button" class="btn btn-s btn-xs" onclick="voegTeeToe()">+ Tee toevoegen</button></div>
+              <div style="font-size:12px;color:var(--txm);margin-bottom:.5rem">Welke tees worden gespeeld? Baandata (CR/slope) komt later via Golfspot — hier alleen vastleggen welke tees beschikbaar zijn.</div>
+              <div id="tees-lijst"></div>
+            </div>
             <div id="vorm-info" style="font-size:12px;color:var(--txm);background:var(--surf);border-radius:var(--r);padding:.65rem .9rem;margin:.25rem 0;border:1px solid var(--bd)"></div>
             <div class="field"><label>Omschrijving</label><textarea id="fomschr" placeholder="Korte beschrijving voor de ledenkalender..."></textarea></div>
             <div style="display:flex;justify-content:flex-end"><button class="btn btn-p" onclick="goStep(1)">Volgende &#8594;</button></div>
@@ -18737,11 +18887,28 @@ window.addEventListener('offline', updateOnlineStatus);
               </div>
             </div>
             <div class="blk"><div class="blk-t">Toelatingseisen</div>
+              <div style="font-size:12px;color:var(--txm);margin-bottom:.75rem">Wie mag zich inschrijven? Laat velden leeg voor geen beperking.</div>
               <div class="g2">
                 <div class="field"><label>Lidmaatschap</label><div class="tg"><button class="tgb on" onclick="tSingle(this,'lid')">Alleen leden</button><button class="tgb" onclick="tSingle(this,'lid')">Leden + gasten</button><button class="tgb" onclick="tSingle(this,'lid')">Open</button></div></div>
-                <div class="field"><label>Geslacht</label><div class="tg"><button class="tgb on" onclick="tSingle(this,'gs')">Mixed</button><button class="tgb" onclick="tSingle(this,'gs')">Heren</button><button class="tgb" onclick="tSingle(this,'gs')">Dames</button></div></div>
+                <div class="field"><label>Geslacht</label><div class="tg" id="ftoelating-gs"><button class="tgb on" data-gs="mixed" onclick="tSingle(this,'gs')">Mixed</button><button class="tgb" data-gs="M" onclick="tSingle(this,'gs')">Heren</button><button class="tgb" data-gs="V" onclick="tSingle(this,'gs')">Dames</button></div></div>
               </div>
-              <div class="field"><label>Leeftijd</label><div class="tg"><button class="tgb on" onclick="tMulti(this)">Alle leeftijden</button><button class="tgb" onclick="tMulti(this)">Junioren &lt;18</button><button class="tgb" onclick="tMulti(this)">Senioren 55+</button></div></div>
+              <div class="g2">
+                <div class="field"><label>Speelsterkte (EGA handicap)</label>
+                  <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+                    <input id="fhmin" type="number" step="0.1" min="0" max="54" placeholder="van (bv. 0)" value="0" style="flex:1"/>
+                    <span style="font-size:12px;color:var(--txm)">t/m</span>
+                    <input id="fhmax" type="number" step="0.1" min="0" max="54" placeholder="t/m (bv. 36)" value="36.0" style="flex:1"/>
+                  </div>
+                </div>
+                <div class="field"><label>Leeftijd</label>
+                  <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+                    <input id="fleeftijdmin" type="number" min="0" max="99" placeholder="van" style="flex:1"/>
+                    <span style="font-size:12px;color:var(--txm)">t/m</span>
+                    <input id="fleeftijdmax" type="number" min="0" max="99" placeholder="t/m" style="flex:1"/>
+                  </div>
+                  <div class="field-hint">Bijv. t/m 18 voor jeugd, vanaf 55 voor senioren</div>
+                </div>
+              </div>
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end">
               <button class="btn btn-s" onclick="goStep(0)">&#8592; Terug</button>
@@ -18752,18 +18919,8 @@ window.addEventListener('offline', updateOnlineStatus);
         <div id="s2" style="display:none">
           <div class="card">
             <div class="card-hd">Spelregels &amp; scoren</div>
-            <div class="blk"><div class="blk-t">Baaninformatie</div>
+            <div class="blk"><div class="blk-t">Handicap &amp; status</div>
               <div class="g3">
-                <div class="field"><label>Course rating</label><input id="fcr" type="number" step="0.1" placeholder="72.1"/></div>
-                <div class="field"><label>Slope rating</label><input id="fsl" type="number" placeholder="131"/></div>
-                <div class="field"><label>Holes</label><select id="fh" onchange="toggleNegenKeuze()"><option value="18">18 holes</option><option value="9">9 holes</option></select></div>
-              </div>
-              <div class="field" id="negen-keuze-field" style="display:none"><label>Welke 9 holes</label><select id="fnegen"><option value="uit">Eerste 9 (UIT, holes 1-9)</option><option value="in">Tweede 9 (IN, holes 10-18)</option></select></div>
-            </div>
-            <div class="blk"><div class="blk-t">Handicap</div>
-              <div class="g3">
-                <div class="field"><label>Max. EGA handicap</label><input id="fhmax" type="number" step="0.1" value="36.0"/><div class="field-hint">Limiet voor inschrijving</div></div>
-                <div class="field"><label>Min. EGA handicap</label><input id="fhmin" type="number" step="0.1" value="0"/></div>
                 <div class="field"><label>Handicap %</label><select id="fhp"><option value="100">100%</option><option value="90">90%</option><option value="75">75% Pro-Am</option><option value="50">50%</option><option value="0">0% — geen verrekening (bruto-only)</option></select></div>
                 <div class="field"><label>Qualifying</label>
                   <div class="tg" id="fqualifying-tg">
@@ -18787,6 +18944,12 @@ window.addEventListener('offline', updateOnlineStatus);
             <div class="blk"><div class="blk-t">Scoringsregels</div>
               <div class="g2">
                 <div class="field"><label>Max. score per hole (ESC)</label><select id="fesc"><option value="geen">Geen maximum</option><option value="double">Double bogey</option><option value="triple">Triple bogey</option><option value="nettodouble">Netto dubbel bogey</option></select></div>
+                <div class="field"><label>Uitslagbepaling bij gelijke stand</label><select id="ftiebreak">
+                  <option value="matching">Matching scorecards (laatste 9, 6, 3, 1)</option>
+                  <option value="loting">Loting</option>
+                  <option value="laagstehcp">Laagste handicap wint</option>
+                  <option value="delen">Plaats delen</option>
+                </select><div class="field-hint">Hoe wordt een gelijke eindstand beslist</div></div>
               </div>
             </div>
             <div class="blk">
@@ -18831,31 +18994,32 @@ window.addEventListener('offline', updateOnlineStatus);
         </div>
         <div id="s3" style="display:none">
           <div class="card">
-            <div class="card-hd">Categorieën &amp; prijzen</div>
-            <div class="blk"><div class="blk-t">Handicap categorieën</div>
-              <div id="catlist">
-                <div class="pr"><input class="fi" value="Categorie A"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 4px">HCP</span><input class="fw60" value="0"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 3px">t/m</span><input class="fw60" value="10"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
-                <div class="pr"><input class="fi" value="Categorie B"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 4px">HCP</span><input class="fw60" value="11"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 3px">t/m</span><input class="fw60" value="20"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
-                <div class="pr"><input class="fi" value="Categorie C"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 4px">HCP</span><input class="fw60" value="21"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 3px">t/m</span><input class="fw60" value="36"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
-              </div>
-              <button class="btn btn-s btn-xs" style="margin-top:6px" onclick="addCat()">+ Categorie</button>
+            <div class="card-hd">Uitslag
+              <div class="card-hd-r"><span style="font-size:11px;color:var(--txm);font-weight:400">Optioneel — zonder categorieën één klassement</span></div>
             </div>
+            <p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0;line-height:1.6">Definieer aparte uitslagen binnen deze wedstrijd op basis van geslacht, speelsterkte en/of tee. Scores worden één keer ingevoerd — elke categorie krijgt een eigen klassement.</p>
+
+            <div class="blk"><div class="blk-t" style="display:flex;align-items:center;justify-content:space-between">Categorieën
+              <button type="button" class="btn btn-p btn-xs" onclick="voegCategorieToe()">+ Categorie</button></div>
+              <div id="cat-lijst"></div>
+            </div>
+
+            <div class="blk"><div class="blk-t" style="display:flex;align-items:center;justify-content:space-between">Special holes
+              <button type="button" class="btn btn-s btn-xs" onclick="voegSpecialHoleToe()">+ Special hole</button></div>
+              <div style="font-size:12px;color:var(--txm);margin-bottom:.5rem">Neary, longest drive, leary etc. — winnaar wordt na afloop handmatig ingevuld.</div>
+              <div id="special-lijst"></div>
+            </div>
+
             <div class="blk"><div class="blk-t">Prijzen</div>
               <div id="prizelist">
                 <div class="pr"><input class="fi" value="1e prijs netto overall"/><input class="fw" value="Wisselprijs + €50"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
-                <div class="pr"><input class="fi" value="2e prijs netto overall"/><input class="fw" value="€30 voucher"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
               </div>
               <button class="btn btn-s btn-xs" style="margin-top:6px" onclick="addPrize()">+ Prijs</button>
             </div>
-            <div class="blk"><div class="blk-t">Speciale prijzen</div>
-              <div id="speclist">
-                <div class="pr"><input class="fi" value="Nearest to pin — hole 7"/><input class="fw" value="Doos golfballen"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
-              </div>
-              <button class="btn btn-s btn-xs" style="margin-top:6px" onclick="addSpec()">+ Speciale prijs</button>
-            </div>
+
             <div style="display:flex;gap:8px;justify-content:flex-end">
               <button class="btn btn-s" onclick="goStep(2)">&#8592; Terug</button>
-              <button class="btn btn-p" onclick="goStep(4)">Overzicht &#8594;</button>
+              <button class="btn btn-p" onclick="goStep(4)">Volgende &#8594;</button>
             </div>
           </div>
         </div>
