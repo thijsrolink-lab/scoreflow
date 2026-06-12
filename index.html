@@ -7676,11 +7676,12 @@ var VORM_INFO={
   'Eclectic':'Beste score per hole over meerdere rondes. Typisch over een heel seizoen.',
 };
 
+function updateVormInfoDropdown(){ updateVormInfo(); }
 function updateVormInfo(){
-  var btn=document.querySelector('#vorm-tg .tgb.on');
+  var sel = document.getElementById('fvorm');
+  var vorm = sel ? sel.value : null;
   var el=document.getElementById('vorm-info');
-  if(el)el.textContent=btn?VORM_INFO[btn.dataset.vorm]||'':'';
-  var vorm=btn?btn.dataset.vorm:null;
+  if(el)el.textContent=vorm?VORM_INFO[vorm]||'':'';
   var vhEl=document.getElementById('vorm-help-btn');
   if(!vhEl){
     vhEl=document.createElement('div');vhEl.id='vorm-help-btn';vhEl.style.marginTop='6px';
@@ -7690,7 +7691,6 @@ function updateVormInfo(){
   if(vorm&&typeof VORM_HELP!=='undefined'&&VORM_HELP[vorm]){
     vhEl.innerHTML='<button class="help-knop" data-v="'+vorm+'" onclick="openVormHelp(this.dataset.v)">&#128216; Hoe werkt '+vorm+'?</button>';
   } else { vhEl.innerHTML=''; }
-  // Toon TS-formule blok alleen bij Texas Scramble
   var tsBlk = document.getElementById('ts-formule-blk');
   if (tsBlk) tsBlk.style.display = (vorm === 'Texas Scramble') ? '' : 'none';
 }
@@ -7775,8 +7775,8 @@ function buildOv(){
 
 function saveConcept(){
   var naam=document.getElementById('fn').value||'Nieuwe wedstrijd';
-  var btn=document.querySelector('#vorm-tg .tgb.on');
-  WEDSTRIJDEN.push({id:Date.now(),naam:naam,datum:document.getElementById('fd').value||'2025-12-01',baan:document.getElementById('fb').value||'De Hooge Rotterdamsche',vorm:btn?btn.dataset.vorm:'Strokeplay',status:'concept',max:parseInt(document.getElementById('fmax').value)||72,ing:0,kleur:'ceb',cr:parseFloat(document.getElementById('fcr').value)||72.1,slope:parseInt(document.getElementById('fsl').value)||131,holes:parseInt(document.getElementById('fh').value)||18,flt:parseInt(document.getElementById('fflt').value)||3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:document.getElementById('fomschr').value||'',inschrijfOpen:document.getElementById('fop').value||null,inschrijfSluit:document.getElementById('fsluit').value||null});
+  var vormEl2=document.getElementById('fvorm');
+  WEDSTRIJDEN.push({id:Date.now(),naam:naam,datum:document.getElementById('fd').value||'2025-12-01',baan:document.getElementById('fb').value||'De Hooge Rotterdamsche',vorm:vormEl2?vormEl2.value:'Stableford',status:'concept',max:parseInt(document.getElementById('fmax').value)||72,ing:0,kleur:'ceb',cr:parseFloat(document.getElementById('fcr').value)||72.1,slope:parseInt(document.getElementById('fsl').value)||131,holes:parseInt(document.getElementById('fh').value)||18,flt:parseInt(document.getElementById('fflt').value)||3,hcpmax:36,hcpmin:0,hcpperc:100,esc:'geen',rondes:1,startgeld:0,skinsPot:0,eclMinRondes:2,eclHcpPerc:0.75,omschrijving:document.getElementById('fomschr').value||'',inschrijfOpen:document.getElementById('fop').value||null,inschrijfSluit:document.getElementById('fsluit').value||null});
   _editId=null;toast('Opgeslagen als concept.');adminNav('wedstrijden');
 }
 
@@ -7784,8 +7784,8 @@ function saveConcept(){
 function bouwWedstrijdUitFormulier(status) {
   var naam = (document.getElementById('fn').value||'').trim();
   if (!naam) { toast('Vul een naam in.', 'err'); return null; }
-  var btn = document.querySelector('#vorm-tg .tgb.on');
-  var vorm = btn ? btn.dataset.vorm : 'Stableford';
+  var vormEl = document.getElementById('fvorm');
+  var vorm = vormEl ? vormEl.value : 'Stableford';
   return {
     naam: naam,
     datum: document.getElementById('fd').value || '2025-12-01',
@@ -11788,7 +11788,9 @@ function wdTemplateGebruiken(idx) {
   setTimeout(function() {
     var fnaamEl = document.getElementById('fnaam');
     if (fnaamEl) fnaamEl.value = t.naam || '';
-    if (document.getElementById('fvorm')) {
+    var fvEl = document.getElementById('fvorm');
+    if (fvEl) { fvEl.value = w.vorm || 'Stableford'; }
+    if (false && document.getElementById('fvorm')) {
       var btns = document.querySelectorAll('[data-vorm]');
       btns.forEach(function(b) {
         b.classList.toggle('on', b.dataset.vorm === t.vorm);
@@ -18676,46 +18678,38 @@ window.addEventListener('offline', updateOnlineStatus);
             <div class="g2">
               <div class="field"><label>Golfbaan</label><input id="fb" type="text" placeholder="De Hooge Rotterdamsche"/></div>
             </div>
-            <div class="g3">
-              <div class="field"><label>Course rating</label><input id="fcr" type="number" step="0.1" placeholder="72.1"/></div>
-              <div class="field"><label>Slope rating</label><input id="fsl" type="number" placeholder="131"/></div>
-              <div class="field"><label>Holes</label><select id="fh" onchange="toggleNegenKeuze()"><option value="18">18 holes</option><option value="9">9 holes</option></select></div>
-              <div class="field" id="negen-keuze-field" style="display:none"><label>Welke 9 holes</label><select id="fnegen"><option value="uit">Eerste 9 (UIT, holes 1-9)</option><option value="in">Tweede 9 (IN, holes 10-18)</option></select></div>
-            </div>
-            <div class="field"><label>Wedstrijdvorm</label>
-              <div class="tg" id="vorm-tg">
-                <button class="tgb on" data-vorm="Strokeplay" onclick="tSingle(this,'v');updateVormInfo()">Strokeplay</button>
-                <button class="tgb" data-vorm="Stableford" onclick="tSingle(this,'v');updateVormInfo()">Stableford</button>
-                <button class="tgb" data-vorm="Modified Stableford" onclick="tSingle(this,'v');updateVormInfo()">Modified Stableford</button>
-                <button class="tgb" data-vorm="Bogey competition" onclick="tSingle(this,'v');updateVormInfo()">Bogey competition</button>
-                <button class="tgb" data-vorm="Par competition" onclick="tSingle(this,'v');updateVormInfo()">Par competition</button>
-                <button class="tgb" data-vorm="Matchplay" onclick="tSingle(this,'v');updateVormInfo()">Matchplay</button>
-                <button class="tgb" data-vorm="Skins" onclick="tSingle(this,'v');updateVormInfo()">Skins</button>
-                <button class="tgb" data-vorm="Eclectic" onclick="tSingle(this,'v');updateVormInfo()">Eclectic</button>
-                <button class="tgb" data-vorm="Texas Scramble" onclick="tSingle(this,'v');updateVormInfo()">Texas Scramble</button>
-                <button class="tgb" data-vorm="Shamble" onclick="tSingle(this,'v');updateVormInfo()">Shamble</button>
-                <button class="tgb" data-vorm="Fourball" onclick="tSingle(this,'v');updateVormInfo()">Fourball</button>
-                <button class="tgb" data-vorm="Greensome" onclick="tSingle(this,'v');updateVormInfo()">Greensome</button>
-                <button class="tgb" data-vorm="Foursomes" onclick="tSingle(this,'v');updateVormInfo()">Foursomes</button>
-                <button class="tgb" data-vorm="Alliance" onclick="tSingle(this,'v');updateVormInfo()">Alliance</button>
-                <button class="tgb" data-vorm="Team Stableford" onclick="tSingle(this,'v');updateVormInfo()">Team Stableford</button>
-                <button class="tgb" data-vorm="Chapman" onclick="tSingle(this,'v');updateVormInfo()">Chapman</button>
-                <button class="tgb" data-vorm="Shoot-out" onclick="tSingle(this,'v');updateVormInfo()">Shoot-out</button>
-                <button class="tgb" data-vorm="Vlaggenwedstrijd" onclick="tSingle(this,'v');updateVormInfo()">Vlaggenwedstrijd</button>
-                <button class="tgb" data-vorm="Amerikaantje" onclick="tSingle(this,'v');updateVormInfo()">Amerikaantje</button>
-                <button class="tgb" data-vorm="Rabbit" onclick="tSingle(this,'v');updateVormInfo()">Rabbit</button>
-                <button class="tgb" data-vorm="Order of Merit" onclick="tSingle(this,'v');updateVormInfo()">Order of Merit</button>
+            <div class="g2">
+              <div class="field"><label>Wedstrijdvorm</label>
+                <select id="fvorm" onchange="updateVormInfoDropdown()" style="margin-top:4px">
+                  <option value="Stableford">Stableford</option>
+                  <option value="Strokeplay">Strokeplay</option>
+                  <option value="Modified Stableford">Modified Stableford</option>
+                  <option value="Bogey competition">Bogey competition</option>
+                  <option value="Par competition">Par competition</option>
+                  <option value="Matchplay">Matchplay</option>
+                  <option value="Skins">Skins</option>
+                  <option value="Eclectic">Eclectic</option>
+                  <option value="Texas Scramble">Texas Scramble</option>
+                  <option value="Shamble">Shamble</option>
+                  <option value="Fourball">Fourball</option>
+                  <option value="Greensome">Greensome</option>
+                  <option value="Foursomes">Foursomes</option>
+                  <option value="Alliance">Alliance</option>
+                  <option value="Team Stableford">Team Stableford</option>
+                  <option value="Chapman">Chapman</option>
+                  <option value="Shoot-out">Shoot-out</option>
+                  <option value="Vlaggenwedstrijd">Vlaggenwedstrijd</option>
+                  <option value="Amerikaantje">Amerikaantje</option>
+                  <option value="Rabbit">Rabbit</option>
+                  <option value="Order of Merit">Order of Merit</option>
+                </select>
+              </div>
+              <div class="field"><label>Aantal rondes</label>
+                <input id="frondes" type="number" value="1" min="1" max="99" style="margin-top:4px" placeholder="1"/>
+                <div class="field-hint">Bijv. 1 voor een dagwedstrijd, 3 voor een 72-holes kampioenschap</div>
               </div>
             </div>
-            <div id="vorm-info" style="font-size:12px;color:var(--txm);background:var(--surf);border-radius:var(--r);padding:.65rem .9rem;margin-top:.25rem;border:1px solid var(--bd)"></div>
-            <div class="field" style="margin-top:.75rem"><label>Aantal rondes</label>
-              <div class="tg">
-                <button class="tgb on" data-rondes="1" onclick="tSingle(this,'rondes')">1 ronde</button>
-                <button class="tgb" data-rondes="2" onclick="tSingle(this,'rondes')">2 rondes</button>
-                <button class="tgb" data-rondes="3" onclick="tSingle(this,'rondes')">3 rondes</button>
-                <button class="tgb" data-rondes="20" onclick="tSingle(this,'rondes')">Seizoen</button>
-              </div>
-            </div>
+            <div id="vorm-info" style="font-size:12px;color:var(--txm);background:var(--surf);border-radius:var(--r);padding:.65rem .9rem;margin:.25rem 0;border:1px solid var(--bd)"></div>
             <div class="field"><label>Omschrijving</label><textarea id="fomschr" placeholder="Korte beschrijving voor de ledenkalender..."></textarea></div>
             <div style="display:flex;justify-content:flex-end"><button class="btn btn-p" onclick="goStep(1)">Volgende &#8594;</button></div>
           </div>
@@ -18758,6 +18752,14 @@ window.addEventListener('offline', updateOnlineStatus);
         <div id="s2" style="display:none">
           <div class="card">
             <div class="card-hd">Spelregels &amp; scoren</div>
+            <div class="blk"><div class="blk-t">Baaninformatie</div>
+              <div class="g3">
+                <div class="field"><label>Course rating</label><input id="fcr" type="number" step="0.1" placeholder="72.1"/></div>
+                <div class="field"><label>Slope rating</label><input id="fsl" type="number" placeholder="131"/></div>
+                <div class="field"><label>Holes</label><select id="fh" onchange="toggleNegenKeuze()"><option value="18">18 holes</option><option value="9">9 holes</option></select></div>
+              </div>
+              <div class="field" id="negen-keuze-field" style="display:none"><label>Welke 9 holes</label><select id="fnegen"><option value="uit">Eerste 9 (UIT, holes 1-9)</option><option value="in">Tweede 9 (IN, holes 10-18)</option></select></div>
+            </div>
             <div class="blk"><div class="blk-t">Handicap</div>
               <div class="g3">
                 <div class="field"><label>Max. EGA handicap</label><input id="fhmax" type="number" step="0.1" value="36.0"/><div class="field-hint">Limiet voor inschrijving</div></div>
