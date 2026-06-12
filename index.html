@@ -5602,7 +5602,8 @@ function dbWedstrijdNaarApp(w) {
     publiekLeaderboard: !!w.publiek_leaderboard,
     tsFormule: w.ts_formule || 'app',
     intervalMin: w.interval_min || 10,
-    commissieId: w.commissie_id || null,};
+    commissieId: w.commissie_id || null,
+    qualifying: w.qualifying !== false,};
 }
 function dbIngNaarApp(i) {
   return {
@@ -5861,7 +5862,8 @@ async function dbSaveWedstrijd(w) {
     publiek_leaderboard: !!w.publiekLeaderboard,
     ts_formule: w.tsFormule || 'app',
     interval_min: w.intervalMin || 10,
-    commissie_id: w.commissieId || null,};
+    commissie_id: w.commissieId || null,
+    qualifying: w.qualifying !== false,};
   if (w.id && String(w.id).includes('-')) {
     // PATCH: stuur Prefer return=representation zodat we de bijgewerkte row terugkrijgen
     var url = new URL(SUPA_URL + '/rest/v1/wedstrijden');
@@ -7458,6 +7460,7 @@ function renderWedstrijden(){
       '</div>' +
       '<span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding:4px 10px;border-radius:999px;background:' + faseBg + ';color:' + faseColor + '">' + fase + '</span>' +
       (w.commissieId ? (function(){var c=COMMISSIES.find(function(x){return x.id===w.commissieId;});return c?'<span style="font-size:11px;padding:3px 8px;border-radius:999px;background:'+c.kleur+'22;color:'+c.kleur+';font-weight:500;border:1px solid '+c.kleur+'44">'+escHtml(c.naam)+'</span>':'';})() : '') +
+      (w.qualifying===false ? '<span style="font-size:11px;padding:3px 8px;border-radius:999px;background:#fef3c7;color:#92400e;font-weight:500;border:1px solid #fde68a">Non-Q</span>' : '') +
       (function(){var cp=(COMPETITIES||[]).find(function(c){return c.wids&&c.wids.indexOf(w.id)>=0;});return cp?'<span style="font-size:11px;padding:3px 8px;border-radius:999px;background:#f0fdf4;color:#15803d;font-weight:500;border:1px solid #bbf7d0">🏆 '+escHtml(cp.naam)+'</span>':'';})() +
       (acts ? '<div style="display:flex;gap:4px" onclick="event.stopPropagation()">' + acts + '</div>' : '') +
     '</div>';
@@ -7632,6 +7635,9 @@ function editW(id){
     var fom = document.getElementById('fomschr'); if(fom) fom.value = w.omschrijving || '';
     // Commissie
     vulCommissieDropdown(w.commissieId || '');
+    // Qualifying
+    var qTg = document.querySelectorAll('#fqualifying-tg .tgb');
+    qTg.forEach(function(b){ b.classList.toggle('on', b.dataset.val === String(w.qualifying !== false)); });
     // Inschrijf datums
     var fop = document.getElementById('fop'); if(fop && w.inschrijfOpen) fop.value = w.inschrijfOpen;
     var fsluit = document.getElementById('fsluit'); if(fsluit && w.inschrijfSluit) fsluit.value = w.inschrijfSluit;
@@ -7819,6 +7825,7 @@ function bouwWedstrijdUitFormulier(status) {
     intervalMin: parseInt((document.getElementById('fint') || {}).value) || 10,
     tsFormule: (document.getElementById('fts-formule') || {}).value || 'app',
     commissieId: (document.getElementById('fcommissie') || {}).value || null,
+    qualifying: (function(){ var b=document.querySelector('#fqualifying-tg .tgb.on'); return b ? b.dataset.val !== 'false' : true; })(),
   };
 }
 
@@ -18756,6 +18763,13 @@ window.addEventListener('offline', updateOnlineStatus);
                 <div class="field"><label>Max. EGA handicap</label><input id="fhmax" type="number" step="0.1" value="36.0"/><div class="field-hint">Limiet voor inschrijving</div></div>
                 <div class="field"><label>Min. EGA handicap</label><input id="fhmin" type="number" step="0.1" value="0"/></div>
                 <div class="field"><label>Handicap %</label><select id="fhp"><option value="100">100%</option><option value="90">90%</option><option value="75">75% Pro-Am</option><option value="50">50%</option><option value="0">0% — geen verrekening (bruto-only)</option></select></div>
+                <div class="field"><label>Qualifying</label>
+                  <div class="tg" id="fqualifying-tg">
+                    <button class="tgb on" data-val="true" onclick="tSingle(this,'fq')">✓ Qualifying</button>
+                    <button class="tgb" data-val="false" onclick="tSingle(this,'fq')">Non-qualifying</button>
+                  </div>
+                  <div class="field-hint">Qualifying rondes tellen mee voor handicap-verwerking via Golfspot</div>
+                </div>
               </div>
             </div>
             <div class="blk" id="ts-formule-blk" style="display:none"><div class="blk-t">Texas Scramble team-handicap berekening</div>
