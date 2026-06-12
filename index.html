@@ -3558,8 +3558,6 @@ async function scrapeSponsorSite() {
 // - cosponsoren: array sponsorIds
 // - holesponsoren: array {sponsorId, holeNr}
 var _wizCoSponsoren = [];
-var _wizDivisies = [];    // actieve divisies in de wizard
-var _wizPrijzen = [];     // actieve prijscategorieën in de wizard
 var _wizHoleSponsoren = [];
 
 // Genereer dropdown opties met actieve sponsoren
@@ -3576,252 +3574,6 @@ function sponsorOptiesHtml(geselecteerdId, excludeIds) {
 }
 
 // Render heel sponsor-wizard step (na 'Volgende' van stap 4)
-// ── Divisies & Categorieën wizard ────────────────────────────
-
-var VORMEN_OPTIES = ['Stableford','Strokeplay','Modified Stableford','Bogey competition','Par competition','Matchplay'];
-var TEE_KLEUREN = ['geel','wit','rood','blauw','groen','oranje'];
-
-function renderDivisiesWizard() {
-  var el = document.getElementById('div-lijst');
-  if (!el) return;
-  if (_wizDivisies.length === 0) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--txm);padding:.5rem 0">Nog geen divisies — wedstrijd krijgt één gecombineerd klassement.</div>';
-    return;
-  }
-  el.innerHTML = _wizDivisies.map(function(d, i) {
-    var filters = [];
-    if (d.hcpMin != null || d.hcpMax != null) filters.push('HCP ' + (d.hcpMin||0) + '–' + (d.hcpMax||36));
-    if (d.gs && d.gs !== 'beide') filters.push(d.gs === 'M' ? 'Heren' : 'Dames');
-    if (d.leeftijdMax) filters.push('< '+d.leeftijdMax+' jr');
-    if (d.leeftijdMin) filters.push('> '+d.leeftijdMin+' jr');
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;margin-bottom:6px">' +
-      '<div style="width:12px;height:12px;border-radius:50%;background:' + (d.teeKleur ? teeKleurHex(d.teeKleur) : 'var(--gm)') + ';flex-shrink:0"></div>' +
-      '<div style="flex:1;min-width:0">' +
-        '<div style="font-weight:600;font-size:13px">' + escHtml(d.naam) + '</div>' +
-        '<div style="font-size:11px;color:var(--txm)">' +
-          escHtml(d.vorm || 'Stableford') +
-          (d.teeKleur ? ' · ' + d.teeKleur + ' tee (CR ' + (d.cr||'?') + ' / Slope ' + (d.slope||'?') + ')' : '') +
-          (filters.length ? ' · ' + filters.join(', ') : '') +
-        '</div>' +
-      '</div>' +
-      '<button onclick="openDivisieModal(' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:12px;padding:4px 8px">✎</button>' +
-      '<button onclick="_wizDivisies.splice(' + i + ',1);renderDivisiesWizard()" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:16px;padding:2px 6px">×</button>' +
-    '</div>';
-  }).join('');
-}
-
-function renderPrijzenWizard() {
-  var el = document.getElementById('prijs-lijst');
-  if (!el) return;
-  if (_wizPrijzen.length === 0) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--txm);padding:.5rem 0">Nog geen prijscategorieën.</div>';
-    return;
-  }
-  el.innerHTML = _wizPrijzen.map(function(p, i) {
-    var filters = [];
-    if (p.gs && p.gs !== 'beide') filters.push(p.gs === 'M' ? 'Heren' : 'Dames');
-    if (p.leeftijdMax) filters.push('< '+p.leeftijdMax+' jr');
-    if (p.leeftijdMin) filters.push('> '+p.leeftijdMin+' jr');
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;margin-bottom:6px">' +
-      '<span style="font-size:16px">🏅</span>' +
-      '<div style="flex:1;min-width:0">' +
-        '<div style="font-weight:600;font-size:13px">' + escHtml(p.naam) + '</div>' +
-        '<div style="font-size:11px;color:var(--txm)">' + (filters.length ? filters.join(', ') : 'Alle spelers') + '</div>' +
-      '</div>' +
-      '<button onclick="openPrijsModal(' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:12px;padding:4px 8px">✎</button>' +
-      '<button onclick="_wizPrijzen.splice(' + i + ',1);renderPrijzenWizard()" style="background:none;border:none;cursor:pointer;color:var(--txm);font-size:16px;padding:2px 6px">×</button>' +
-    '</div>';
-  }).join('');
-}
-
-function teeKleurHex(kleur) {
-  var map = {geel:'#eab308',wit:'#e5e7eb',rood:'#ef4444',blauw:'#3b82f6',groen:'#22c55e',oranje:'#f97316'};
-  return map[kleur] || '#6b7280';
-}
-
-function openDivisieModal(idx) {
-  var bestaand = document.getElementById('modal-divisie');
-  if (bestaand) bestaand.remove();
-  var d = idx != null && _wizDivisies[idx] ? _wizDivisies[idx] : {};
-  var isNieuw = idx == null;
-
-  var div = document.createElement('div');
-  div.className = 'modal-bg open';
-  div.id = 'modal-divisie';
-  div.addEventListener('click', function(e){ if(e.target===div) div.remove(); });
-
-  div.innerHTML = '<div class="modal" style="max-width:500px">' +
-    '<div class="modal-title">' +
-      '<span>' + (isNieuw ? 'Divisie toevoegen' : 'Divisie bewerken') + '</span>' +
-      '<button class="modal-close" onclick="document.getElementById(\'modal-divisie\').remove()">&#215;</button>' +
-    '</div>' +
-
-    // Naam
-    '<div class="field" style="margin-bottom:1rem">' +
-      '<label>Naam</label>' +
-      '<input id="div-naam" type="text" placeholder="bv. Divisie A, Heren, Netto laag" value="' + escHtml(d.naam||'') + '" style="margin-top:4px"/>' +
-    '</div>' +
-
-    // Scoringsvorm
-    '<div class="field" style="margin-bottom:1rem">' +
-      '<label>Scoringsvorm</label>' +
-      '<select id="div-vorm" style="margin-top:4px">' +
-        VORMEN_OPTIES.map(function(v){ return '<option value="'+v+'"'+(d.vorm===v?' selected':'')+'>'+v+'</option>'; }).join('') +
-      '</select>' +
-    '</div>' +
-
-    // Tee
-    '<div style="background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:1rem;margin-bottom:1rem">' +
-      '<div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Tee</div>' +
-      '<div class="g2" style="margin-bottom:.5rem">' +
-        '<div class="field" style="margin:0"><label>Kleur</label>' +
-          '<select id="div-tee-kleur" style="margin-top:4px">' +
-            '<option value="">— Gebruik wedstrijd-tee —</option>' +
-            TEE_KLEUREN.map(function(k){ return '<option value="'+k+'"'+(d.teeKleur===k?' selected':'')+'>'+k.charAt(0).toUpperCase()+k.slice(1)+'</option>'; }).join('') +
-          '</select>' +
-        '</div>' +
-        '<div class="field" style="margin:0"><label>Max. speelhandicap</label>' +
-          '<input id="div-shmax" type="number" min="0" max="54" value="'+(d.shMax!=null?d.shMax:36)+'" style="margin-top:4px"/>' +
-        '</div>' +
-      '</div>' +
-      '<div class="g3">' +
-        '<div class="field" style="margin:0"><label>Course Rating</label><input id="div-cr" type="number" step="0.1" placeholder="72.1" value="'+(d.cr||'')+'" style="margin-top:4px"/></div>' +
-        '<div class="field" style="margin:0"><label>Slope</label><input id="div-slope" type="number" placeholder="131" value="'+(d.slope||'')+'" style="margin-top:4px"/></div>' +
-        '<div class="field" style="margin:0"><label>Par</label><input id="div-par" type="number" placeholder="72" value="'+(d.par||'')+'" style="margin-top:4px"/></div>' +
-      '</div>' +
-    '</div>' +
-
-    // Filter
-    '<div style="background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:1rem;margin-bottom:1.25rem">' +
-      '<div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Speler-filter <span style="font-weight:400;text-transform:none">(wie valt in deze divisie?)</span></div>' +
-      '<div class="g2" style="margin-bottom:.75rem">' +
-        '<div class="field" style="margin:0"><label>HCP van</label><input id="div-hcp-min" type="number" step="0.1" min="0" max="54" placeholder="0.0" value="'+(d.hcpMin!=null?d.hcpMin:'')+'" style="margin-top:4px"/></div>' +
-        '<div class="field" style="margin:0"><label>HCP t/m</label><input id="div-hcp-max" type="number" step="0.1" min="0" max="54" placeholder="36.0" value="'+(d.hcpMax!=null?d.hcpMax:'')+'" style="margin-top:4px"/></div>' +
-      '</div>' +
-      '<div class="g2" style="margin-bottom:.75rem">' +
-        '<div class="field" style="margin:0"><label>Geslacht</label>' +
-          '<select id="div-gs" style="margin-top:4px">' +
-            '<option value="beide"'+((!d.gs||d.gs==='beide')?' selected':'')+'>Beide</option>' +
-            '<option value="M"'+(d.gs==='M'?' selected':'')+'>Heren (M)</option>' +
-            '<option value="V"'+(d.gs==='V'?' selected':'')+'>Dames (V)</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="field" style="margin:0"><label>Leeftijd</label>' +
-          '<div style="display:flex;gap:6px;align-items:center;margin-top:4px">' +
-            '<input id="div-leeftijd-min" type="number" min="0" max="99" placeholder="min" value="'+(d.leeftijdMin||'')+'" style="flex:1"/>' +
-            '<span style="font-size:12px;color:var(--txm)">–</span>' +
-            '<input id="div-leeftijd-max" type="number" min="0" max="99" placeholder="max" value="'+(d.leeftijdMax||'')+'" style="flex:1"/>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>' +
-
-    '<div style="display:flex;justify-content:space-between;padding-top:1rem;border-top:1px solid var(--bd)">' +
-      (isNieuw ? '<span></span>' : '<button class="btn btn-d btn-sm" onclick="_wizDivisies.splice('+idx+',1);renderDivisiesWizard();document.getElementById(\'modal-divisie\').remove()">Verwijderen</button>') +
-      '<div style="display:flex;gap:8px">' +
-        '<button class="btn btn-s btn-sm" onclick="document.getElementById(\'modal-divisie\').remove()">Annuleren</button>' +
-        '<button class="btn btn-p btn-sm" onclick="slaaDivisieOp(' + (isNieuw ? 'null' : idx) + ')">Opslaan</button>' +
-      '</div>' +
-    '</div>' +
-    '</div>';
-
-  document.body.appendChild(div);
-  setTimeout(function(){ var el=document.getElementById('div-naam'); if(el){el.focus();el.select();} }, 50);
-}
-
-function slaaDivisieOp(idx) {
-  var naam = (document.getElementById('div-naam').value||'').trim();
-  if (!naam) { toast('Vul een naam in.','err'); return; }
-
-  var divisie = {
-    id: idx != null && _wizDivisies[idx] ? _wizDivisies[idx].id : 'div-' + Date.now(),
-    naam: naam,
-    vorm: document.getElementById('div-vorm').value || 'Stableford',
-    teeKleur: document.getElementById('div-tee-kleur').value || null,
-    cr: parseFloat(document.getElementById('div-cr').value) || null,
-    slope: parseInt(document.getElementById('div-slope').value) || null,
-    par: parseInt(document.getElementById('div-par').value) || null,
-    shMax: parseInt(document.getElementById('div-shmax').value) || 36,
-    hcpMin: document.getElementById('div-hcp-min').value !== '' ? parseFloat(document.getElementById('div-hcp-min').value) : null,
-    hcpMax: document.getElementById('div-hcp-max').value !== '' ? parseFloat(document.getElementById('div-hcp-max').value) : null,
-    gs: document.getElementById('div-gs').value || 'beide',
-    leeftijdMin: document.getElementById('div-leeftijd-min').value !== '' ? parseInt(document.getElementById('div-leeftijd-min').value) : null,
-    leeftijdMax: document.getElementById('div-leeftijd-max').value !== '' ? parseInt(document.getElementById('div-leeftijd-max').value) : null,
-  };
-
-  if (idx != null) _wizDivisies[idx] = divisie;
-  else _wizDivisies.push(divisie);
-
-  renderDivisiesWizard();
-  document.getElementById('modal-divisie').remove();
-  toast(idx != null ? 'Divisie bijgewerkt.' : 'Divisie toegevoegd.');
-}
-
-function openPrijsModal(idx) {
-  var bestaand = document.getElementById('modal-prijs');
-  if (bestaand) bestaand.remove();
-  var p = idx != null && _wizPrijzen[idx] ? _wizPrijzen[idx] : {};
-  var isNieuw = idx == null;
-
-  var div = document.createElement('div');
-  div.className = 'modal-bg open';
-  div.id = 'modal-prijs';
-  div.addEventListener('click', function(e){ if(e.target===div) div.remove(); });
-
-  div.innerHTML = '<div class="modal" style="max-width:420px">' +
-    '<div class="modal-title">' +
-      '<span>' + (isNieuw ? 'Prijscategorie toevoegen' : 'Prijscategorie bewerken') + '</span>' +
-      '<button class="modal-close" onclick="document.getElementById(\'modal-prijs\').remove()">&#215;</button>' +
-    '</div>' +
-    '<p style="font-size:12px;color:var(--txm);margin:0 0 1rem 0">Een prijs filtert het bestaande klassement. De winnaar is de hoogst gerankte speler die aan het filter voldoet.</p>' +
-
-    '<div class="field" style="margin-bottom:1rem">' +
-      '<label>Naam</label>' +
-      '<input id="prijs-naam" type="text" placeholder="bv. Beste dame, Beste senior, Bruto winnaar" value="' + escHtml(p.naam||'') + '" style="margin-top:4px"/>' +
-    '</div>' +
-
-    '<div class="g2" style="margin-bottom:1rem">' +
-      '<div class="field" style="margin:0"><label>Geslacht</label>' +
-        '<select id="prijs-gs" style="margin-top:4px">' +
-          '<option value="beide"'+((!p.gs||p.gs==='beide')?' selected':'')+'>Beide</option>' +
-          '<option value="M"'+(p.gs==='M'?' selected':'')+'>Heren (M)</option>' +
-          '<option value="V"'+(p.gs==='V'?' selected':'')+'>Dames (V)</option>' +
-        '</select>' +
-      '</div>' +
-      '<div class="field" style="margin:0"><label>Leeftijd (max)</label>' +
-        '<input id="prijs-leeftijd-max" type="number" min="0" max="99" placeholder="bijv. 18 voor jeugd" value="'+(p.leeftijdMax||'')+'" style="margin-top:4px"/>' +
-      '</div>' +
-    '</div>' +
-
-    '<div style="display:flex;justify-content:space-between;padding-top:1rem;border-top:1px solid var(--bd)">' +
-      (isNieuw ? '<span></span>' : '<button class="btn btn-d btn-sm" onclick="_wizPrijzen.splice('+idx+',1);renderPrijzenWizard();document.getElementById(\'modal-prijs\').remove()">Verwijderen</button>') +
-      '<div style="display:flex;gap:8px">' +
-        '<button class="btn btn-s btn-sm" onclick="document.getElementById(\'modal-prijs\').remove()">Annuleren</button>' +
-        '<button class="btn btn-p btn-sm" onclick="slaaaPrijsOp(' + (isNieuw ? 'null' : idx) + ')">Opslaan</button>' +
-      '</div>' +
-    '</div>' +
-    '</div>';
-
-  document.body.appendChild(div);
-  setTimeout(function(){ var el=document.getElementById('prijs-naam'); if(el){el.focus();el.select();} }, 50);
-}
-
-function slaaaPrijsOp(idx) {
-  var naam = (document.getElementById('prijs-naam').value||'').trim();
-  if (!naam) { toast('Vul een naam in.','err'); return; }
-  var prijs = {
-    id: idx != null && _wizPrijzen[idx] ? _wizPrijzen[idx].id : 'prijs-' + Date.now(),
-    naam: naam,
-    gs: document.getElementById('prijs-gs').value || 'beide',
-    leeftijdMax: document.getElementById('prijs-leeftijd-max').value !== '' ? parseInt(document.getElementById('prijs-leeftijd-max').value) : null,
-  };
-  if (idx != null) _wizPrijzen[idx] = prijs;
-  else _wizPrijzen.push(prijs);
-  renderPrijzenWizard();
-  document.getElementById('modal-prijs').remove();
-  toast(idx != null ? 'Prijscategorie bijgewerkt.' : 'Prijscategorie toegevoegd.');
-}
-
 function renderSponsorWizardStep() {
   // Vul hoofdsponsor dropdown
   vulHoofdsponsorDropdown(_wizHoofdsponsorId || '');
@@ -5851,9 +5603,7 @@ function dbWedstrijdNaarApp(w) {
     tsFormule: w.ts_formule || 'app',
     intervalMin: w.interval_min || 10,
     commissieId: w.commissie_id || null,
-    qualifying: w.qualifying !== false,
-    divisies: w.divisies || null,
-    prijzen: w.prijzen || null,};
+    qualifying: w.qualifying !== false,};
 }
 function dbIngNaarApp(i) {
   return {
@@ -6113,9 +5863,7 @@ async function dbSaveWedstrijd(w) {
     ts_formule: w.tsFormule || 'app',
     interval_min: w.intervalMin || 10,
     commissie_id: w.commissieId || null,
-    qualifying: w.qualifying !== false,
-    divisies: w.divisies || null,
-    prijzen: w.prijzen || null,};
+    qualifying: w.qualifying !== false,};
   if (w.id && String(w.id).includes('-')) {
     // PATCH: stuur Prefer return=representation zodat we de bijgewerkte row terugkrijgen
     var url = new URL(SUPA_URL + '/rest/v1/wedstrijden');
@@ -7890,9 +7638,6 @@ function editW(id){
     // Qualifying
     var qTg = document.querySelectorAll('#fqualifying-tg .tgb');
     qTg.forEach(function(b){ b.classList.toggle('on', b.dataset.val === String(w.qualifying !== false)); });
-    // Divisies
-    _wizDivisies = w.divisies ? JSON.parse(JSON.stringify(w.divisies)) : [];
-    _wizPrijzen = w.prijzen ? JSON.parse(JSON.stringify(w.prijzen)) : [];
     // Inschrijf datums
     var fop = document.getElementById('fop'); if(fop && w.inschrijfOpen) fop.value = w.inschrijfOpen;
     var fsluit = document.getElementById('fsluit'); if(fsluit && w.inschrijfSluit) fsluit.value = w.inschrijfSluit;
@@ -7974,8 +7719,6 @@ function vulCommissieDropdown(geselecteerd){
 
 function resetForm(){
   _editId=null;
-  _wizDivisies=[];
-  _wizPrijzen=[];
   // Default leider: huidige user als die admin is
   var defLeiderId = '';
   if (_currentUser && (_currentUser.rol === 'Admin' || _currentUser.rol === 'Wedstrijdleider')) {
@@ -8083,8 +7826,6 @@ function bouwWedstrijdUitFormulier(status) {
     tsFormule: (document.getElementById('fts-formule') || {}).value || 'app',
     commissieId: (document.getElementById('fcommissie') || {}).value || null,
     qualifying: (function(){ var b=document.querySelector('#fqualifying-tg .tgb.on'); return b ? b.dataset.val !== 'false' : true; })(),
-    divisies: _wizDivisies.length > 0 ? JSON.parse(JSON.stringify(_wizDivisies)) : null,
-    prijzen: _wizPrijzen.length > 0 ? JSON.parse(JSON.stringify(_wizPrijzen)) : null,
   };
 }
 
@@ -17669,8 +17410,6 @@ function compStap(richting) {
 
   // Bij stap 1: render rondes lijst
   if (nieuw === 1) compRenderGegenereerdeRondes();
-  // Bij stap 3: render divisies
-  if (nieuw === 3) { renderDivisiesWizard(); renderPrijzenWizard(); }
 
   document.getElementById('comp-prev-btn').style.display = nieuw > 0 ? '' : 'none';
   document.getElementById('comp-next-btn').style.display = nieuw < 2 ? '' : 'none';
@@ -19092,39 +18831,31 @@ window.addEventListener('offline', updateOnlineStatus);
         </div>
         <div id="s3" style="display:none">
           <div class="card">
-            <div class="card-hd">Divisies &amp; categorieën
-              <div class="card-hd-r"><span style="font-size:11px;color:var(--txm);font-weight:400">Optioneel — laat leeg voor één klassement</span></div>
+            <div class="card-hd">Categorieën &amp; prijzen</div>
+            <div class="blk"><div class="blk-t">Handicap categorieën</div>
+              <div id="catlist">
+                <div class="pr"><input class="fi" value="Categorie A"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 4px">HCP</span><input class="fw60" value="0"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 3px">t/m</span><input class="fw60" value="10"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
+                <div class="pr"><input class="fi" value="Categorie B"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 4px">HCP</span><input class="fw60" value="11"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 3px">t/m</span><input class="fw60" value="20"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
+                <div class="pr"><input class="fi" value="Categorie C"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 4px">HCP</span><input class="fw60" value="21"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 3px">t/m</span><input class="fw60" value="36"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
+              </div>
+              <button class="btn btn-s btn-xs" style="margin-top:6px" onclick="addCat()">+ Categorie</button>
             </div>
-            <p style="font-size:13px;color:var(--txm);margin:0 0 1rem 0;line-height:1.6">
-              Voeg divisies toe als je spelers in aparte groepen wil indelen met eigen scoringsvorm en tee.<br>
-              Voeg prijscategorieën toe voor bijv. "Beste dame" of "Beste senior" — die filteren op het divisie-klassement.
-            </p>
-
-            <!-- Divisies -->
-            <div style="margin-bottom:1.5rem">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
-                <div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Divisies</div>
-                <button class="btn btn-p btn-xs" onclick="openDivisieModal()">+ Divisie toevoegen</button>
+            <div class="blk"><div class="blk-t">Prijzen</div>
+              <div id="prizelist">
+                <div class="pr"><input class="fi" value="1e prijs netto overall"/><input class="fw" value="Wisselprijs + €50"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
+                <div class="pr"><input class="fi" value="2e prijs netto overall"/><input class="fw" value="€30 voucher"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
               </div>
-              <div id="div-lijst">
-                <div style="font-size:12px;color:var(--txm);padding:.5rem 0">Nog geen divisies — wedstrijd krijgt één gecombineerd klassement.</div>
-              </div>
+              <button class="btn btn-s btn-xs" style="margin-top:6px" onclick="addPrize()">+ Prijs</button>
             </div>
-
-            <!-- Prijscategorieën -->
-            <div style="margin-bottom:1rem">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
-                <div style="font-size:12px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.05em">Prijscategorieën</div>
-                <button class="btn btn-s btn-xs" onclick="openPrijsModal()">+ Prijs toevoegen</button>
+            <div class="blk"><div class="blk-t">Speciale prijzen</div>
+              <div id="speclist">
+                <div class="pr"><input class="fi" value="Nearest to pin — hole 7"/><input class="fw" value="Doos golfballen"/><button class="del" onclick="this.closest('.pr').remove()">&#215;</button></div>
               </div>
-              <div id="prijs-lijst">
-                <div style="font-size:12px;color:var(--txm);padding:.5rem 0">Nog geen prijscategorieën.</div>
-              </div>
+              <button class="btn btn-s btn-xs" style="margin-top:6px" onclick="addSpec()">+ Speciale prijs</button>
             </div>
-
             <div style="display:flex;gap:8px;justify-content:flex-end">
               <button class="btn btn-s" onclick="goStep(2)">&#8592; Terug</button>
-              <button class="btn btn-p" onclick="goStep(4)">Volgende &#8594;</button>
+              <button class="btn btn-p" onclick="goStep(4)">Overzicht &#8594;</button>
             </div>
           </div>
         </div>
