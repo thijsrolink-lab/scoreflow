@@ -5708,7 +5708,8 @@ function dbWedstrijdNaarApp(w) {
     leeftijdMax: w.leeftijd_max != null ? w.leeftijd_max : null,
     tees: w.tees || null,
     categorieen: w.categorieen || null,
-    specialHoles: w.special_holes || null,};
+    specialHoles: w.special_holes || null,
+    toelatingGs: w.toelating_gs || 'mixed',};
 }
 function dbIngNaarApp(i) {
   return {
@@ -5974,7 +5975,8 @@ async function dbSaveWedstrijd(w) {
     leeftijd_max: w.leeftijdMax != null ? w.leeftijdMax : null,
     tees: w.tees || null,
     categorieen: w.categorieen || null,
-    special_holes: w.specialHoles || null,};
+    special_holes: w.specialHoles || null,
+    toelating_gs: w.toelatingGs || 'mixed',};
   if (w.id && String(w.id).includes('-')) {
     // PATCH: stuur Prefer return=representation zodat we de bijgewerkte row terugkrijgen
     var url = new URL(SUPA_URL + '/rest/v1/wedstrijden');
@@ -7708,8 +7710,7 @@ function editW(id){
     sv('fn', w.naam);
     sv('fd', w.datum);
     sv('fb', w.baan);
-    sv('fcr', w.cr);
-    sv('fsl', w.slope);
+    sv('frondes', w.rondes || 1);
     sv('fhmax', w.hcpmax);
     sv('ft', w.tijd || '08:00');
     sv('fhmin', w.hcpmin || 0);
@@ -7760,6 +7761,12 @@ function editW(id){
     _wizCategorieen = w.categorieen ? JSON.parse(JSON.stringify(w.categorieen)) : [];
     _wizSpecialHoles = w.specialHoles ? JSON.parse(JSON.stringify(w.specialHoles)) : [];
     renderTeesLijst();
+    renderCategorieenLijst();
+    renderSpecialHolesLijst();
+    // Toelating geslacht
+    document.querySelectorAll('#ftoelating-gs .tgb').forEach(function(b){
+      b.classList.toggle('on', (b.dataset.gs||'mixed') === (w.toelatingGs||'mixed'));
+    });
     // Inschrijf datums
     var fop = document.getElementById('fop'); if(fop && w.inschrijfOpen) fop.value = w.inschrijfOpen;
     var fsluit = document.getElementById('fsluit'); if(fsluit && w.inschrijfSluit) fsluit.value = w.inschrijfSluit;
@@ -7776,8 +7783,9 @@ function editW(id){
 
 function delW(id){
   if(!confirm('Wedstrijd verwijderen?'))return;
+  var delWobj=WEDSTRIJDEN.find(function(x){return x.id===id;});
   WEDSTRIJDEN=WEDSTRIJDEN.filter(function(x){return x.id!==id;});
-  logActie('wedstrijd_verwijderd', null, wId, wNaam);
+  logActie('wedstrijd_verwijderd', null, id, delWobj?delWobj.naam:String(id));
   renderWedstrijden();toast('Wedstrijd verwijderd.');
   // Supabase verwijderen
   supa('wedstrijden','DELETE',null,{id:'eq.'+id})
@@ -7868,7 +7876,16 @@ function resetForm(){
   _wizHoofdsponsorId = '';
   vulHoofdsponsorDropdown('');
   var now=new Date().toISOString().split('T')[0];
-  ['fn','fb','fomschr'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['fn','fb','fomschr','fleeftijdmin','fleeftijdmax'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var frondesEl=document.getElementById('frondes'); if(frondesEl)frondesEl.value=1;
+  var ftbEl=document.getElementById('ftiebreak'); if(ftbEl)ftbEl.value='matching';
+  // Qualifying terug naar standaard (qualifying aan)
+  document.querySelectorAll('#fqualifying-tg .tgb').forEach(function(b){b.classList.toggle('on',b.dataset.val!=='false');});
+  // Toelating geslacht terug naar mixed
+  document.querySelectorAll('#ftoelating-gs .tgb').forEach(function(b){b.classList.toggle('on',(b.dataset.gs||'mixed')==='mixed');});
+  renderTeesLijst();
+  renderCategorieenLijst();
+  renderSpecialHolesLijst();
   if(document.getElementById('fd'))document.getElementById('fd').value=now;
   if(document.getElementById('fop'))document.getElementById('fop').value=now;
   var sl=new Date();sl.setDate(sl.getDate()+14);
@@ -7879,9 +7896,7 @@ function resetForm(){
 function tSingle(btn,g){btn.closest('.tg').querySelectorAll('.tgb').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');}
 function tMulti(btn){btn.classList.toggle('on');}
 
-function addCat(){var r=document.createElement('div');r.className='pr';r.innerHTML='<input class="fi" placeholder="Categorie"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 4px">HCP</span><input class="fw60" placeholder="van"/><span style="font-size:12px;color:var(--txm);flex-shrink:0;padding:0 3px">t/m</span><input class="fw60" placeholder="tot"/><button class="del" onclick="this.closest(\'.pr\').remove()">&#215;</button>';document.getElementById('catlist').appendChild(r);}
 function addPrize(){var r=document.createElement('div');r.className='pr';r.innerHTML='<input class="fi" placeholder="Prijs"/><input class="fw" placeholder="Waarde"/><button class="del" onclick="this.closest(\'.pr\').remove()">&#215;</button>';document.getElementById('prizelist').appendChild(r);}
-function addSpec(){var r=document.createElement('div');r.className='pr';r.innerHTML='<input class="fi" placeholder="Speciale prijs"/><input class="fw" placeholder="Waarde"/><button class="del" onclick="this.closest(\'.pr\').remove()">&#215;</button>';document.getElementById('speclist').appendChild(r);}
 
 function buildOv(){
   var naam=document.getElementById('fn').value||'(geen naam)';
@@ -7937,7 +7952,8 @@ function bouwWedstrijdUitFormulier(status) {
     esc: document.getElementById('fesc').value || 'geen',
     startgeld: parseFloat(document.getElementById('fsg').value) || 0,
     skinsPot: 0,
-    rondes: 1,
+    rondes: parseInt((document.getElementById('frondes')||{}).value) || 1,
+    toelatingGs: (function(){var b=document.querySelector('#ftoelating-gs .tgb.on');return b?(b.dataset.gs||'mixed'):'mixed';})(),
     flt: parseInt(document.getElementById('fflt').value) || 3,
     leiderId: (function() {
       var el = document.getElementById('fleider');

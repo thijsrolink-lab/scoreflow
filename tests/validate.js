@@ -437,8 +437,6 @@ const criticalFields = [
   {form: 'fd',      app: 'datum',         db: 'datum',          label: 'Datum'},
   {form: 'fb',      app: 'baan',          db: 'baan',           label: 'Baan'},
   {form: 'ft',      app: 'tijd',          db: 'tijd',           label: 'Starttijd'},
-  {form: 'fcr',     app: 'cr',            db: 'cr',             label: 'CR'},
-  {form: 'fsl',     app: 'slope',         db: 'slope',          label: 'Slope'},
   {form: 'fh',      app: 'holes',         db: 'holes',          label: 'Holes'},
   {form: 'fmax',    app: 'max',           db: 'max_deelnemers', label: 'Max deelnemers'},
   {form: 'fflt',    app: 'flt',           db: 'flt',            label: 'Flight grootte'},
@@ -450,6 +448,8 @@ const criticalFields = [
   {form: 'fsg',     app: 'startgeld',     db: 'startgeld',      label: 'Startgeld'},
   {form: 'fop',     app: 'inschrijfOpen', db: 'inschrijf_open', label: 'Inschrijving open'},
   {form: 'fsluit',  app: 'inschrijfSluit',db: 'inschrijf_sluit',label: 'Inschrijving sluit'},
+  {form: 'frondes', app: 'rondes',        db: 'rondes',         label: 'Aantal rondes'},
+  {form: 'ftiebreak',app: 'tiebreak',     db: 'tiebreak',       label: 'Tiebreak'},
   {form: 'fomschr', app: 'omschrijving',  db: 'omschrijving',   label: 'Omschrijving'},
 ];
 
