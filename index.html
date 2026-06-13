@@ -5615,8 +5615,53 @@ var COMP_TYPES = [
 // ============================================================
 // SUPABASE CLIENT — ScoreFlow v5
 // ============================================================
-var SUPA_URL = 'https://zyxusjhxncwytohjxrnu.supabase.co';
-var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5eHVzamh4bmN3eXRvaGp4cm51Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjUyNDAsImV4cCI6MjA5MjI0MTI0MH0.FaKpwQtIseR_2Vz0jw9lZWWbdT535CwoteRaeMENyWM';
+// Omgeving-detectie: de app kiest automatisch de juiste database
+// op basis van waar hij draait. Zo wijst productie altijd naar de
+// productie-database, en lokaal/preview naar de testdatabase —
+// ongeacht wat er per ongeluk gepusht wordt.
+//
+// PRODUCTIE  = de live hostname (pas PROD_HOSTS aan bij nieuwe domein)
+// TEST/DEV   = localhost, Netlify deploy-previews, branch-deploys
+// ============================================================
+
+var SUPA_CONFIG = {
+  // Productie-database (live versie)
+  productie: {
+    url: 'https://zyxusjhxncwytohjxrnu.supabase.co',
+    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5eHVzamh4bmN3eXRvaGp4cm51Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjUyNDAsImV4cCI6MjA5MjI0MTI0MH0.FaKpwQtIseR_2Vz0jw9lZWWbdT535CwoteRaeMENyWM'
+  },
+  // Testdatabase (lokaal ontwikkelen + previews)
+  // VUL HIER JE EIGEN TEST-SUPABASE IN.
+  // Laat leeg om ook lokaal de productie-DB te gebruiken (afgeraden).
+  test: {
+    url: '',
+    key: ''
+  }
+};
+
+// Hostnames die als PRODUCTIE gelden. Voeg hier het echte domein toe.
+var PROD_HOSTS = ['lekkergolfen.netlify.app'];
+
+(function bepaalOmgeving() {
+  var host = (typeof location !== 'undefined' && location.hostname) ? location.hostname : '';
+  var isProd = PROD_HOSTS.indexOf(host) >= 0;
+  var cfg;
+  if (isProd) {
+    cfg = SUPA_CONFIG.productie;
+  } else if (SUPA_CONFIG.test.url) {
+    cfg = SUPA_CONFIG.test;
+    console.info('[ScoreFlow] TEST-omgeving actief (' + host + ') → testdatabase');
+  } else {
+    // Geen testconfig ingevuld → val terug op productie (met waarschuwing)
+    cfg = SUPA_CONFIG.productie;
+    console.warn('[ScoreFlow] Geen test-Supabase ingesteld — gebruikt PRODUCTIE-database op ' + host);
+  }
+  window.SUPA_URL = cfg.url;
+  window.SUPA_KEY = cfg.key;
+})();
+
+var SUPA_URL = window.SUPA_URL;
+var SUPA_KEY = window.SUPA_KEY;
 var SUPA_SESSION = null;
 var SUPA_REALTIME_WS = null;
 
