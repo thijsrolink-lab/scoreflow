@@ -28,6 +28,71 @@ CREATE TABLE IF NOT EXISTS commissie_leden (
   aangemaakt_op timestamptz DEFAULT now()
 );
 
+-- Competities (reeks wedstrijden met gecombineerd klassement)
+CREATE TABLE IF NOT EXISTS competities (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  naam          text NOT NULL,
+  type          text DEFAULT 'eclectic',
+  start_datum   date,
+  eind_datum    date,
+  omschrijving  text,
+  baan          text,
+  cr            numeric,
+  slope         int,
+  holes         int DEFAULT 18,
+  hcp_perc      int DEFAULT 100,
+  min_rondes    int DEFAULT 2,
+  ecl_hcp_perc  numeric DEFAULT 0.75,
+  wids          jsonb DEFAULT '[]'::jsonb,
+  status        text DEFAULT 'actief',
+  puntenschema  jsonb,
+  aangemaakt_op timestamptz DEFAULT now()
+);
+
+-- Sponsoren
+CREATE TABLE IF NOT EXISTS sponsoren (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  naam          text NOT NULL,
+  logo          text,
+  website       text,
+  contact       text,
+  email         text,
+  bedrag        numeric,
+  aangemaakt_op timestamptz DEFAULT now()
+);
+
+-- Wedstrijd-sponsoren koppeltabel
+CREATE TABLE IF NOT EXISTS wedstrijd_sponsoren (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedstrijd_id  text,
+  sponsor_id    uuid REFERENCES sponsoren(id) ON DELETE CASCADE,
+  type          text DEFAULT 'hoofdsponsor',
+  hole_nr       int,
+  aangemaakt_op timestamptz DEFAULT now()
+);
+
+-- Team drives (Texas Scramble — welke speler dreef op welke hole)
+CREATE TABLE IF NOT EXISTS team_drives (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  wid           text,
+  sid           text,
+  hole          int,
+  drives        int,
+  aangemaakt_op timestamptz DEFAULT now()
+);
+
+-- Audit log (indien nog niet aanwezig)
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ts          timestamptz DEFAULT now(),
+  user_id     uuid,
+  user_email  text,
+  actie       text NOT NULL,
+  tabel       text,
+  record_id   text
+);
+
+
 
 -- ============================================================
 -- 2. KOLOMMEN
